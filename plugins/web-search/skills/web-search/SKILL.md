@@ -41,14 +41,26 @@ Three lessons drive everything below:
 | **Browser automation** (`mcp__playwright__*`) | sites that block everything else; live prices; anything behind JS | see the blocked-channel table in section 5 |
 | `Bash` + `curl` | sitemaps, XML, JSON APIs, PDFs, the primary-source probe | section 4 |
 
-This plugin brings its own Exa server, and pulls in the `playwright` plugin as a
-dependency, so both should be available. **If one of them is missing anyway** — server
-disabled, `npx` unavailable, no network — say so in your findings instead of silently
-working around it; a missing engine changes which conclusions you are entitled to.
-Without Exa, `WebSearch` becomes the default and the primary-source probe (section 4)
-carries more weight. Without browser automation, pages and prices from the blocked hosts
-in section 5 stay **unverified** and must be labelled as such — they never become an
-N2/N3 verdict.
+This plugin brings its own Exa server. Browser automation it **expects to already be
+there** and deliberately does not install: a `playwright` MCP is the host project's to
+provide, because a project that already runs one would otherwise get a second server
+under the same name.
+
+**A missing engine is reported, never worked around silently** — it changes which
+conclusions you are entitled to. Without Exa, `WebSearch` becomes the default and the
+primary-source probe (section 4) carries more weight. Without browser automation, pages
+and prices from the blocked hosts in section 5 stay **unverified** and must be labelled
+as such — they never become an N2/N3 verdict.
+
+**No `mcp__playwright__*` tools at all?** Say so the first time the task needs them, and
+offer to install it rather than quietly downgrading the answer:
+
+- `claude plugin install playwright@claude-plugins-official` — one command, runs
+  `npx @playwright/mcp@latest`;
+- or, in a project that pins its own tooling, add `@playwright/mcp` to its manifest and
+  point `.mcp.json` at the installed binary — pinned and faster, no `npx` on the path.
+
+Then continue on the remaining engines and label what stayed unverified.
 
 **Querying Exa — it is not a keyword engine.**
 
