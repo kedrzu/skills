@@ -149,12 +149,11 @@ you know where it came from is not. And any named external service, API or versi
 current primary documentation before a decision rests on it. Check, don't recall.
 
 **False precision.** The reference case is a weighted matrix of invented numbers producing "93.4 vs 75.6"
-offered as justification (`git show cea46df2b:research/2026-07-18-longitudinal-medical-agent-orchestration.md`).
-But the same move in prose — "safety and modularity clearly dominate here" — is worse, because the
-arithmetic is hidden rather than merely fake. What is out of bounds is collapsing incommensurable
-criteria into one ordering, not tables as such. Name the consequence that actually separates the options,
-plus the condition under which the rejected one would win. If you can't state that condition, the
-options don't differ materially — say so and take the cheaper one.
+offered as justification. But the same move in prose — "safety and modularity clearly dominate here" — is
+worse, because the arithmetic is hidden rather than merely fake. What is out of bounds is collapsing
+incommensurable criteria into one ordering, not tables as such. Name the consequence that actually
+separates the options, plus the condition under which the rejected one would win. If you can't state
+that condition, the options don't differ materially — say so and take the cheaper one.
 
 ## Evidence stays next to the claim
 
