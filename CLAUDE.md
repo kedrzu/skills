@@ -107,6 +107,13 @@ of every project that installs the plugin. When a server already exists as someo
 else's plugin, depend on it instead of copying its config — see below. Either way the
 user is asked to trust the server on first use, so installation is never silent.
 
+**Do not depend on a plugin whose only content is an MCP server that host projects
+commonly run themselves** — a browser, a language server, a database client. The
+dependency is installed *and enabled* transitively, and disabling it is then refused, so
+a project that already declares that server in its own `.mcp.json` ends up with two under
+one name and no way to switch one off. Name the expectation in `SKILL.md` instead, and
+say there what to do when the server is absent.
+
 A skill must still degrade gracefully: say in `SKILL.md` what to do when the server is
 missing, because a user can disable it.
 
