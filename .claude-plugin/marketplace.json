@@ -15,7 +15,7 @@
       "name": "design",
       "source": "./plugins/design",
       "description": "Think a feature through with the user before building it, and leave behind a design folder: a readable story over an append-only log of what was decided and rejected",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "workflow"
     },
     {
