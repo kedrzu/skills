@@ -1,0 +1,11 @@
+{
+  "name": "kedrzu-skills",
+  "description": "Personal collection of Claude Code skills shared across projects",
+  "owner": {
+    "name": "Michał Kędrzyński"
+  },
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": []
+}

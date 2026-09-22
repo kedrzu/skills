@@ -1,0 +1,107 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    name: Validate manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate marketplace
+        run: claude plugin validate . --strict
+
+      - name: Validate each plugin
+        run: |
+          shopt -s nullglob
+          for manifest in plugins/*/.claude-plugin/plugin.json; do
+            dir=$(dirname "$(dirname "$manifest")")
+            echo "::group::$dir"
+            claude plugin validate "./$dir" --strict
+            echo "::endgroup::"
+          done
+
+      # A plugin's version is the cache key consumers update against: content that
+      # changes without a version bump never reaches them.
+      - name: Require a version bump for every changed plugin
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "No base commit to compare against, skipping"
+            exit 0
+          fi
+          shopt -s nullglob
+          status=0
+          for manifest in plugins/*/.claude-plugin/plugin.json; do
+            dir=$(dirname "$(dirname "$manifest")")
+            name=$(basename "$dir")
+            if git diff --quiet "$BASE_SHA" HEAD -- "$dir"; then
+              continue
+            fi
+            old=$(git show "$BASE_SHA:$manifest" 2>/dev/null | jq -r '.version // empty' || true)
+            if [ -z "$old" ]; then
+              echo "$name: new plugin, no previous version to compare"
+              continue
+            fi
+            new=$(jq -r '.version // empty' "$manifest")
+            if [ "$old" = "$new" ]; then
+              echo "::error file=$manifest::$name changed but its version is still $old — bump it"
+              status=1
+            else
+              echo "$name: $old -> $new"
+            fi
+          done
+          exit $status
+
+  tag:
+    name: Tag released plugin versions
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Create missing <plugin>--v<version> tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          for manifest in plugins/*/.claude-plugin/plugin.json; do
+            dir=$(dirname "$(dirname "$manifest")")
+            name=$(jq -r '.name' "$manifest")
+            version=$(jq -r '.version // empty' "$manifest")
+            if [ -z "$version" ]; then
+              echo "$name has no version, skipping"
+              continue
+            fi
+            if git rev-parse -q --verify "refs/tags/$name--v$version" >/dev/null; then
+              echo "$name--v$version already tagged"
+              continue
+            fi
+            claude plugin tag "./$dir" --push
+          done
