@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "telegram-notify": {
+      "command": "python3",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/skills/telegram/scripts/server.py"]
+    }
+  }
+}
