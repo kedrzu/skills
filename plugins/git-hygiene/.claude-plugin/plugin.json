@@ -1,0 +1,13 @@
+{
+  "name": "git-hygiene",
+  "description": "Git practices that only bite in a shared clone — starting with stashing safely when several worktrees or parallel agents share one stash stack",
+  "version": "0.1.0",
+  "author": {
+    "name": "Michał Kędrzyński"
+  },
+  "keywords": [
+    "git",
+    "worktree",
+    "stash"
+  ]
+}

@@ -7,8 +7,31 @@
   "metadata": {
     "pluginRoot": "./plugins"
   },
-  "allowCrossMarketplaceDependenciesOn": ["claude-plugins-official"],
+  "allowCrossMarketplaceDependenciesOn": [
+    "claude-plugins-official"
+  ],
   "plugins": [
+    {
+      "name": "design",
+      "source": "./plugins/design",
+      "description": "Think a feature through with the user before building it, and leave behind a design folder: a readable story over an append-only log of what was decided and rejected",
+      "version": "0.1.0",
+      "category": "workflow"
+    },
+    {
+      "name": "git-hygiene",
+      "source": "./plugins/git-hygiene",
+      "description": "Git practices that only bite in a shared clone — starting with stashing safely when several worktrees or parallel agents share one stash stack",
+      "version": "0.1.0",
+      "category": "development"
+    },
+    {
+      "name": "skill-improve",
+      "source": "./plugins/skill-improve",
+      "description": "Revise an existing skill so the agent behaves as intended, without the skill swelling — evidence from real transcripts first, knowledge grows freely, procedure asks",
+      "version": "0.1.0",
+      "category": "workflow"
+    },
     {
       "name": "web-search",
       "source": "./plugins/web-search",
