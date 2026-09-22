@@ -84,6 +84,32 @@ as a trigger: what the skill does *and* the situations that should invoke it.
 
 4. Add at least one skill and validate.
 
+## Shipping MCP servers with a plugin
+
+A plugin may carry its own MCP servers in **`.mcp.json` at the plugin root** (next to
+`.claude-plugin/`, not inside it). They start with the plugin, so a skill that needs a
+server does not have to document it as a prerequisite:
+
+```json
+{
+  "mcpServers": {
+    "exa": { "type": "http", "url": "https://mcp.exa.ai/mcp" }
+  }
+}
+```
+
+`${CLAUDE_PLUGIN_ROOT}` and `${VAR:-default}` expand there, which is how an optional API
+key is handled (`"Authorization": "${SOME_API_KEY:-}"`).
+
+Weigh what you bundle. A keyless HTTP server with a couple of tools is nearly free; a
+local server that needs a runtime and adds dozens of tools is paid for in every session
+of every project that installs the plugin. When a server already exists as someone
+else's plugin, depend on it instead of copying its config — see below. Either way the
+user is asked to trust the server on first use, so installation is never silent.
+
+A skill must still degrade gracefully: say in `SKILL.md` what to do when the server is
+missing, because a user can disable it.
+
 ## Dependencies between plugins
 
 Dependencies exist at **plugin** level, not skill level. When a skill needs another

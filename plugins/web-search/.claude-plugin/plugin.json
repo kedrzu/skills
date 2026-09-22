@@ -1,0 +1,19 @@
+{
+  "name": "web-search",
+  "description": "Protocol for effective web research: engine selection, query hygiene, graded negative verdicts and primary-source verification",
+  "version": "0.1.0",
+  "author": {
+    "name": "Michał Kędrzyński"
+  },
+  "keywords": [
+    "research",
+    "web-search",
+    "verification"
+  ],
+  "dependencies": [
+    {
+      "name": "playwright",
+      "marketplace": "claude-plugins-official"
+    }
+  ]
+}
