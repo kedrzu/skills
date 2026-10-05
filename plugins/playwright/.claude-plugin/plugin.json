@@ -1,0 +1,7 @@
+{
+  "name": "playwright",
+  "description": "Playwright MCP browser automation, run on bun instead of npx — the one browser every skill in this marketplace depends on",
+  "version": "0.1.0",
+  "author": { "name": "Michał Kędrzyński" },
+  "keywords": ["playwright", "browser", "mcp", "bun"]
+}

@@ -38,13 +38,11 @@ Three lessons drive everything below:
 |---|---|---|
 | **`mcp__exa__web_search_exa`** | semantic search that returns page *content*, not just links; finds the long tail of small shops, niche docs and specific variant codes | **default starting point**: building a candidate list, "does this variant exist", product pages, obscure vendors |
 | `WebSearch` | operators (`site:`, `filetype:`, quoted strings), fresh news, one quick fact | you need a hard operator or something from the last few days |
-| **Browser automation** (`mcp__playwright__*`) | sites that block everything else; live prices; anything behind JS | see the blocked-channel table in section 5 |
+| **Browser automation** (`mcp__plugin_playwright_playwright__*`) | sites that block everything else; live prices; anything behind JS | see the blocked-channel table in section 5 |
 | `Bash` + `curl` | sitemaps, XML, JSON APIs, PDFs, the primary-source probe | section 4 |
 
-This plugin brings its own Exa server. Browser automation it **expects to already be
-there** and deliberately does not install: a `playwright` MCP is the host project's to
-provide, because a project that already runs one would otherwise get a second server
-under the same name.
+This plugin brings its own Exa server, and depends on the `playwright` plugin from the
+same marketplace for the browser (Playwright MCP run by `bunx`), so both should be there.
 
 **A missing engine is reported, never worked around silently** — it changes which
 conclusions you are entitled to. Without Exa, `WebSearch` becomes the default and the
@@ -52,15 +50,10 @@ primary-source probe (section 4) carries more weight. Without browser automation
 and prices from the blocked hosts in section 5 stay **unverified** and must be labelled
 as such — they never become an N2/N3 verdict.
 
-**No `mcp__playwright__*` tools at all?** Say so the first time the task needs them, and
-offer to install it rather than quietly downgrading the answer:
-
-- `claude plugin install playwright@claude-plugins-official` — one command, runs
-  `npx @playwright/mcp@latest`;
-- or, in a project that pins its own tooling, add `@playwright/mcp` to its manifest and
-  point `.mcp.json` at the installed binary — pinned and faster, no `npx` on the path.
-
-Then continue on the remaining engines and label what stayed unverified.
+**No browser tools at all?** Say so the first time the task needs them, rather than
+quietly downgrading the answer. The usual causes are a disabled plugin
+(`claude plugin enable playwright@kedrzu-skills`) or no `bun` on the PATH. Then continue
+on the remaining engines and label what stayed unverified.
 
 **Querying Exa — it is not a keyword engine.**
 

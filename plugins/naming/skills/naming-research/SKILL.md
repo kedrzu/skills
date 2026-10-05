@@ -103,10 +103,11 @@ record — it does not mean the domain can be bought at the normal price: regist
 and reserved names that look free from outside. Only a registrar settles that.
 
 For finalists, open Porkbun's search (`https://porkbun.com/checkout/search?q=<domain>`) with
-browser automation (`mcp__playwright__*`) and record `free` with the price, `premium` with the
-price, or `taken`. Playwright is the host project's to provide; when it is missing, say so, offer
-`claude plugin install playwright@claude-plugins-official`, and present finalists as
-`likely-free — not confirmed at a registrar`.
+browser automation (`mcp__plugin_playwright_playwright__*`) and record `free` with the price,
+`premium` with the price, or `taken`. The browser comes from the `playwright` plugin, which this
+plugin depends on. If the tools are missing anyway (plugin disabled, `bun` not on PATH), say so,
+point to `claude plugin enable playwright@kedrzu-skills` or installing bun, and present
+finalists as `likely-free — not confirmed at a registrar`.
 
 ## Searching the web
 

@@ -29,8 +29,15 @@
       "name": "naming",
       "source": "./plugins/naming",
       "description": "Find a name for a product, app or site over several rounds: candidates in chosen directions, domain checks, conflict checks, and a record in the repo so no feedback has to be repeated",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "research"
+    },
+    {
+      "name": "playwright",
+      "source": "./plugins/playwright",
+      "description": "Playwright MCP browser automation, run on bun instead of npx — the one browser every skill in this marketplace depends on",
+      "version": "0.1.0",
+      "category": "development"
     },
     {
       "name": "secrets",
@@ -57,7 +64,7 @@
       "name": "web-search",
       "source": "./plugins/web-search",
       "description": "Protocol for effective web research: engine selection, query hygiene, graded negative verdicts and primary-source verification",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "research"
     }
   ]
