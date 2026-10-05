@@ -184,6 +184,25 @@ A local copy satisfies another local plugin's dependency entry, and version
 constraints are not checked against local copies, so cross-plugin dependencies can be
 developed together this way.
 
+## Using these plugins while working on this repository
+
+`.claude/skills` is a committed symlink to `../plugins`. Claude Code loads every
+directory under a project's `.claude/skills/` that has a `.claude-plugin/plugin.json` as
+a `<name>@skills-dir` plugin, in place, so every session started at the repository root
+(each worktree included) has this repository's own skills — read live from that
+checkout, picked up by `/reload-plugins`, with no install and no version bump. A new
+plugin under `plugins/` is picked up automatically.
+
+- It loads only once the workspace is trusted. Trust is keyed on the main checkout, so
+  accept the trust dialog once there (or set `hasTrustDialogAccepted` for that path in
+  `~/.claude.json`); `claude -p` and SDK sessions never show the dialog.
+- An installed marketplace plugin with the same manifest name wins over the
+  skills-dir copy. Keep `<name>@kedrzu-skills` disabled in this project, and expect a
+  `Not loaded` row when a plugin shares its name with one from another marketplace.
+- Do not register this checkout with `claude plugin marketplace add .`: marketplaces
+  are recorded per user by name, so it would repoint `kedrzu-skills` in every project
+  at this working copy.
+
 ## Publishing
 
 There is no push-style publish step for this marketplace: **the git repository is the
