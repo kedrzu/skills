@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Set up the Telegram notification channel - store the bot token, pair the chat, verify delivery. Use when the user pastes a Telegram bot token, asks to configure or fix Telegram notifications, asks why a notification did not arrive, or wants to check whether the channel works.
+description: Set up the Telegram notification channel - collect the bot token in a masked dialog, pair the chat, verify delivery. Use when the user has a bot token from @BotFather to add or replace, asks to configure or fix Telegram notifications, asks why a notification did not arrive, or wants to check whether the channel works.
 user-invocable: true
 allowed-tools:
   - Read
@@ -30,21 +30,33 @@ All work goes through the bundled CLI — do not hand-write the files:
 CORE="${CLAUDE_PLUGIN_ROOT}/skills/telegram/scripts/telegram_core.py"
 ```
 
-## Dispatch on arguments
-
-### No arguments — status
+## Status
 
 Run `python3 "$CORE" check` and report it in plain language: is a token stored,
 is a chat paired, does Telegram answer, which bot is it. Never print the token.
 End with the single concrete next step, which the `next_step` field already
 names.
 
-### An argument that looks like a token (`123456789:AA...`)
+## Token
 
-1. `python3 "$CORE" set-token "<token>"` — writes `.env` at mode 0600 inside a
-   0700 directory and validates the token against `getMe`. Report the bot's
-   `@username` back, because the user needs it for the next step.
-2. Then pair (below).
+The token never goes through the chat: it is collected by the `secrets` skill
+(plugin `secrets`, a declared dependency of this one), whose `secret.py` asks
+the user in a masked dialog you cannot read. Load that skill for the command
+and its exit codes, then store the token where `$CORE` reads it:
+
+```bash
+python3 "$SECRET" set TELEGRAM_BOT_TOKEN \
+  --file "${TELEGRAM_STATE_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/channels/telegram}/.env" \
+  --hint "Bot token from @BotFather (/newbot, or /token for an existing bot), e.g. 123456789:AAH..."
+```
+
+Then `python3 "$CORE" check` validates it against `getMe`. Report the bot's
+`@username` back, because the user needs it for pairing. A 401 there means a
+truncated or wrong value: run `set` again.
+
+A token that arrived as an argument or in a message is already in the
+transcript. Do not store that copy; say so, and suggest `/revoke` in @BotFather,
+which issues a new token for the dialog.
 
 ## Pairing
 
