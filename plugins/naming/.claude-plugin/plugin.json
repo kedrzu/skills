@@ -1,7 +1,7 @@
 {
   "name": "naming",
   "description": "Find a name for a product, app or site over several rounds: candidates in chosen directions, domain checks, conflict checks, and a record in the repo so no feedback has to be repeated",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Michał Kędrzyński"
   },
