@@ -33,6 +33,13 @@
       "category": "workflow"
     },
     {
+      "name": "telegram",
+      "source": "./plugins/telegram",
+      "description": "One-way Telegram notifications: let the agent reach your phone when you are away from the terminal",
+      "version": "0.1.0",
+      "category": "workflow"
+    },
+    {
       "name": "web-search",
       "source": "./plugins/web-search",
       "description": "Protocol for effective web research: engine selection, query hygiene, graded negative verdicts and primary-source verification",
