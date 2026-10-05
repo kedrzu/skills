@@ -33,6 +33,13 @@
       "category": "research"
     },
     {
+      "name": "secrets",
+      "source": "./plugins/secrets",
+      "description": "Collect API keys and tokens through a masked dialog the agent cannot read, and hand them to scripts without exposing them — no secret ever pasted into the chat",
+      "version": "0.1.0",
+      "category": "security"
+    },
+    {
       "name": "skill-improve",
       "source": "./plugins/skill-improve",
       "description": "Revise an existing skill so the agent behaves as intended, without the skill swelling — evidence from real transcripts first, knowledge grows freely, procedure asks",
@@ -43,7 +50,7 @@
       "name": "telegram",
       "source": "./plugins/telegram",
       "description": "One-way Telegram notifications: let the agent reach your phone when you are away from the terminal",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "workflow"
     },
     {

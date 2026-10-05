@@ -17,6 +17,9 @@ convention of the official telegram plugin so both can share a single bot:
     chat id:  $TELEGRAM_CHAT_ID   -> STATE_DIR/notify.json
                                   -> STATE_DIR/access.json  (allowFrom[0])
 
+The token is written by secret.py from the `secrets` plugin, which asks for it in
+a masked dialog, so it never passes through the agent or this module's argv.
+
 There is deliberately no way to pass a chat id in: this client can only ever
 reach the configured chat. A hijacked prompt has nothing to redirect.
 
@@ -94,7 +97,8 @@ def load_token() -> str:
         return token
     raise TelegramError(
         "No Telegram bot token. Create a bot with @BotFather on Telegram (/newbot), "
-        f"then run /telegram:setup <token> - it writes {state_dir() / '.env'} with mode 0600."
+        "then run /telegram:setup - it asks for the token in a masked dialog and writes "
+        f"{state_dir() / '.env'} with mode 0600."
     )
 
 
@@ -138,25 +142,13 @@ def save_chat_id(chat_id: str) -> Path:
     return path
 
 
-def save_token(token: str) -> Path:
-    target = state_dir()
-    target.mkdir(parents=True, exist_ok=True, mode=0o700)
-    path = target / ".env"
-    values = read_env_file(path)
-    values["TELEGRAM_BOT_TOKEN"] = token
-    body = "".join(f"{k}={v}\n" for k, v in values.items())
-    path.write_text(body, encoding="utf-8")
-    path.chmod(0o600)
-    return path
-
-
 # --------------------------------------------------------------------------
 # HTTP
 
 def explain(code: int, description: str) -> str:
     if code == 401:
         return ("Telegram rejected the bot token (401). It was revoked or mistyped - "
-                "get a fresh one from @BotFather and run /telegram:setup <token>.")
+                "get a fresh one from @BotFather and run /telegram:setup.")
     if code == 403 and "blocked" in description.lower():
         return ("The bot is blocked (403). Unblock it in Telegram and send it /start, "
                 "then try again.")
@@ -370,14 +362,6 @@ def cmd_pair(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_set_token(args: argparse.Namespace) -> int:
-    path = save_token(args.token.strip())
-    me = api("getMe", args.token.strip()).get("result", {})
-    print(json.dumps({"ok": True, "saved_to": str(path), "mode": "0600",
-                      "bot": f"@{me.get('username')}"}, ensure_ascii=False, indent=2))
-    return 0
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="One-way Telegram notifications.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -397,10 +381,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_pair = sub.add_parser("pair", help="discover the chat id after you send /start")
     p_pair.add_argument("--save", action="store_true", help="write it to notify.json")
     p_pair.set_defaults(func=cmd_pair)
-
-    p_token = sub.add_parser("set-token", help="store the bot token (mode 0600)")
-    p_token.add_argument("token")
-    p_token.set_defaults(func=cmd_set_token)
 
     return parser
 

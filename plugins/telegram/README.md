@@ -13,11 +13,10 @@ they read the same token from the same place, so one bot serves both.
 pick a name and a username ending in `bot`. You get a token like
 `123456789:AAHfiqksKZ8...` — copy all of it, including the leading digits.
 
-**2. Store it.** In Claude Code:
-
-```
-/telegram:setup 123456789:AAHfiqksKZ8...
-```
+**2. Store it.** In Claude Code, run `/telegram:setup`. A masked dialog asks
+for the token (the `secrets` plugin's `secret.py`), so it never passes through
+the chat or the agent. Do not paste it into the conversation: anything typed
+there stays in the session transcript.
 
 **3. Pair.** A bot cannot message you first, so open `t.me/<your-bot>`, press
 Start, and run `/telegram:setup` again. It captures the chat id and sends a test
@@ -68,23 +67,26 @@ python3 "$CORE" check
 python3 "$CORE" send --text "Deploy finished" [--format html] [--silent] [--dry-run]
 python3 "$CORE" send --stdin
 python3 "$CORE" pair --save
-python3 "$CORE" set-token <token>
 ```
+
+The token is written by `secret.py set TELEGRAM_BOT_TOKEN --file <state dir>/.env`
+from the `secrets` plugin, never passed to this CLI.
 
 Exit codes: `0` fine, `1` channel not usable (see the printed report), `2` error
 (JSON on stderr).
 
 ## Requirements
 
-`python3` only — no dependencies, no install step, nothing fetched at session
-start. The MCP protocol layer is ~150 lines of hand-rolled JSON-RPC, which two
+`python3` only — no packages, no install step, nothing fetched at session
+start. The `secrets` plugin, installed alongside as a dependency, collects the
+token. The MCP protocol layer is ~150 lines of hand-rolled JSON-RPC, which two
 tools do not outgrow.
 
 ## Failure modes
 
 | Symptom | Cause |
 | --- | --- |
-| `No Telegram bot token` | Not configured on this machine → `/telegram:setup <token>` |
+| `No Telegram bot token` | Not configured on this machine → `/telegram:setup` |
 | `No Telegram chat id` | Never sent `/start` to the bot → `/telegram:setup` |
 | 401 | Token revoked or mistyped |
 | 403 "blocked" | You blocked the bot; unblock and send `/start` |

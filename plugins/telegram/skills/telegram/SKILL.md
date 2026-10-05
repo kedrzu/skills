@@ -54,7 +54,7 @@ from "not paired" from "Telegram is down", and each has a different fix.
 
 | Symptom | Cause |
 |---|---|
-| `No Telegram bot token` | Never configured on this machine → `/telegram:setup <token>` |
+| `No Telegram bot token` | Never configured on this machine → `/telegram:setup` |
 | `No Telegram chat id` | Token set, but you never sent `/start` to the bot → `/telegram:setup` |
 | 401 | Token revoked or mistyped → new token from @BotFather |
 | 403, "blocked" | The user blocked the bot → they unblock it and send `/start` |

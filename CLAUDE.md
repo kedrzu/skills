@@ -44,6 +44,11 @@ directory name as its `source`.
   (`references/`, `scripts/`) and link to them from `SKILL.md`.
 - Reference bundled files from a skill with `${CLAUDE_PLUGIN_ROOT}`, never with an
   absolute path from this machine.
+- **A skill that needs a secret never asks for it in chat or as an argument** — the
+  value would stay in the session transcript. It collects it with `secret.py set` from
+  the `secrets` plugin (a masked dialog the agent cannot read), lets its own scripts read
+  the stored file, and declares `"secrets"` in `dependencies`. `telegram`'s setup is the
+  worked example.
 
 ## Adding a skill to an existing plugin
 

@@ -1,7 +1,8 @@
 {
   "name": "telegram",
   "description": "One-way Telegram notifications: let the agent reach your phone when you are away from the terminal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "Michał Kędrzyński" },
-  "keywords": ["telegram", "notifications", "mcp"]
+  "keywords": ["telegram", "notifications", "mcp"],
+  "dependencies": ["secrets"]
 }
