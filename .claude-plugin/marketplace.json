@@ -12,10 +12,17 @@
   ],
   "plugins": [
     {
-      "name": "design",
-      "source": "./plugins/design",
+      "name": "design-doc",
+      "source": "./plugins/design-doc",
       "description": "Think a feature through with the user before building it, and leave behind a design folder: a readable story over an append-only log of what was decided and rejected",
-      "version": "0.1.1",
+      "version": "0.2.0",
+      "category": "workflow"
+    },
+    {
+      "name": "dev",
+      "source": "./plugins/dev",
+      "description": "Plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup writes",
+      "version": "0.1.0",
       "category": "workflow"
     },
     {
