@@ -35,9 +35,11 @@ returns `[]` for an ordinary PR on any repository. Pushing and checking out go t
 project's `git-workflow` skill — what it must provide, and that a missing one stops the run, is
 `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
-**The owner's language** is the language the project's `CLAUDE.md` names for human-facing text, or,
-without such a rule, the language the owner writes to you in. Everything below written for him —
-the comments' human layer, the refuted list, the closing lists in chat — is in it.
+**The owner's language** is the language his `CLAUDE.md` files name for human-facing text — his
+personal `~/.claude/CLAUDE.md` first, then the project's — or, without such a rule, the language he
+writes to you in. Everything below written for him — the comments' human layer, the refuted list,
+the closing lists in chat — is in it. Settle it once, here, and name it in the brief of every agent
+that writes for him: a subagent sees only your prompt, so it cannot work this out itself.
 
 ## 1. Context
 
@@ -144,7 +146,8 @@ threads and judge, including what he wrote under them:
 
 Post each surviving finding in the shape
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` defines (pass the expanded path to a
-poster agent), against the `prNumber` and `headSha` of **the node it belongs to**:
+poster agent, and tell it the owner's language), against the `prNumber` and `headSha` of **the
+node it belongs to**:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \

@@ -31,8 +31,10 @@ read and answer the threads through the GitHub API. Verifying, committing, pushi
 a chain go through the project's `verify` and `git-workflow` skills — what each must provide, and
 that a missing one stops the run, is `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
-**His language** is the owner's language as `/dev:review` defines it: the language the project's
-`CLAUDE.md` names for human-facing text, or, without such a rule, the language he writes to you in.
+**His language** is the owner's language as `/dev:review` defines it: the language his `CLAUDE.md`
+files name for human-facing text — his personal `~/.claude/CLAUDE.md` first, then the project's —
+or, without such a rule, the language he writes to you in. Name it in every brief whose output he
+reads.
 
 ## 1. Fetch the threads
 

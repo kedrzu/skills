@@ -40,7 +40,7 @@ Hand back each survivor with:
 - its **provenance** — the axis, and where it rests on a rule, that rule's source
   (`Security · <the project's rule source> → audit at business boundary`). The comment's second line is
   built from this, and without it the owner cannot check a conformance claim in seconds
-- the **consequence** you wrote for question 2, and the **delta** from question 3
+- the **consequence** you wrote for question 2, in the owner's language, and the **delta** from question 3
 - **blocking** or **nit**
 - the **node** it came from, carried through unchanged
 
