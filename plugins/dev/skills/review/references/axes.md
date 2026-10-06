@@ -85,9 +85,8 @@ the wrong way, imitation spreads the wrong way and there is no correct instance 
 exactly the findings worth having, so "cite a file that does it right" is not asked of you.
 
 Read the skills governing the touched files (the project's code index, if it has one, only as a
-fallback) and **name
-the rule's source in every finding** — the verifier cannot adjudicate a conformance claim without
-it, so a finding that omits it dies there rather than here.
+fallback) and **name the rule's source in every finding** — the verifier cannot adjudicate a
+conformance claim without it, so a finding that omits it dies there rather than here.
 
 ## Testing — deleted coverage only
 
