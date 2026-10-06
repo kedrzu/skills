@@ -1,0 +1,81 @@
+import * as fs from "fs/promises";
+import * as os from "os";
+import * as path from "path";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import {
+  assertTotalSize,
+  loadLocalFile,
+  MAX_ATTACHMENTS_BYTES,
+  resolveLocalFile,
+  type FileAccess,
+} from "./files.js";
+
+let tmp: string;
+let repo: string;
+let vault: string;
+let access: FileAccess;
+
+beforeAll(async () => {
+  tmp = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "gmail-files-")));
+  repo = path.join(tmp, "repo");
+  vault = path.join(tmp, "Mobile Documents", "vault");
+  await fs.mkdir(path.join(repo, ".context", "outbox"), { recursive: true });
+  await fs.mkdir(path.join(vault, "Projekty"), { recursive: true });
+  await fs.writeFile(path.join(repo, ".context", "outbox", "raport.pdf"), "pdf");
+  await fs.writeFile(path.join(repo, ".env"), "SECRET=1");
+  await fs.writeFile(path.join(vault, "Projekty", "szafa 1.png"), "png");
+  await fs.writeFile(path.join(tmp, "outside.txt"), "nope");
+  await fs.symlink(vault, path.join(repo, "obsidian"));
+  await fs.symlink(path.join(tmp, "outside.txt"), path.join(repo, "leak.txt"));
+  access = { baseDir: repo, roots: [repo, vault] };
+});
+
+afterAll(async () => {
+  await fs.rm(tmp, { recursive: true, force: true });
+});
+
+describe("resolveLocalFile", () => {
+  it("accepts repo-relative, absolute and vault-via-symlink paths", async () => {
+    const pdf = path.join(repo, ".context", "outbox", "raport.pdf");
+    expect(await resolveLocalFile(".context/outbox/raport.pdf", access)).toBe(pdf);
+    expect(await resolveLocalFile(pdf, access)).toBe(pdf);
+    expect(await resolveLocalFile("obsidian/Projekty/szafa 1.png", access)).toBe(
+      path.join(vault, "Projekty", "szafa 1.png")
+    );
+  });
+
+  it("refuses anything outside the roots", async () => {
+    await expect(resolveLocalFile("../outside.txt", access)).rejects.toThrow(/outside/);
+    await expect(resolveLocalFile("leak.txt", access)).rejects.toThrow(/outside/);
+    await expect(resolveLocalFile("/etc/hosts", access)).rejects.toThrow(/outside/);
+  });
+
+  it("refuses secrets, directories, missing files and ~", async () => {
+    await expect(resolveLocalFile(".env", access)).rejects.toThrow(/secrets/);
+    await expect(resolveLocalFile("obsidian/Projekty", access)).rejects.toThrow(/regular file/);
+    await expect(resolveLocalFile("nope.png", access)).rejects.toThrow(/not found/);
+    await expect(resolveLocalFile("~/a.png", access)).rejects.toThrow(/absolute/);
+  });
+
+  it("refuses denied files and everything under a denied directory", async () => {
+    const guarded = { ...access, denied: [path.join(vault, "Projekty"), path.join(repo, "leak.txt")] };
+    await expect(resolveLocalFile("obsidian/Projekty/szafa 1.png", guarded)).rejects.toThrow(/secrets/);
+    await expect(resolveLocalFile(".context/outbox/raport.pdf", guarded)).resolves.toBeTruthy();
+  });
+});
+
+describe("loadLocalFile", () => {
+  it("reads the file with a type from its extension", async () => {
+    const a = await loadLocalFile("obsidian/Projekty/szafa 1.png", access);
+    expect(a).toMatchObject({ filename: "szafa 1.png", contentType: "image/png" });
+    expect(a.content.toString()).toBe("png");
+  });
+});
+
+describe("limits", () => {
+  it("rejects more than 25 MB in total", () => {
+    const big = { filename: "a", content: Buffer.alloc(MAX_ATTACHMENTS_BYTES) };
+    expect(() => assertTotalSize([big])).not.toThrow();
+    expect(() => assertTotalSize([big, { filename: "b", content: Buffer.alloc(1) }])).toThrow(/25\.0 MB/);
+  });
+});

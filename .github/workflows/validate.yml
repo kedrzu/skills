@@ -67,9 +67,38 @@ jobs:
           done
           exit $status
 
+  # Plugins that carry code keep it in plugins/<name>/server, run from source by bun.
+  server:
+    name: Test plugin servers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Typecheck and test each server
+        run: |
+          shopt -s nullglob
+          status=0
+          for pkg in plugins/*/server/package.json; do
+            dir=$(dirname "$pkg")
+            plugin=$(dirname "$dir")
+            echo "::group::$dir"
+            # The server package is published under the plugin's version.
+            manifest_version=$(jq -r '.version' "$plugin/.claude-plugin/plugin.json")
+            package_version=$(jq -r '.version' "$pkg")
+            if [ "$manifest_version" != "$package_version" ]; then
+              echo "::error file=$pkg::version $package_version differs from plugin.json $manifest_version"
+              status=1
+            fi
+            (cd "$dir" && bun install --frozen-lockfile && bunx tsc --noEmit && bun test) || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
   tag:
     name: Tag released plugin versions
-    needs: validate
+    needs: [validate, server]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
