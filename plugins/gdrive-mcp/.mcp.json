@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "gdrive": {
+      "command": "bun",
+      "args": [
+        "--install=force",
+        "${CLAUDE_PLUGIN_ROOT}/server/src/main.ts",
+        "serve",
+        "--project",
+        "${CLAUDE_PROJECT_DIR}"
+      ]
+    }
+  }
+}

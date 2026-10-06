@@ -1,0 +1,7 @@
+{
+  "name": "gdrive-mcp",
+  "description": "Multi-account Google Drive for agents: browse, read Docs as Markdown, download, upload, edit and trash files — each permission switched per project, several Google Cloud apps at once, never deletes permanently",
+  "version": "0.1.0",
+  "author": { "name": "Michał Kędrzyński" },
+  "keywords": ["google-drive", "gdrive", "mcp", "google-workspace", "bun"]
+}

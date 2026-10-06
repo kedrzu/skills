@@ -1,0 +1,20 @@
+{
+  "name": "@kedrzu/gdrive-mcp",
+  "version": "0.1.0",
+  "description": "Multi-account Google Drive MCP server for agents: browse, read, download, upload, edit and trash files, each permission switched per project",
+  "type": "module",
+  "license": "MIT",
+  "bin": { "gdrive-mcp": "src/main.ts" },
+  "files": ["src", "!src/**/*.test.ts"],
+  "engines": { "bun": ">=1.2" },
+  "scripts": { "start": "bun src/main.ts serve", "test": "bun test", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@googleapis/drive": "^26.0.2",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "google-auth-library": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "typescript": "^5.9.0"
+  }
+}
