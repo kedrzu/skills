@@ -1,6 +1,6 @@
 {
   "name": "@kedrzu/gmail-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multi-account Gmail MCP server for agents: search, read, Markdown drafts with attachments, label rules — configured per project, no sending",
   "type": "module",
   "license": "MIT",

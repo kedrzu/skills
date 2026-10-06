@@ -1,7 +1,7 @@
 {
   "name": "gmail-mcp",
   "description": "Multi-account Gmail for agents: search, read as Markdown, drafts with attachments, label rules — configured per project, several Google Cloud apps at once, never sends",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": { "name": "Michał Kędrzyński" },
   "keywords": ["gmail", "email", "mcp", "google-workspace", "bun"]
 }

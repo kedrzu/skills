@@ -8,7 +8,7 @@ import * as path from "path";
 import { OAuth2Client } from "google-auth-library";
 import { clientSourceFile, resolveClient, type ResolvedClient } from "./clients.js";
 import { accountAllowed, ConfigError, CONFIG_FILE, loadConfig, LOCAL_CONFIG_FILE, type LoadedConfig } from "./config.js";
-import { TokenStore } from "./store.js";
+import { TokenStore, type StoredToken } from "./store.js";
 
 // Read, organise and draft - never send. gmail.modify covers labels and trash;
 // gmail.compose covers drafts. There is deliberately no gmail.send.
@@ -111,12 +111,18 @@ export class AccountRegistry {
     }
   }
 
-  private account(client: ResolvedClient, email: string, token: object): Account {
+  private account(client: ResolvedClient, email: string, token: StoredToken["token"]): Account {
     const key = `${client.clientId}|${email.toLowerCase()}`;
     const cached = this.cache.get(key);
     // Same client and secret: keep the live client, it holds a fresh access token.
     if (cached && cached.client.clientSecret === client.clientSecret) {
       cached.client = client;
+      // A refresh token other than the live one means the account was signed in again
+      // (`auth`, possibly in another process) and the live one is likely revoked: switch.
+      // Refreshes never trigger this - they keep the refresh token, or store the new one.
+      if (token.refresh_token && token.refresh_token !== cached.auth.credentials.refresh_token) {
+        cached.auth.setCredentials(token);
+      }
       return cached;
     }
     const auth = oauthClient(client);
@@ -156,7 +162,9 @@ export class AccountRegistry {
           : `Account not found: ${email}. Available: ${available.join(", ") || "none - ask the user to run /gmail-mcp:setup to sign in"}`
       );
     }
-    return account;
+    // Re-read its token on every use, so signing the account in again takes effect at once.
+    const stored = this.store.read(account.client.clientId, account.email);
+    return stored?.token ? this.account(account.client, account.email, stored.token) : account;
   }
 
   // Files a draft must never carry: the token store and every client source.
