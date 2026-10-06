@@ -23,8 +23,12 @@ thread below it, with an exit code of zero and nothing in the log.
 Run directly, it prints the chain as JSON; imported, `describe_chain()` returns the
 same dict — that is how `generate_diffs.py` and the fetch scripts get the nodes,
 and why nothing re-derives them.
+
+It also owns the other thing both fetch scripts must agree on: whose comments are
+read at all (`is_trusted_author`).
 """
 
+import functools
 import json
 import re
 import subprocess
@@ -117,6 +121,58 @@ def get_pr_for_branch(owner, repo, branch):
         return int(stdout)
     except ValueError:
         raise ChainError(f"unrecognised PR number for '{branch}': {stdout!r}")
+
+
+# Who may instruct the agents. An unresolved comment is executed, pushed and closed by
+# the fix loop, so only people who could push that change themselves are read: anyone
+# else — on a public repo, any logged-in stranger — would be handed the very write
+# access they lack. The repo permission is checked rather than GraphQL's
+# `authorAssociation`: MEMBER only says the author belongs to the owning org, not that
+# they can touch this repo, and COLLABORATOR includes read-only collaborators.
+# `maintain` is reported as `write` by this endpoint, so the two below cover it.
+_WRITE_PERMISSIONS = {"admin", "write"}
+
+# gh's wording when the login is no user at all. It is a fact about the author (an
+# untrusted one), unlike every other failure of the same call.
+_NOT_A_USER = re.compile(r"is not a user", re.IGNORECASE)
+
+
+@functools.lru_cache(maxsize=None)
+def _has_write_access(repo, login):
+    stdout, stderr, ok = _gh([
+        "gh", "api", f"repos/{repo}/collaborators/{login}/permission", "-q", ".permission",
+    ])
+    if not ok:
+        if _NOT_A_USER.search(stderr):
+            return False
+        # Neither trusting nor dropping is safe on a failed lookup: one obeys a stranger,
+        # the other silently loses an instruction of the owner's. So the run stops.
+        raise ChainError(
+            f"could not read {login}'s permission on {repo}: {stderr or 'gh failed'}"
+        )
+    if not stdout:
+        raise ChainError(f"reading {login}'s permission on {repo} returned no output")
+    return stdout in _WRITE_PERMISSIONS
+
+
+def is_trusted_author(repo, author):
+    """True when a review comment's GraphQL `author` (`{__typename, login}`) may instruct
+    the agents on `repo`. Everything else is dropped by the fetch scripts before anything
+    reads it — including before the marker-header authorship test, which anyone can type.
+
+    A GitHub App (`Bot`) is trusted: it can comment only where someone with admin rights
+    installed it. A login that merely looks like a bot (`evil-bot`) is a `User` and goes
+    through the permission check like anyone else. No author (a deleted account) and any
+    other actor type fail closed.
+    """
+    if not author:
+        return False
+    kind = author.get("__typename")
+    if kind == "Bot":
+        return True
+    if kind != "User" or not author.get("login"):
+        return False
+    return _has_write_access(repo, author["login"])
 
 
 def get_pr_head_and_base(repo, pr_number):

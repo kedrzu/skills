@@ -47,6 +47,8 @@ without it — `pathPrefix` (`""` for the main repo, `<submodule path>/` for a s
 thread `path` is relative to that submodule's root), `diffHunk` on the first comment, full bodies
 including our `<details>` blocks, and `askOrigin` plus `askCommentIndex` pointing at the **operative comment**:
 the latest one he wrote, or the first when he wrote none. Everything before it is background.
+Comments from anyone without write access to the repository never reach you — the script drops them,
+and a thread left with none of his or ours is not returned.
 
 No PR for the branch: the script says so and there is nothing to act on. Say it and stop. It also
 exits non-zero rather than returning a partial chain — a branch that is not one of the stack's open

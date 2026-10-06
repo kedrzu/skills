@@ -14,7 +14,7 @@ against. An unstacked branch is one node and reads exactly as it always has.
 import json
 import sys
 
-from pr_stack import ChainError, describe_chain, run_or_raise
+from pr_stack import ChainError, describe_chain, is_trusted_author, run_or_raise
 
 GRAPHQL_QUERY = """
 query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
@@ -35,7 +35,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
           comments(first: 50) {
             nodes {
               body
-              author { login }
+              author { __typename login }
             }
           }
         }
@@ -47,8 +47,9 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
 
 # A comment is ours iff its body starts with one of these headers — the authorship
 # test from references/comment.md, since agents post with the owner's token and
-# `author.login` proves nothing. The legacy headers stay listed so PRs reviewed
-# before that contract still dedup correctly.
+# `author.login` proves nothing. It holds only among trusted authors (anyone can type
+# a header), which is why untrusted comments are dropped first. The legacy headers
+# stay listed so PRs reviewed before that contract still dedup correctly.
 REVIEW_PREFIXES = (
     "## 🚨 BLOCKING",
     "## 💡 NIT",
@@ -107,9 +108,16 @@ def fetch_all_threads(owner, repo, pr_number):
         else:
             break
 
+    repo_full = f"{owner}/{repo}"
     comments = []
     for thread in all_threads:
-        thread_comments = thread["comments"]["nodes"]
+        # Comments from authors without write access are dropped first: a stranger's
+        # reply must not settle a finding, and a stranger's thread must not stand in
+        # for one of his and suppress a new finding as a duplicate.
+        thread_comments = [
+            c for c in thread["comments"]["nodes"]
+            if is_trusted_author(repo_full, c.get("author"))
+        ]
         if not thread_comments:
             continue
 

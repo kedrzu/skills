@@ -16,7 +16,6 @@ agree on what the nodes are, and two implementations of that would eventually di
 
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -29,6 +28,7 @@ from pr_stack import (  # noqa: E402
     get_pr_for_branch,
     get_repo_info,
     get_repo_root,
+    is_trusted_author,
     run,
     run_or_raise,
 )
@@ -56,7 +56,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
               id
               databaseId
               body
-              author { login }
+              author { __typename login }
               createdAt
               path
               line
@@ -75,8 +75,8 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
 # The authorship test, defined in review/references/comment.md in this plugin: a comment
 # is ours iff its body starts with one of these headers. Author login can NOT be used —
 # agents post with the owner's own GitHub token, so an agent comment and a hand-written
-# one share the same login. The login check below only catches third-party bots
-# (CodeRabbit, Dependabot, ...) that post plain prose with no marker.
+# one share the same login. It only holds among comments from trusted authors
+# (`is_trusted_author`): anyone can type the header, so strangers are dropped first.
 # The legacy headers stay listed so PRs reviewed before that contract still classify.
 # This set must match that definition, and the copies in review/scripts/fetch_pr_comments.py
 # and review/scripts/post_review_comment.py: a change to one is a change to all of them.
@@ -92,22 +92,6 @@ AGENT_HEADERS = (
     "## 👀 HEADS UP",
     "## 🧭 FLOW",
 )
-KNOWN_BOT_LOGINS = frozenset({
-    "coderabbitai",
-    "coderabbitai[bot]",
-    "dependabot",
-    "dependabot[bot]",
-    "github-actions",
-    "github-actions[bot]",
-    "renovate",
-    "renovate[bot]",
-})
-BOT_LOGIN_PATTERN = re.compile(r"(?:^|[-_])bot(?:$|[-_])|\[bot\]$", re.IGNORECASE)
-
-
-def is_bot_login(login):
-    normalized = (login or "").strip().casefold()
-    return normalized in KNOWN_BOT_LOGINS or bool(BOT_LOGIN_PATTERN.search(normalized))
 
 
 def has_marker_header(body):
@@ -116,11 +100,10 @@ def has_marker_header(body):
     return any(stripped.startswith(h) for h in AGENT_HEADERS)
 
 
-def is_agent_authored(body, author_login):
-    """True when a comment was written by an agent (marker header) or a known bot."""
-    return has_marker_header(body) or is_bot_login(author_login)
-
-
+def is_agent_authored(body, author):
+    """True when a comment was written by an agent (marker header) or by a GitHub App
+    (CodeRabbit, Dependabot, ...), which posts plain prose with no marker."""
+    return has_marker_header(body) or (author or {}).get("__typename") == "Bot"
 
 
 def get_unresolved_threads(owner, repo, pr_number):
@@ -165,11 +148,18 @@ def get_unresolved_threads(owner, repo, pr_number):
         else:
             break
 
+    repo_full = f"{owner}/{repo}"
     unresolved = []
     for thread in all_threads:
         if thread["isResolved"]:
             continue
-        comments = thread["comments"]["nodes"]
+        # Comments from authors without write access are dropped before anything below
+        # reads them: they are never the ask and never settle one, and a thread with
+        # nothing else in it is not returned at all.
+        comments = [
+            c for c in thread["comments"]["nodes"]
+            if is_trusted_author(repo_full, c.get("author"))
+        ]
         if not comments:
             continue
 
@@ -182,10 +172,7 @@ def get_unresolved_threads(owner, repo, pr_number):
                        or first_stripped.startswith("## 🧭 FLOW"))
 
         origins = [
-            "agent" if is_agent_authored(
-                c.get("body", ""),
-                c["author"]["login"] if c.get("author") else None,
-            ) else "human"
+            "agent" if is_agent_authored(c.get("body", ""), c.get("author")) else "human"
             for c in comments
         ]
 
