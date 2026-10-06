@@ -26,9 +26,9 @@
       "category": "workflow"
     },
     {
-      "name": "git-hygiene",
-      "source": "./plugins/git-hygiene",
-      "description": "Git practices that only bite in a shared clone — starting with stashing safely when several worktrees or parallel agents share one stash stack",
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, and stashing safely when several worktrees or parallel agents share one clone",
       "version": "0.1.0",
       "category": "development"
     },
