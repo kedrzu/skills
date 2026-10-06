@@ -7,6 +7,7 @@
 //   check                          config, OAuth clients and tokens, with a live token refresh
 //   remove EMAIL [--client NAME]   revoke and forget an account
 //   client import NAME FILE        copy a downloaded OAuth client file into the store
+//   version, --version             the server's version
 //
 // Every command takes --project DIR (default: the working directory). Commands print
 // JSON on stdout and never print a secret.
@@ -212,6 +213,8 @@ async function clientCommand(args: Args) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  // parseArgs files `--version` under flags, so it cannot reach the switch as a command.
+  if (args.flags.version) return out({ version: pkg.version });
   const command = args.positional[0] ?? "serve";
   const projectDir = projectDirFrom(flag(args, "project"));
   switch (command) {
@@ -227,7 +230,6 @@ async function main() {
       return remove(projectDir, args);
     case "client":
       return clientCommand(args);
-    case "--version":
     case "version":
       return out({ version: pkg.version });
     default:

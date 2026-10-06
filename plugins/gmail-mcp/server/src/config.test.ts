@@ -89,6 +89,19 @@ describe("project config", () => {
     }
   });
 
+  it("rejects a list written as a string instead of spreading it", () => {
+    // Spread, "~/Notes" became ["~", "/", ...] and "/" allowed every path on disk.
+    const dir = project("string-roots", { clients: { a: { file: "a.json" } }, accounts: { match: "*@x.com" } }, { files: { roots: "~/Notes" } });
+    try {
+      loadConfig(dir);
+      throw new Error("expected a ConfigError");
+    } catch (e) {
+      expect(e).toBeInstanceOf(ConfigError);
+      expect((e as Error).message).toMatch(/files\.roots: expected an array of paths/);
+      expect((e as Error).message).toMatch(/accounts: expected an array of rules/);
+    }
+  });
+
   it("matches account globs", () => {
     expect(matchesGlob("Ann@Sigma.Clinic", "*@sigma.clinic")).toBe(true);
     expect(matchesGlob("ann@sigma.clinic.evil.com", "*@sigma.clinic")).toBe(false);
