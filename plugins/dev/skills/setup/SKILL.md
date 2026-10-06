@@ -22,8 +22,10 @@ first: every step below is measured against it, and nothing beyond it is this sk
 
 Look for `.claude/skills/verify/SKILL.md` and `.claude/skills/git-workflow/SKILL.md`, and map what
 each says against the contract: `verify` needs a scoped mode and a full one; `git-workflow` needs
-start, checkpoint, publish, stack and land. A section that says the project does not do something
-counts as covered — that is an answer, not a gap.
+start, checkpoint, publish, stack and land — and within them the sub-operations the contract names:
+checkpoint's selective commit and push-only, stack's check-out-the-tip and check-out-node-`k`. A
+section that has the operation but misses one of those has a gap of exactly that item. A section
+that says the project does not do something counts as covered — that is an answer, not a gap.
 
 Read the project's `CLAUDE.md` and its other skills too. The knowledge often already exists under
 another name — a commit-and-push skill, a test-running script, a PR checklist. One owner per fact:
@@ -61,10 +63,11 @@ lands a change and how; which steps the full verification must include when CI d
 - Write them as the project's own skills: its facts and commands, in its conventions. The only
   mention of this plugin is a line saying which contract the skill fulfils.
 - `verify`: a **Scoped** section and a **Full** section. `git-workflow`: one section per operation,
-  in the contract's order — Start, Checkpoint, Publish, Stack, Land.
+  in the contract's order — Start, Checkpoint, Publish, Stack, Land — with Checkpoint covering
+  selective commit and push-only, and Stack covering check-out-the-tip and check-out-node-`k`.
 - The description says the dev pipeline relies on it, and when else to reach for it.
-- An existing skill with partial coverage gets the missing sections added; what is already there
-  stays.
+- An existing skill with partial coverage gets the missing sections — or the missing sub-items
+  inside an existing section — added; what is already there stays.
 - Never write a command you neither saw nor ran. An operation the project does not do is written as
   unsupported, with a sentence why.
 

@@ -21,8 +21,8 @@
     {
       "name": "dev",
       "source": "./plugins/dev",
-      "description": "Plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup writes",
-      "version": "0.1.0",
+      "description": "Plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. On request, /dev:review posts inline PR findings that survived a refutation pass, and /dev:fix-pr-comments acts on the unresolved PR threads. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup writes",
+      "version": "0.2.0",
       "category": "workflow"
     },
     {

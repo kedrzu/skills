@@ -4,13 +4,14 @@ The pipeline decides *what* to do: which phase runs, what a test must protect, w
 description, where a chain of PRs is cut. Two things it cannot know, because they differ in every
 repository: how this project proves a change works, and how a change travels from a branch to the
 main line. Each project answers those in two skills with fixed names, in its own `.claude/skills/`.
+Besides the pipeline's entry points, `/dev:review` and `/dev:fix-pr-comments` consume them too.
 
 |Skill|Answers|
 |-|-|
 |`verify`|How a change is proven to work here — the scoped check and the full protocol|
 |`git-workflow`|How a change moves here — branch, commit, push, review, stack, land, tracker|
 
-**A missing contract stops the run.** At the first moment the pipeline needs one, check that the
+**A missing contract stops the run.** At the first moment a run needs one, check that the
 skill exists in the skill list. If it does not, or it lacks the operation you need and does not
 say the operation is unsupported, stop and tell the user which skill or operation is missing and
 that `/dev:setup` writes it. Do not improvise a substitute: a guessed test command or a guessed push
@@ -37,13 +38,17 @@ unsupported) and says so in its final confirmation.
   the user to have started, and use the branch they are on.
 - **checkpoint** — commit with a real message in the project's convention (prefix, language,
   format) and push; includes anything that must be published separately first (submodules, other
-  repositories) and how to confirm the push landed.
+  repositories) and how to confirm the push landed. Besides committing everything, it says how to:
+  - **commit only a given set of files** — selective staging, nothing else staged, so several
+    groups land as one commit each (`/dev:fix-pr-comments`);
+  - **push what is already committed** without making a new commit (`/dev:review`).
 - **publish** — the "coding is done, please review" signal: take the PR out of draft, write the PR
   description, post the comment on the tracker issue, and how the tracker issue is identified. The
   pipeline supplies the text (`post-pipeline.md`); this section says where it goes and how.
 - **stack** — turning one change into an ordered chain of dependent PRs: how to add a node on top
-  of the current one, how to propagate an edit to a lower node upward, which paths must stay in the
-  bottom node, and how the chain is landed. The pipeline decides *whether* and *where* to cut
-  (`stacked-prs.md`); this section is the commands.
+  of the current one, how to propagate an edit to a lower node upward without force-pushing (review
+  comments on the upper nodes keep their anchors), how to check out the chain's tip and how to check
+  out a given node `k`, which paths must stay in the bottom node, and how the chain is landed. The
+  pipeline decides *whether* and *where* to cut (`stacked-prs.md`); this section is the commands.
 - **land** — how a finished change is merged. Irreversible and outward-facing: the pipeline never
   runs it on its own. It mentions it in the hand-off so the user knows what lands the work.
