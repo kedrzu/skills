@@ -33,6 +33,13 @@
       "category": "development"
     },
     {
+      "name": "gdrive-mcp",
+      "source": "./plugins/gdrive-mcp",
+      "description": "Multi-account Google Drive for agents: browse, read Docs as Markdown, download, upload, edit and trash files — each permission switched per project, several Google Cloud apps at once, never deletes permanently",
+      "version": "0.1.0",
+      "category": "productivity"
+    },
+    {
       "name": "gmail-mcp",
       "source": "./plugins/gmail-mcp",
       "description": "Multi-account Gmail for agents: search, read as Markdown, drafts with attachments, label rules — configured per project, several Google Cloud apps at once, never sends",
