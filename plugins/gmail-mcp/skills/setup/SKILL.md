@@ -1,6 +1,11 @@
 ---
 name: setup
-description: Set up or repair Gmail access for this project through the gmail-mcp plugin - pick or create the Google Cloud OAuth client, write .claude/gmail-mcp.json, sign mailboxes in through the browser, verify. Use when the user wants Gmail in this project, adds or removes a mailbox, a colleague onboards onto a repo that already has the config, the gmail tools answer "not configured", an account's sign-in expired (invalid_grant), or the user asks how the Gmail accounts, clients and tokens are set up.
+description: >-
+  Set up or repair Gmail access for this project through the gmail-mcp plugin - pick or create
+  the Google Cloud OAuth client, write .claude/gmail-mcp.json, sign mailboxes in through the
+  browser, verify. Invoked explicitly by the user as `/gmail-mcp:setup`; when a gmail tool
+  reports a setup problem, tell the user to run it instead of fixing the configuration yourself.
+disable-model-invocation: true
 user-invocable: true
 allowed-tools:
   - Read

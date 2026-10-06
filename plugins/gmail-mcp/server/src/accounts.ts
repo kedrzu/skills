@@ -131,7 +131,7 @@ export class AccountRegistry {
     if (this.configError) return this.configError;
     return (
       `Gmail MCP is not configured for this project: ${this.projectDir}/${CONFIG_FILE} does not exist. ` +
-      "Run /gmail-mcp:setup to choose an OAuth client and sign in."
+      "Ask the user to run /gmail-mcp:setup to choose an OAuth client and sign in."
     );
   }
 
@@ -153,7 +153,7 @@ export class AccountRegistry {
       throw new Error(
         hidden
           ? `${email} is authorised (client '${hidden.client}') but not allowed in this project - add it to 'accounts' in ${CONFIG_FILE}`
-          : `Account not found: ${email}. Available: ${available.join(", ") || "none - run /gmail-mcp:setup to sign in"}`
+          : `Account not found: ${email}. Available: ${available.join(", ") || "none - ask the user to run /gmail-mcp:setup to sign in"}`
       );
     }
     return account;

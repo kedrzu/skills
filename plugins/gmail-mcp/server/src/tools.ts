@@ -508,7 +508,7 @@ export class GmailTools {
 
   private authHint(message: string): string {
     return /invalid_grant|invalid_client|unauthorized_client/i.test(message)
-      ? " - the sign-in for this account is no longer valid (revoked, expired, or the OAuth client changed). Run /gmail-mcp:setup to sign in again."
+      ? " - the sign-in for this account is no longer valid (revoked, expired, or the OAuth client changed). Ask the user to run /gmail-mcp:setup to sign in again."
       : "";
   }
 
@@ -522,7 +522,7 @@ export class GmailTools {
           accounts,
           notAllowedHere: this.registry.hidden.length ? this.registry.hidden : undefined,
           problems: this.registry.problems.length ? this.registry.problems : undefined,
-          setup: accounts.length ? undefined : "No account is signed in for this project - run /gmail-mcp:setup",
+          setup: accounts.length ? undefined : "No account is signed in for this project - ask the user to run /gmail-mcp:setup",
         });
       }
 
