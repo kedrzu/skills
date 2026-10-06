@@ -219,18 +219,27 @@ def generate_diff_set(out_dir, base, head_rev, submodule_paths, empty_tree):
     pushed, so there is no uncommitted work to fold in and the diff a finder reads
     is exactly the diff GitHub shows for that pull request.
     """
-    # The PR's base is a bare branch name, but a clone often holds it only as
-    # `origin/<base>` (no local branch of that name).
-    base_rev = base
-    if git_out("rev-parse", "--verify", "--quiet", f"{base}^{{commit}}") is None:
-        remote = f"origin/{base}"
-        if git_out("rev-parse", "--verify", "--quiet", f"{remote}^{{commit}}") is not None:
-            base_rev = remote
+    # The PR's base is a bare branch name, and GitHub diffs against the remote's
+    # copy of it — so `origin/<base>` wins whenever it resolves. A local branch of
+    # that name is often stale (origin merged in, local never pulled), and its old
+    # tip would pull every commit the base gained since into the range. The name
+    # itself is the fallback: a clone with no remote copy, or a base that is a
+    # commit, as a stacked node's is.
+    def resolves(rev):
+        return git_out("rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}") is not None
+
+    remote = f"origin/{base}"
+    base_rev = remote if resolves(remote) else base
+    if not resolves(base_rev):
+        fail(
+            f"ERROR: base '{base}' resolves neither as '{remote}' nor locally, so there is no range to review.",
+            f"       Fetch the base branch ('git fetch origin {base}') and re-run.",
+        )
     merge_base = git_out("merge-base", base_rev, head_rev)
     if merge_base is None:
         fail(
             f"ERROR: '{base_rev}' and '{head_rev}' have no merge base, so there is no range to review.",
-            f"       Fetch the base branch ('git fetch origin {base}:{base}') and re-run.",
+            f"       Fetch the base branch ('git fetch origin {base}') and re-run.",
         )
 
     diff_set = DiffSet(out_dir)
