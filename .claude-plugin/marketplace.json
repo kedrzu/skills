@@ -26,6 +26,13 @@
       "category": "development"
     },
     {
+      "name": "gmail-mcp",
+      "source": "./plugins/gmail-mcp",
+      "description": "Multi-account Gmail for agents: search, read as Markdown, drafts with attachments, label rules — configured per project, several Google Cloud apps at once, never sends",
+      "version": "0.1.0",
+      "category": "productivity"
+    },
+    {
       "name": "naming",
       "source": "./plugins/naming",
       "description": "Find a name for a product, app or site over several rounds: candidates in chosen directions, domain checks, conflict checks, and a record in the repo so no feedback has to be repeated",

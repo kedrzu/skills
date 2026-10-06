@@ -5,8 +5,9 @@ Guidance for Claude Code when working in this repository.
 ## What this repository is
 
 A personal **Claude Code plugin marketplace** (`kedrzu-skills`) holding reusable skills
-that are shared across projects. It is not an application: there is no build, no
-runtime, no tests. The deliverable is the manifests and the Markdown inside them.
+that are shared across projects. It is not an application: the deliverable is the
+manifests and the Markdown inside them. The exception is a plugin that carries its own
+MCP server code (see "Plugins with server code"); there is still no build step.
 
 Other projects consume it with:
 
@@ -129,6 +130,29 @@ database client — are not dependencies. For the reason above, name the expecta
 
 A skill must still degrade gracefully: say in `SKILL.md` what to do when the server is
 missing, because a user can disable it.
+
+## Plugins with server code
+
+A plugin whose MCP server is TypeScript keeps it in `plugins/<name>/server/` as a normal
+package (`package.json`, committed `bun.lock`, `src/`, `*.test.ts`) and runs it **from
+source with bun** — nothing is built or committed as an artifact. `gmail-mcp` is the
+worked example:
+
+```json
+{ "command": "bun", "args": ["--install=force", "${CLAUDE_PLUGIN_ROOT}/server/src/main.ts", "serve", "--project", "${CLAUDE_PROJECT_DIR}"] }
+```
+
+- `--install=force` makes bun fetch the dependencies into its global cache on first start,
+  in the versions `bun.lock` pins, and ignore any `node_modules` around. Consumers need
+  bun and nothing else; a cold start takes a couple of seconds.
+- `${CLAUDE_PROJECT_DIR}` is how a server learns which project it serves, so per-project
+  configuration lives in that project (e.g. `.claude/<plugin>.json`) and machine-wide
+  state outside every repository (`~/.claude/<plugin>/`).
+- Develop with `bun install && bun test && bunx tsc --noEmit` in `server/`. CI runs the same
+  for every `plugins/*/server` and checks that `server/package.json` carries the plugin's
+  version.
+- Such a package is written to be publishable to npm unchanged (a `bin` entry, no plugin
+  paths in the code). Once published, `.mcp.json` switches to `bunx --bun <package>@<version>`.
 
 ## Dependencies between plugins
 
