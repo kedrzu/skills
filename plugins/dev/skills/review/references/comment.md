@@ -66,10 +66,10 @@ else on the PR is the owner's. Agents post with his GitHub token, so `author.log
 the header is the authorship test. It holds only among comments from authors with write access to
 the repository (and from GitHub Apps installed on it), because anyone can type a header: the fetch
 scripts drop every other comment before reading it, so a stranger's comment is never an ask and
-never settles one. This file is its canonical definition; the scripts implementing
-it are `review/scripts/fetch_pr_comments.py`, `review/scripts/post_review_comment.py` and
-`fix-pr-comments/scripts/fetch_comments.py` in this plugin, so a change here is a change in all
-three.
+never settles one. This file is its canonical definition. In this plugin, `review/scripts/pr_stack.py`
+holds the header list both fetch scripts read; `review/scripts/post_review_comment.py` writes the
+finding headers and `fix-pr-comments/scripts/reply_and_resolve.py` writes and looks up `## 🤖`. A
+change here is a change in all three.
 
 ## How a comment gets answered
 

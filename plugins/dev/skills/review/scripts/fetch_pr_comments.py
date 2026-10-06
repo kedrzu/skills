@@ -14,7 +14,7 @@ against. An unstacked branch is one node and reads exactly as it always has.
 import json
 import sys
 
-from pr_stack import ChainError, describe_chain, is_trusted_author, run_or_raise
+from pr_stack import ChainError, describe_chain, has_our_header, is_trusted_author, run_or_raise
 
 GRAPHQL_QUERY = """
 query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
@@ -44,31 +44,6 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
   }
 }
 """
-
-# A comment is ours iff its body starts with one of these headers — the authorship
-# test from references/comment.md, since agents post with the owner's token and
-# `author.login` proves nothing. It holds only among trusted authors (anyone can type
-# a header), which is why untrusted comments are dropped first. The legacy headers
-# stay listed so PRs reviewed before that contract still dedup correctly.
-REVIEW_PREFIXES = (
-    "## 🚨 BLOCKING",
-    "## 💡 NIT",
-    # an answer to an earlier finding, left unresolved for him to sign off — ours,
-    # and the steady state on any PR that has been through a fix run
-    "## 🤖",
-    # legacy
-    "## 🚨 CRITICAL ISSUE",
-    "## ⚠️ IMPORTANT",
-    "## 💡 MINOR",
-    "## 🔍 ISSUE",
-    "## 👀 HEADS UP",
-    "## 🧭 FLOW",
-)
-
-
-def _starts_with_any(body, prefixes):
-    stripped = body.lstrip()
-    return any(stripped.startswith(p) for p in prefixes)
 
 
 def fetch_all_threads(owner, repo, pr_number):
@@ -122,7 +97,7 @@ def fetch_all_threads(owner, repo, pr_number):
             continue
 
         first_body = thread_comments[0].get("body", "")
-        is_bot = _starts_with_any(first_body, REVIEW_PREFIXES)
+        is_bot = has_our_header(first_body)
 
         # Collect the human replies, not just the fact that one exists: a reply IS the
         # owner's decision ("leave it, because …" vs "no, do it differently"), and the

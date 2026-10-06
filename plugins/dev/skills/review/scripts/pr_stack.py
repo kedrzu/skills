@@ -24,8 +24,8 @@ Run directly, it prints the chain as JSON; imported, `describe_chain()` returns 
 same dict — that is how `generate_diffs.py` and the fetch scripts get the nodes,
 and why nothing re-derives them.
 
-It also owns the other thing both fetch scripts must agree on: whose comments are
-read at all (`is_trusted_author`).
+It also owns the other things both fetch scripts must agree on: whose comments are
+read at all (`is_trusted_author`) and which of those are ours (`has_our_header`).
 """
 
 import functools
@@ -173,6 +173,31 @@ def is_trusted_author(repo, author):
     if kind != "User" or not author.get("login"):
         return False
     return _has_write_access(repo, author["login"])
+
+
+# The authorship test, defined in review/references/comment.md § Who wrote a comment: a
+# comment is ours iff its body starts with one of these headers. Author login can NOT be
+# used — agents post with the owner's own GitHub token. It only holds among trusted
+# authors (`is_trusted_author`): anyone can type a header, so strangers are dropped first.
+# The legacy headers stay listed so PRs reviewed before that contract still classify.
+OUR_HEADERS = (
+    "## 🚨 BLOCKING",
+    "## 💡 NIT",
+    "## 🤖",            # an answer to a finding, written by fix-pr-comments
+    # legacy
+    "## 🚨 CRITICAL ISSUE",
+    "## ⚠️ IMPORTANT",
+    "## 💡 MINOR",
+    "## 🔍 ISSUE",
+    "## 👀 HEADS UP",
+    "## 🧭 FLOW",
+)
+
+
+def has_our_header(body):
+    """True when a comment carries one of our own headers."""
+    stripped = (body or "").lstrip()
+    return any(stripped.startswith(h) for h in OUR_HEADERS)
 
 
 def get_pr_head_and_base(repo, pr_number):
