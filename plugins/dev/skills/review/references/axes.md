@@ -68,8 +68,8 @@ claim, not an intention you inferred. With neither, report nothing.
 The one axis where the rule *is* the standard: *"a disclosed read of regulated data needs an audit
 event"* is not derivable from the code, and breaking it costs a regulatory or security consequence
 rather than a maintenance one. Whenever the diff goes near sensitive data — personal, health,
-financial, credentials — read the project's security and privacy rules: its `CLAUDE.md` and the
-skills governing the touched files.
+financial, credentials — find the project's security and privacy rules yourself and read them: in
+its `CLAUDE.md` and in its skills.
 
 What breaking such a rule looks like, by example: a disclosed read of regulated data (PHI, say) or a
 committed state change with no audit event where the project requires one; authorization enforced
