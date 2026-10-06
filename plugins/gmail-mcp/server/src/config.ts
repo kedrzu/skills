@@ -85,14 +85,23 @@ function readJson(file: string): unknown {
   }
 }
 
+// Appends one layer's list to the other's. A layer whose value is not an array (a JSON
+// string, say) is passed through untouched so validateConfig reports it: spreading
+// "~/Notes" would turn it into ["~", "/", ...], and "/" would allow every path on disk.
+function appendLayers<T>(base: T[] | undefined, local: T[] | undefined): T[] | undefined {
+  if (base !== undefined && !Array.isArray(base)) return base;
+  if (local !== undefined && !Array.isArray(local)) return local;
+  return base || local ? [...(base ?? []), ...(local ?? [])] : undefined;
+}
+
 // The local file layers over the shared one: clients are merged by name, accounts and
 // file roots are appended, attachmentsDir and labels replace.
 export function mergeConfigs(base: Partial<ProjectConfig>, local: Partial<ProjectConfig>): Partial<ProjectConfig> {
   return {
     clients: { ...base.clients, ...local.clients },
-    accounts: base.accounts || local.accounts ? [...(base.accounts ?? []), ...(local.accounts ?? [])] : undefined,
+    accounts: appendLayers(base.accounts, local.accounts),
     files: {
-      roots: [...(base.files?.roots ?? []), ...(local.files?.roots ?? [])],
+      roots: appendLayers(base.files?.roots, local.files?.roots) ?? [],
       attachmentsDir: local.files?.attachmentsDir ?? base.files?.attachmentsDir,
     },
     labels: local.labels ?? base.labels,
@@ -146,7 +155,11 @@ export function validateConfig(c: Partial<ProjectConfig>): string[] {
       errors.push(`clients.${name}: 'clientIdKey'/'clientSecretKey' only apply to 'envFile'`);
     }
   }
-  for (const [i, rule] of (c.accounts ?? []).entries()) {
+  const accounts = c.accounts ?? [];
+  if (!Array.isArray(accounts)) {
+    errors.push("accounts: expected an array of rules");
+  }
+  for (const [i, rule] of (Array.isArray(accounts) ? accounts : []).entries()) {
     if (!rule || typeof rule.match !== "string" || !rule.match) {
       errors.push(`accounts[${i}]: 'match' (email or glob) is required`);
     } else if (rule.client !== undefined && !(rule.client in clients)) {

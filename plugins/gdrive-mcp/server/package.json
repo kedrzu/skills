@@ -1,6 +1,6 @@
 {
   "name": "@kedrzu/gdrive-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multi-account Google Drive MCP server for agents: browse, read, download, upload, edit and trash files, each permission switched per project",
   "type": "module",
   "license": "MIT",
