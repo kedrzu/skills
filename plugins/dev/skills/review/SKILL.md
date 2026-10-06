@@ -35,9 +35,9 @@ returns `[]` for an ordinary PR on any repository. Pushing and checking out go t
 project's `git-workflow` skill — what it must provide, and that a missing one stops the run, is
 `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
-**The owner's language** is the language his `CLAUDE.md` files name for human-facing text — his
-personal `~/.claude/CLAUDE.md` first, then the project's — or, without such a rule, the language he
-writes to you in. Everything below written for him — the comments' human layer, the refuted list,
+**The owner's language** is the language named for human-facing text in his personal, uncommitted
+`CLAUDE.local.md` at the project root, else in the project's `CLAUDE.md` — or, without such a rule,
+the language he writes to you in. Everything below written for him — the comments' human layer, the refuted list,
 the closing lists in chat — is in it. Settle it once, here, and name it in the brief of every agent
 that writes for him: a subagent sees only your prompt, so it cannot work this out itself.
 
