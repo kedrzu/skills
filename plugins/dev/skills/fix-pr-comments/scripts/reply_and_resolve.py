@@ -39,6 +39,11 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "review" / "scripts"))
+
+from pr_stack import ChainError, is_trusted_author  # noqa: E402
 
 
 def run(cmd):
@@ -122,12 +127,18 @@ def find_existing_answer(repo, pr_number, source_pr, source_comment_db_id):
     nobody replied to. The anchoring also removes the need to skip quoted lines —
     a quoted attribution starts with `> ` and cannot match.
 
+    Only comments from trusted authors count (`is_trusted_author`, as in the fetch
+    scripts): anyone can type the `## 🤖` header and the attribution line, and a
+    stranger's comment must not get the thread resolved with no answer of ours on it.
+    The REST `user.type` is passed as the GraphQL `__typename` — both say `User` or `Bot`.
+
     Exits rather than returning on a failed lookup. Falling through would post a
     second answer on exactly the retry this check exists to protect.
     """
     result, err = run([
         "gh", "api", f"repos/{repo}/pulls/{pr_number}/comments", "--paginate",
-        "--jq", '.[] | select(.body | startswith("## 🤖")) | (.html_url + " " + (.body | @base64))',
+        "--jq", '.[] | select(.body | startswith("## 🤖"))'
+        ' | (.html_url + " " + (.user.type // "-") + " " + (.user.login // "-") + " " + (.body | @base64))',
     ])
     if result is None:
         print(f"Failed to list PR comments: {err}", file=sys.stderr)
@@ -139,11 +150,19 @@ def find_existing_answer(repo, pr_number, source_pr, source_comment_db_id):
         + r"\):\s*$"
     )
     for line in result.split("\n"):
-        url, _, encoded = line.strip().partition(" ")
-        if not encoded:
+        fields = line.strip().split(" ")
+        if len(fields) != 4:
             continue
+        url, kind, login, encoded = fields
         body = base64.b64decode(encoded).decode("utf-8", "replace")
-        if any(anchor.match(body_line) for body_line in body.split("\n")):
+        if not any(anchor.match(body_line) for body_line in body.split("\n")):
+            continue
+        try:
+            trusted = is_trusted_author(repo, {"__typename": kind, "login": login})
+        except ChainError as error:
+            print(f"Failed to check the author of {url}: {error}", file=sys.stderr)
+            sys.exit(1)
+        if trusted:
             return url
     return None
 
