@@ -4,8 +4,9 @@ description: >-
     Configure a project for the dev pipeline — inspect how it builds, tests and ships, ask about
     what the repository cannot tell, and write the two skills the pipeline relies on: `verify`
     (scoped and full checks) and `git-workflow` (branch, commit, push, review, stack, land,
-    tracker). Idempotent: on a project that already has them it checks both against the contract
-    and fills only what is missing. Run it when a /dev:* entry point stops on a missing contract,
+    tracker) — and make sure the owner's language for human-facing text is set. Idempotent: on a
+    project that already has them it checks both against the contract and fills only what is
+    missing. Run it when a /dev:* entry point stops on a missing contract,
     when adopting the pipeline in a new repository, or after the project's build or release
     process changed.
 disable-model-invocation: true
@@ -16,7 +17,13 @@ disable-model-invocation: true
 Arguments passed: `$ARGUMENTS`
 
 The definition of done is `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`. Read it
-first: every step below is measured against it, and nothing beyond it is this skill's business.
+first: every step below is measured against it, and nothing beyond it is this skill's business —
+except one setting that belongs to the person rather than the project, **the owner's language**.
+
+`/dev:review`, `/dev:fix-pr-comments` and the pipeline write PR comments, plans and chat in the
+language his `CLAUDE.md` files name for human-facing text — his personal `~/.claude/CLAUDE.md`
+first, then the project's — falling back to the language he writes in. That fallback works for you
+and fails for every subagent, which sees only its brief; a named rule is what reaches them.
 
 ## 1. Take stock
 
@@ -28,12 +35,15 @@ check-out-the-tip and check-out-node-`k`. A
 section that has the operation but misses one of those has a gap of exactly that item. A section
 that says the project does not do something counts as covered — that is an answer, not a gap.
 
+Check the owner's language the same way: a rule in `~/.claude/CLAUDE.md` or the project's
+`CLAUDE.md` naming the language for human-facing text covers it, whatever its wording.
+
 Read the project's `CLAUDE.md` and its other skills too. The knowledge often already exists under
 another name — a commit-and-push skill, a test-running script, a PR checklist. One owner per fact:
 point at it rather than copy it.
 
-**Everything covered → report it, one line per contract operation, and stop without writing
-anything.** That is the idempotent case, and re-running this skill on a configured project must end
+**Everything covered → report it, one line per contract operation plus one for the language, and
+stop without writing anything.** That is the idempotent case, and re-running this skill on a configured project must end
 there.
 
 ## 2. Find the answers in the repository
@@ -57,7 +67,8 @@ prevent.
 
 One round, genuine gaps only, each with the answer you would recommend: which tracker, and how an
 issue is tied to a branch; whether PRs open as drafts; whether changes ever land as stacks; who
-lands a change and how; which steps the full verification must include when CI does not say.
+lands a change and how; which steps the full verification must include when CI does not say; and,
+with no language rule found, which language he wants — recommend the one he is writing to you in.
 
 ## 4. Write the skills
 
@@ -72,6 +83,9 @@ lands a change and how; which steps the full verification must include when CI d
   inside an existing section — added; what is already there stays.
 - Never write a command you neither saw nor ran. An operation the project does not do is written as
   unsupported, with a sentence why.
+- The language goes into `~/.claude/CLAUDE.md` as one line, e.g. `- Human-facing text (PR comments,
+  plans, specs, chat replies): Polish. Technical terms stay English.` — never into the project's
+  `CLAUDE.md`: it is his preference, and a teammate's may differ.
 
 ## 5. Report
 
