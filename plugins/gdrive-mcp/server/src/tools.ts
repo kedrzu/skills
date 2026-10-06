@@ -360,7 +360,7 @@ export class DriveTools {
         names.unshift("…");
         return names.join("/");
       }
-      names.unshift(p.data.parents?.length ? (p.data.name ?? "?") : "My Drive");
+      names.unshift(p.data.name ?? "?");
       parent = p.data.parents?.[0];
     }
     return names.length ? names.join("/") : undefined;
