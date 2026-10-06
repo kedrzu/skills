@@ -46,6 +46,69 @@ anyone who trusts the folder, add this to that repository's `.claude/settings.js
 Collaborators still run `claude plugin install <plugin-name>@kedrzu-skills` once —
 Claude Code does not auto-install plugins that come from an external source.
 
+## Install as a git submodule
+
+Use this instead of the marketplace when you want to edit the skills from inside the
+repository that uses them: the plugins load straight from the submodule's files, so a
+change shows up in the next session (or after `/reload-plugins`) with no push, version
+bump or marketplace refresh in between.
+
+It relies on Claude Code loading a plugin directory placed under a project's
+`.claude/skills/` in place, as `<plugin-name>@skills-dir` — skills, `.mcp.json`, hooks and
+dependencies on other plugins included, with `${CLAUDE_PLUGIN_ROOT}` pointing at that
+directory.
+
+1. Add the submodule, tracking `main`:
+
+    ```bash
+    git submodule add -b main https://github.com/kedrzu/skills.git skills
+    ```
+
+2. Enable each plugin you want by committing a relative symlink to its directory — the
+   link's name is the plugin's name:
+
+    ```bash
+    ln -s ../../skills/plugins/<plugin-name> .claude/skills/<plugin-name>
+    ```
+
+    Link the plugins it depends on as well (`dependencies` in its `plugin.json`). The set
+    of links is the project's selection. Making `.claude/skills` itself a link to
+    `plugins/`, as this repository does for its own development, enables every plugin and
+    leaves no room for the project's own skills.
+
+3. Make sure the workspace is trusted. Claude Code ignores a plugin under `.claude/skills/`
+   until you accept the workspace trust dialog for that folder, and `claude -p`, SDK
+   sessions and tools that launch Claude Code non-interactively never show the dialog. In
+   that case, set the trust by hand. Use the repository root path, and do this once per
+   checkout and per git worktree:
+
+    ```jsonc
+    // ~/.claude.json, or $CLAUDE_CONFIG_DIR/.claude.json
+    { "projects": { "/absolute/path/to/repo": { "hasTrustDialogAccepted": true } } }
+    ```
+
+    Edit that file with a script that rewrites only this key. It also holds your sign-in.
+
+To turn a plugin off for everyone, delete its symlink. To turn it off only for yourself,
+set `"<plugin-name>@skills-dir": false` under `enabledPlugins` in
+`.claude/settings.local.json`. You switch whole plugins only: `skillOverrides` does not
+apply to plugin skills, so split a plugin here if a project needs only part of it.
+
+Things to know:
+
+- **Same plugin from the marketplace.** An enabled marketplace install of the same plugin
+  wins over the `@skills-dir` copy. Disable or uninstall it, and drop `kedrzu-skills` from
+  the project's `extraKnownMarketplaces` and `enabledPlugins`.
+- **MCP servers and monitors.** The plugin's MCP servers go through the same per-server
+  approval as the project's `.mcp.json`. Background monitors do not load for a plugin
+  that comes from the repository.
+- **Clones and worktrees.** Run `git submodule update --init` in every new clone or
+  worktree. Until you do, the symlinks dangle and the plugins silently do not load.
+- **Publishing a change.** Branch inside the submodule, commit there, push, and open a PR
+  against `main` of this repository. Bump the plugin's `version` as you would for a
+  marketplace release. CI requires it, even though the in-place copy ignores versions.
+  Then commit the moved submodule pointer in the parent repository.
+
 ## Turn on auto-update
 
 Auto-update is **off by default** for third-party marketplaces like this one, so a new

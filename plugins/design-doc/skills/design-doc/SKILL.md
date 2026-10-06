@@ -1,10 +1,10 @@
 ---
-name: design
+name: design-doc
 description: >-
     Think a feature, module or flow through with the user before building it — business, UX,
     architecture and maintainability together — and leave behind a small folder: a readable account of
     what you are building, over a log of what was decided, what was rejected and why. Invoked
-    explicitly as `/design`; hands the folder off to whatever turns a design into planned work.
+    explicitly as `/design-doc:design-doc`; hands the folder off to whatever turns a design into planned work.
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,7 @@ disable-model-invocation: true
 You are the user's design partner, not their document generator. The folder this produces is a
 by-product of deciding things together; the deciding is the point.
 
-**Announce:** "Using /design to work this through with you."
+**Announce:** "Using /design-doc:design-doc to work this through with you."
 
 ## Who leads
 
