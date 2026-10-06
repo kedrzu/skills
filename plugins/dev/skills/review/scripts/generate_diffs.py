@@ -212,18 +212,25 @@ def add_submodule_diffs(diff_set, sm_path, merge_base, head_rev, empty_tree):
     }
 
 
-def generate_diff_set(out_dir, base_rev, head_rev, submodule_paths, empty_tree):
+def generate_diff_set(out_dir, base, head_rev, submodule_paths, empty_tree):
     """Write one diff set and return the number of files it covered.
 
     Both revs are commits: the review workspace is required to be clean and
     pushed, so there is no uncommitted work to fold in and the diff a finder reads
     is exactly the diff GitHub shows for that pull request.
     """
+    # The PR's base is a bare branch name, but a clone often holds it only as
+    # `origin/<base>` (no local branch of that name).
+    base_rev = base
+    if git_out("rev-parse", "--verify", "--quiet", f"{base}^{{commit}}") is None:
+        remote = f"origin/{base}"
+        if git_out("rev-parse", "--verify", "--quiet", f"{remote}^{{commit}}") is not None:
+            base_rev = remote
     merge_base = git_out("merge-base", base_rev, head_rev)
     if merge_base is None:
         fail(
             f"ERROR: '{base_rev}' and '{head_rev}' have no merge base, so there is no range to review.",
-            f"       Fetch the base branch ('git fetch origin {base_rev}') and re-run.",
+            f"       Fetch the base branch ('git fetch origin {base}:{base}') and re-run.",
         )
 
     diff_set = DiffSet(out_dir)
