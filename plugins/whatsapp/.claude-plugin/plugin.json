@@ -1,0 +1,7 @@
+{
+  "name": "whatsapp",
+  "description": "Read WhatsApp chats and attachments straight from the macOS desktop app's local database — list chats, read or search messages, find and copy files. Read-only, no API, no linked device",
+  "version": "0.1.0",
+  "author": { "name": "Michał Kędrzyński" },
+  "keywords": ["whatsapp", "messages", "macos"]
+}
