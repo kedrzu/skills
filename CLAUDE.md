@@ -51,6 +51,35 @@ directory name as its `source`.
   the stored file, and declares `"secrets"` in `dependencies`. `telegram`'s setup is the
   worked example.
 
+## Workspace and pull requests
+
+Work here runs in Paseo workspaces, several in parallel. Keep the admin off the user: name
+the workspace, and get every change into a pull request without asking. The user only
+reviews and merges.
+
+**Name the workspace** as soon as the first real task is known. Find it with
+`mcp__paseo__list_workspaces` (match `cwd` against the working directory) and rename it with
+`mcp__paseo__rename_workspace` (omit `workspaceId`) when its title is `null`, the generated
+worktree name (e.g. `tasty-squirrel`) or just `skills`. Use a short, task-specific,
+imperative title ("Add the whatsapp plugin"). Leave a meaningful title alone; rename only
+when the task turns into something clearly different. No Paseo tools → skip.
+
+**Commit, push and open a PR without asking** — this is a standing authorization:
+
+- On `main`, create a task branch first. In the local checkout (`~/Dev/skills`, not a
+  worktree) other workspaces may share the directory, so ask once before switching branches.
+- At the end of every turn that changed files: run the validation below, commit with a
+  WHAT+WHY message (English, imperative subject, as in `git log`), push, then
+  - no PR for the branch → `gh pr create` (ready for review, not draft) with a title and a
+    short summary of what changed and why;
+  - PR already open → push to it, and update its description when the scope grew.
+- Bump the version of every plugin whose files changed before pushing; the CI version guard
+  fails otherwise.
+- Confirm the push landed (`git status --porcelain` empty, `HEAD` equals `@{u}`) and end the
+  turn with the PR URL.
+- Never merge, never push to `main` directly. Skip all of this only when the user says not
+  to commit or the work is an explicit throwaway experiment.
+
 ## Adding a skill to an existing plugin
 
 1. Create `plugins/<plugin-name>/skills/<skill-name>/SKILL.md` with frontmatter:
