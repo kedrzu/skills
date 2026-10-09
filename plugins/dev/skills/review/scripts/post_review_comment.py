@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Post one review finding as an inline PR comment.
+"""Post a run's review findings as inline PR comments — one GitHub review per PR.
 
 The shape it builds, and the rules behind it, live in this skill's
-`references/comment.md`.
+`references/comment.md`. Why one review rather than a comment each, and how a
+pending review is opened and submitted, is `pr_review.py`.
 """
 
 import argparse
 import json
-import subprocess
 import sys
+
+from pr_review import ReviewError, add_thread, discard_all, open_pending, permalink, submit
 
 
 # Severity → (emoji, label) for line 1. These two markers are also the authorship
@@ -24,13 +26,6 @@ STALENESS_NOTE = (
     "Check this still holds before changing anything — if the code has moved, "
     "say so instead of fixing."
 )
-
-
-def run(cmd):
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        return None, result.stderr.strip()
-    return result.stdout.strip(), None
 
 
 def build_body(severity, category, provenance, delta, claim, consequence, details):
@@ -61,74 +56,79 @@ def build_body(severity, category, provenance, delta, claim, consequence, detail
     return "\n".join(parts)
 
 
-def create_review_comment(repo, pr_number, sha, body, path, line):
-    """Create a review comment on the diff."""
-    cmd = [
-        "gh", "api", f"repos/{repo}/pulls/{pr_number}/comments",
-        "-f", f"body={body}",
-        "-f", f"commit_id={sha}",
-        "-f", f"path={path}",
-    ]
-
-    if line is not None and line > 0:
-        cmd += ["-F", f"line={line}", "-f", "side=RIGHT"]
-    else:
-        cmd += ["-f", "subject_type=file"]
-
-    result, err = run(cmd)
-    if result is None:
-        print(f"Review comment failed: {err}", file=sys.stderr)
-        return False
-
-    data = json.loads(result)
-    where = f"at {path}:{line}" if line else f"on {path}, file-level"
-    print(f"Comment posted {where}: {data.get('html_url', 'ok')}")
-    return True
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Post a review finding as an inline PR comment.")
-    parser.add_argument("--repo", required=True, help="owner/repo")
-    parser.add_argument("--pr", required=True, type=int, help="PR number")
-    parser.add_argument("--sha", required=True, help="PR head commit SHA")
-    parser.add_argument("--file", required=True, help="File path, relative to the PR's repo root")
-    parser.add_argument("--line", required=True, type=int, help="Line number (0 for file-level)")
-    parser.add_argument("--severity", required=True, choices=sorted(SEVERITY_STYLE))
-    parser.add_argument("--category", required=True, help="Short category, e.g. data-integrity")
-    parser.add_argument(
-        "--provenance", required=True,
-        help="Axis, plus the rule's source where the finding rests on a rule "
-             "(e.g. 'Security · <the project's rule source> → audit at business boundary')",
+    parser = argparse.ArgumentParser(
+        description="Post a run's review findings as inline comments, one GitHub review per PR."
     )
-    parser.add_argument("--delta", required=True, help="e.g. 'adds ~6 lines' / 'removes ~12 lines'")
-    parser.add_argument("--claim", required=True, help="The claim in plain words (the owner's language, one line)")
     parser.add_argument(
-        "--consequence", required=True,
-        help="What goes wrong, for whom, when (the owner's language, the paragraph he judges on)",
+        "--findings", required=True,
+        help="JSON file: a list of {repo, pr, file, line, severity, category, provenance, delta, "
+             "claim, consequence, details}. `line` 0 posts at file level; `file` is relative to "
+             "that PR's repo root; `details` is optional.",
     )
-    parser.add_argument("--details", default="", help="Collapsed agent layer (English)")
     args = parser.parse_args()
 
-    body = build_body(
-        args.severity, args.category, args.provenance, args.delta,
-        args.claim, args.consequence, args.details,
-    )
+    with open(args.findings) as f:
+        findings = json.load(f)
+    for finding in findings:
+        if finding.get("severity") not in SEVERITY_STYLE:
+            print(f"Unknown severity {finding.get('severity')!r}: one of {sorted(SEVERITY_STYLE)}",
+                  file=sys.stderr)
+            sys.exit(1)
 
-    line = args.line if args.line > 0 else None
+    reviews = {}
+    posted = []
+    failed = []
+    try:
+        for finding in findings:
+            key = (finding["repo"], int(finding["pr"]))
+            if key not in reviews:
+                reviews[key] = open_pending(*key)
+            review = reviews[key]
 
-    # Try posting at file+line, fall back to file-level. The fallback is reported
-    # loudly on stdout: GitHub marks a file-level comment outdated on every push,
-    # and a rejected line usually means the finding was routed to the wrong node.
-    posted = create_review_comment(args.repo, args.pr, args.sha, body, args.file, line)
-    if not posted and line is not None:
-        print(
-            f"WARNING: PR #{args.pr} would not take a comment at {args.file}:{line} — "
-            "the line is not in its diff. Check the finding is on the right node; "
-            "falling back to a file-level comment, which any push marks outdated."
-        )
-        posted = create_review_comment(args.repo, args.pr, args.sha, body, args.file, None)
-    if not posted:
-        print("Failed to post comment.", file=sys.stderr)
+            body = build_body(
+                finding["severity"], finding["category"], finding["provenance"],
+                finding["delta"], finding["claim"], finding["consequence"],
+                finding.get("details", ""),
+            )
+            path, line = finding["file"], int(finding.get("line") or 0)
+            where = f"{path}:{line}" if line else f"{path}, file-level"
+
+            comment_id = add_thread(review, path, line, body)
+            # A rejected line falls back to file level, loudly: GitHub marks a
+            # file-level comment outdated on every push, and a rejected line usually
+            # means the finding was routed to the wrong node.
+            if comment_id is None and line:
+                print(
+                    f"WARNING: PR #{key[1]} would not take a comment at {where} — the line is "
+                    "not in its diff. Check the finding is on the right node; falling back to a "
+                    "file-level comment, which any push marks outdated."
+                )
+                where = f"{path}, file-level"
+                comment_id = add_thread(review, path, 0, body)
+            if comment_id is None:
+                failed.append(f"PR #{key[1]} {where}: not in this PR's diff")
+                continue
+            posted.append((key, where, permalink(key[0], key[1], comment_id)))
+
+        if failed:
+            # Nothing is published yet: discarding keeps the run one review once
+            # the poster has fixed the routing and re-runs it.
+            discard_all(reviews.values())
+            print("Nothing posted. These findings could not be anchored:", file=sys.stderr)
+            for line in failed:
+                print(f"  {line}", file=sys.stderr)
+            sys.exit(1)
+
+        for key in list(reviews):
+            print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key])}")
+            del reviews[key]
+        for key, where, url in posted:
+            print(f"Comment posted at {where} on #{key[1]}: {url}")
+    except ReviewError as error:
+        # A review already submitted is published and left out; the rest are discarded.
+        discard_all(reviews.values())
+        print(f"Failed: {error}", file=sys.stderr)
         sys.exit(1)
 
 

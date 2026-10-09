@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Answer one PR review thread: post at the fix, reply on the thread, resolve it.
+"""Answer a run's PR review threads: post at each fix, reply on each thread, resolve.
 
 A reply alone cannot work. The fix usually changes the very line the source comment
 sits on, which makes that thread outdated and hides it in the Files-changed view —
@@ -7,30 +7,33 @@ where the owner reads. So the answer is a **new** review comment anchored to whe
 the fix now lives, posted after the push, and it stays unresolved: that is his
 sign-off. The source thread gets a short reply pointing at it and is resolved.
 
-Four steps per thread, in this order:
+Everything one call posts goes out as **one review per PR** (`review/scripts/pr_review.py`
+says why and how), so the whole run's answers come in one call, after the last push:
 
-1. fetch the source thread's comments (for the quotes and their permalinks)
-2. post the answer at --file/--line, quoting each source comment
-3. reply on the source thread, linking to the answer
-4. resolve the source thread
+1. clear a leftover pending review of ours, then skip what is already on the PR
+2. per thread, add the answer at its file/line, quoting each source comment
+3. add a reply on the source thread, linking to the answer
+4. submit, then resolve every source thread
 
 Idempotent, not atomic. The answer's own attribution line carries the source
 comment's full permalink, so "have we already answered this thread?" is a search
-for that link in a `## 🤖` comment on the PR. Checked before posting, which is what
-makes a retry safe. And the order fails open — a failure at reply or resolve leaves
-the source thread visible and safe to re-run, where resolving first could close a
-finding whose answer never landed.
+for that link in a `## 🤖` comment on the PR — which is what makes a retry safe.
+Resolving comes last and fails open: a failure there leaves the source thread
+visible and safe to re-run, where resolving first could close a finding whose
+answer never landed.
 
-A rejected anchor falls back to the first line of that file that is in this PR's
-diff, then exits non-zero **without touching the source thread**: picking a
-different file is the agent's judgement, not a rung in this ladder. It never
-degrades to a file-level comment — those are marked outdated by any push at all,
-which is the one thing the answer exists to survive.
+A rejected anchor falls back to the first line of that file that is in the PR's
+diff. Past that, nothing is published: the pending reviews are discarded and the
+call exits non-zero naming the threads, so the agent picks another file and
+re-runs the batch, still as one review — picking a different file is its
+judgement, not a rung in this ladder. It never degrades to a file-level comment:
+those are marked outdated by any push at all, which is the one thing the answer
+exists to survive.
 
-`--pr` is the node the **fix** landed on: the only PR whose diff the answer can
-anchor inside, and its head SHA is what the comment is posted against. Pass
-`--source-pr` for the rare thread that sits on a different node, so the reply and
-the quoted permalinks stay on the PR he wrote on.
+`pr` is the node the **fix** landed on: the only PR whose diff the answer can
+anchor inside. `sourcePr` names the node carrying the thread, for the rare fix
+that landed elsewhere, so the reply and the quoted permalinks stay on the PR he
+wrote on.
 """
 
 import argparse
@@ -43,6 +46,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "review" / "scripts"))
 
+from pr_review import (  # noqa: E402
+    ReviewError, add_reply, add_thread, clear_stale, discard_all, open_pending, permalink, submit,
+)
 from pr_stack import ChainError, is_trusted_author  # noqa: E402
 
 
@@ -95,10 +101,6 @@ def fetch_thread_comments(thread_id):
         print("Thread not found", file=sys.stderr)
         return None
     return node["comments"]["nodes"]
-
-
-def permalink(repo, pr_number, comment_db_id):
-    return f"https://github.com/{repo}/pull/{pr_number}#discussion_r{comment_db_id}"
 
 
 def build_answer_body(header, message, comments, repo, pr_number):
@@ -167,13 +169,6 @@ def find_existing_answer(repo, pr_number, source_pr, source_comment_db_id):
     return None
 
 
-def get_pr_head_sha(repo, pr_number):
-    result, err = run(["gh", "api", f"repos/{repo}/pulls/{pr_number}", "-q", ".head.sha"])
-    if result is None:
-        print(f"Failed to get PR head SHA: {err}", file=sys.stderr)
-    return result
-
-
 def first_diff_line(repo, pr_number, path):
     """The first line of `path` that exists on the RIGHT side of this PR's diff.
 
@@ -198,34 +193,6 @@ def first_diff_line(repo, pr_number, path):
         elif right_line is not None and (raw.startswith("+") or raw.startswith(" ")):
             return right_line
     return None
-
-
-def create_review_comment(repo, pr_number, sha, body, path, line):
-    cmd = [
-        "gh", "api", f"repos/{repo}/pulls/{pr_number}/comments",
-        "-f", f"body={body}",
-        "-f", f"commit_id={sha}",
-        "-f", f"path={path}",
-        "-F", f"line={line}", "-f", "side=RIGHT",
-    ]
-    result, err = run(cmd)
-    if result is None:
-        print(f"Review comment failed: {err}", file=sys.stderr)
-        return None
-    return json.loads(result).get("html_url", "")
-
-
-def reply_to_thread(repo, pr_number, comment_db_id, body):
-    result, err = run([
-        "gh", "api",
-        f"repos/{repo}/pulls/{pr_number}/comments/{comment_db_id}/replies",
-        "-f", f"body={body}"
-    ])
-    if result is None:
-        print(f"Reply failed: {err}", file=sys.stderr)
-        return False
-    print(f"Reply posted: {json.loads(result).get('html_url', 'ok')}")
-    return True
 
 
 def resolve_thread(thread_id):
@@ -254,79 +221,98 @@ def resolve_thread(thread_id):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Post a fix answer on live code, reply on the source thread, resolve it."
-    )
-    parser.add_argument("--repo", required=True, help="owner/repo")
-    parser.add_argument(
-        "--pr", required=True, type=int,
-        help="PR of the node the fix landed on — the answer is anchored in its diff",
+        description="Post fix answers on live code, reply on the source threads, resolve them — "
+                    "one GitHub review per PR."
     )
     parser.add_argument(
-        "--source-pr", type=int, default=None,
-        help="PR carrying the source thread, when the fix landed on another node (defaults to --pr)",
-    )
-    parser.add_argument("--thread-id", required=True, help="GraphQL node ID of the source thread")
-    parser.add_argument(
-        "--header", required=True, choices=["Fixed", "Acknowledged"],
-        help="Fixed = the code changed; Acknowledged = it did not, and the message says why",
-    )
-    parser.add_argument("--message", required=True, help="What landed, in the owner's language")
-    parser.add_argument("--file", required=True, help="Where the fix lives NOW, relative to repo root")
-    parser.add_argument(
-        "--line", required=True, type=int,
-        help="Line of the fix; 0 to let the script anchor at the file's first line in the diff",
+        "--answers", required=True,
+        help="JSON file: a list of {repo, pr, sourcePr?, threadId, header, message, file, line}. "
+             "header: Fixed (the code changed) or Acknowledged (it did not, and the message says "
+             "why). file/line: where the fix lives NOW; line 0 anchors at the file's first line "
+             "in the diff.",
     )
     args = parser.parse_args()
-    source_pr = args.source_pr if args.source_pr is not None else args.pr
 
-    comments = fetch_thread_comments(args.thread_id)
-    if not comments:
-        sys.exit(1)
+    with open(args.answers) as f:
+        answers = json.load(f)
+    for answer in answers:
+        if answer.get("header") not in ("Fixed", "Acknowledged"):
+            print(f"Thread {answer.get('threadId')}: header must be Fixed or Acknowledged",
+                  file=sys.stderr)
+            sys.exit(1)
+        answer["pr"] = int(answer["pr"])
+        answer["sourcePr"] = int(answer.get("sourcePr") or answer["pr"])
 
-    source_comment_db_id = comments[0].get("databaseId")
-    if not source_comment_db_id:
-        print("Could not get source comment database ID", file=sys.stderr)
-        sys.exit(1)
+    reviews = {}
+    try:
+        # A leftover pending answer is invisible to him, so it must be gone before
+        # anything below decides a thread was already answered.
+        for key in {(a["repo"], pr) for a in answers for pr in (a["pr"], a["sourcePr"])}:
+            clear_stale(*key)
 
-    answer_url = find_existing_answer(args.repo, args.pr, source_pr, source_comment_db_id)
-    if answer_url:
-        print(f"Already answered, not posting again: {answer_url}")
-    else:
-        sha = get_pr_head_sha(args.repo, args.pr)
-        if sha is None:
+        def review_on(repo, pr):
+            if (repo, pr) not in reviews:
+                reviews[(repo, pr)] = open_pending(repo, pr)
+            return reviews[(repo, pr)]
+
+        failed = []
+        for answer in answers:
+            repo, pr, source_pr = answer["repo"], answer["pr"], answer["sourcePr"]
+            comments = fetch_thread_comments(answer["threadId"])
+            if not comments or not comments[0].get("databaseId"):
+                failed.append(f"{answer['threadId']}: could not read the source thread")
+                continue
+            answer["comments"] = comments
+
+            answer_url = find_existing_answer(repo, pr, source_pr, comments[0]["databaseId"])
+            if answer_url:
+                print(f"Already answered, not posting again: {answer_url}")
+            else:
+                body = build_answer_body(answer["header"], answer["message"], comments, repo, source_pr)
+                path, line = answer["file"], int(answer.get("line") or 0)
+                comment_id = add_thread(review_on(repo, pr), path, line, body) if line > 0 else None
+                if comment_id is None:
+                    fallback = first_diff_line(repo, pr, path)
+                    if fallback is not None and fallback != line:
+                        print(f"Anchoring {path} at its first diff line ({fallback})", file=sys.stderr)
+                        comment_id = add_thread(review_on(repo, pr), path, fallback, body)
+                if comment_id is None:
+                    failed.append(f"{answer['threadId']}: could not anchor the answer in {path}")
+                    continue
+                answer_url = permalink(repo, pr, comment_id)
+
+            # The reply carries the answer's URL, so that URL is what identifies it: an
+            # earlier answer's reply is not this one's, and skipping on it would resolve
+            # the thread with nothing on it pointing at the answer just posted.
+            if not any(answer_url in c.get("body", "") for c in comments[1:]):
+                reply = f"## 🤖 {answer['header']}\n\n{answer['message']}\n\n{answer_url}"
+                add_reply(review_on(repo, source_pr), answer["threadId"], reply)
+            answer["url"] = answer_url
+
+        if failed:
+            discard_all(reviews.values())
+            print("Nothing posted, no thread touched. Name a file the PR changed and re-run:",
+                  file=sys.stderr)
+            for line in failed:
+                print(f"  {line}", file=sys.stderr)
             sys.exit(1)
 
-        body = build_answer_body(args.header, args.message, comments, args.repo, source_pr)
-        answer_url = None
-        if args.line > 0:
-            answer_url = create_review_comment(args.repo, args.pr, sha, body, args.file, args.line)
-        if answer_url is None:
-            fallback = first_diff_line(args.repo, args.pr, args.file)
-            if fallback is not None and fallback != args.line:
-                print(f"Anchoring at the first diff line of the file ({fallback})...", file=sys.stderr)
-                answer_url = create_review_comment(args.repo, args.pr, sha, body, args.file, fallback)
-        if answer_url is None:
-            print(
-                f"Could not anchor the answer in {args.file}. Source thread untouched — "
-                "name a file this PR changed and re-run.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        print(f"Answer posted: {answer_url}")
-
-    # A retry after a failed resolve must not leave a second copy of the same reply.
-    # The reply carries the answer's URL, so that URL is what identifies it: an
-    # earlier answer's reply is not this one's, and skipping on it would resolve the
-    # thread with nothing on it pointing at the answer just posted.
-    already_replied = any(answer_url in c.get("body", "") for c in comments[1:])
-    if not already_replied:
-        reply = f"## 🤖 {args.header}\n\n{args.message}\n\n{answer_url}"
-        if not reply_to_thread(args.repo, source_pr, source_comment_db_id, reply):
-            sys.exit(1)
-
-    if not resolve_thread(args.thread_id):
-        print("Answer and reply posted, but the source thread is still open.", file=sys.stderr)
+        for key in list(reviews):
+            print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key])}")
+            del reviews[key]
+    except ReviewError as error:
+        # A review already submitted is published and left out; the rest are discarded.
+        discard_all(reviews.values())
+        print(f"Failed: {error}", file=sys.stderr)
         sys.exit(1)
+
+    unresolved = [a["threadId"] for a in answers if not resolve_thread(a["threadId"])]
+    if unresolved:
+        print(f"Answers posted, but these source threads are still open: {', '.join(unresolved)}",
+              file=sys.stderr)
+        sys.exit(1)
+    for answer in answers:
+        print(f"Answered {answer['threadId']}: {answer['url']}")
 
 
 if __name__ == "__main__":

@@ -54,8 +54,10 @@ filled with the same unreadable prose.
 ## Posting
 
 `review/scripts/post_review_comment.py` builds this shape and prepends the staleness sentence
-itself. Its invocation and flags are in the review skill's step 4 and in the script's `--help`. A
+itself. Its invocation and input are in the review skill's step 4 and in the script's `--help`. A
 path inside a submodule is relative to that submodule's root and goes on that submodule's PR.
+Everything one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so he
+gets one entry per run rather than one per comment.
 
 ## Who wrote a comment
 
@@ -68,8 +70,9 @@ the repository (and from GitHub Apps installed on it), because anyone can type a
 scripts drop every other comment before reading it, so a stranger's comment is never an ask and
 never settles one. This file is its canonical definition. In this plugin, `review/scripts/pr_stack.py`
 holds the header list both fetch scripts read; `review/scripts/post_review_comment.py` writes the
-finding headers and `fix-pr-comments/scripts/reply_and_resolve.py` writes and looks up `## 🤖`. A
-change here is a change in all three.
+finding headers, `fix-pr-comments/scripts/reply_and_resolve.py` writes and looks up `## 🤖`, and
+`review/scripts/pr_review.py` reads the list to tell a leftover pending review of ours from his own
+draft. A change here is a change in all four.
 
 ## How a comment gets answered
 
@@ -77,8 +80,8 @@ A fix answers with a **new** comment, not with a reply on the thread the finding
 usually changes the very line that thread sits on, which makes it outdated and hides it in the
 Files-changed view; resolving it or not makes no difference to that. So the answer is posted where
 the fix now lives, after the push, the source thread gets a short reply linking to it, and the
-source thread is resolved. `fix-pr-comments/scripts/reply_and_resolve.py` does all of that in one
-call.
+source thread is resolved. `fix-pr-comments/scripts/reply_and_resolve.py` does all of that for a
+whole run in one call, and publishes it as one review per PR.
 
 The answer is left **unresolved**, and that is what he signs off on. It is fresh rather than
 immortal — a later run whose commits touch that line outdates it too.
