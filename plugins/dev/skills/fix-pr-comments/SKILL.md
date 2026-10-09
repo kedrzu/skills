@@ -174,38 +174,45 @@ cascades on merge — so once every node is committed and pushed, propagate them
 upper nodes keep their anchors. Skipping it leaves those nodes reviewing — and later squashing
 against — a base they never saw.
 
-Then, per thread, once the push has succeeded:
+Then, once every push has succeeded — every node, every submodule — answer all the threads in one
+call:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/scripts/reply_and_resolve.py \
-  --repo "<owner/repo>" --pr <n> --thread-id "<id>" \
-  --header Fixed --message "<what landed>" \
-  --file <where the fix lives now> --line <n>
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/scripts/reply_and_resolve.py --answers <answers.json>
 ```
 
-`--repo` and `--pr` name **the node the fix landed on** — the only PR whose diff the answer can
-anchor inside, and the head SHA it is posted against. Under the grouping rule that is also the node
-that carried the comment; for the rare thread whose fix belonged elsewhere, add `--source-pr <n>` so
-the reply and the quoted links stay on the PR he wrote on while the answer sits by the changed code.
+`answers.json` is a list with one entry per thread:
+`{"repo", "pr", "threadId", "header", "message", "file", "line"}`. Everything it posts goes out as
+**one GitHub review per PR**. A comment posted on its own is a review of its own, so the run would
+reach him, on his phone too, as a wall of separate entries instead of one. That is why the call
+waits for the last push: a review is submitted once, and nothing can join it afterwards.
 
-One call carries the whole protocol: it posts the answer as a **new** comment at `--file`/`--line`,
-replies on the source thread with a link to it, then resolves the source thread. The answer stays
-unresolved — that is his sign-off. A reply alone would not reach him: the fix usually changes the
-line the source comment sits on, which makes that thread outdated and hides it in the Files-changed
-view where he reads.
+`repo` and `pr` name **the node the fix landed on**, the only PR whose diff the answer can anchor
+inside. Under the grouping rule that is also the node that carried the comment. For the rare thread
+whose fix belonged elsewhere, add `"sourcePr"`: the reply and the quoted links then stay on the PR
+he wrote on, while the answer sits by the changed code.
 
-**`--file` and `--line` are where the fix lives now**, in the pushed code — not where the comment
-was, and not necessarily where the fixer reported it, since `prune` may have moved it since. That is
+Per thread, the script posts the answer as a **new** comment at `file`/`line` and replies on the
+source thread with a link to it. Once the review is submitted, it resolves the source thread. The
+answer stays unresolved, because that is his sign-off. A reply alone would not reach him: the fix
+usually changes the line the source comment sits on, which makes that thread outdated and hides it
+in the Files-changed view where he reads.
+
+**`file` and `line` are where the fix lives now**, in the pushed code. That is not where the comment
+was, and not necessarily where the fixer reported it, since `prune` may have moved it since. It is
 the one thing the script cannot work out, and it is what keeps the answer on live code. Where the
 original location is gone, anchor to the file that replaced it or the closest related file this PR
-changed, and say in the message that the original location no longer exists. An anchor GitHub rejects
-falls back to the first line of that file that is in this PR's diff, and then fails with the source
-thread untouched, so re-running with a better file is safe — as is re-running after any failure,
-since it finds its own answer already on the PR rather than posting a second one. It never falls back
-to a file-level comment: those are marked outdated by any push at all, which is the one thing the
-answer exists to survive.
+changed, and say in the message that the original location no longer exists.
 
-`--header` is `Fixed` when the code changed and `Acknowledged` when it did not — a finding that no
+An anchor GitHub rejects falls back to the first line of that file that is in the PR's diff. If that
+fails too, the script publishes nothing and names the threads, so correct the file and re-run the
+whole batch. Re-running is safe after any failure: the script finds answers already on the PR and
+does not post them twice. It never falls back to a file-level comment, because any push at all marks
+those outdated, and surviving pushes is the whole point of the answer. If it stops because he has a
+draft review of his own open on that PR, ask him to submit or discard it. Publishing ours would
+publish his.
+
+`header` is `Fixed` when the code changed and `Acknowledged` when it did not — a finding that no
 longer held, a request the code already satisfied, an answer to a question he asked. Say which in
 the message; an answer claiming a fix that did not happen is worse than none. Write it in his
 language: he is the one who reads it.
@@ -214,13 +221,13 @@ If `prune` removed part of what a fixer added, the answer says so. If it removed
 thread actually needed, restore that first — the answer is what he signs off on, so it has to be
 true of the code that is now on the PR.
 
-A thread whose fixer stopped with a question gets no answer and stays open. **Put that question to
+A thread whose fixer stopped with a question stays out of the file and stays open. **Put that question to
 him when it arrives, not at the end of the run** — it is a fork, and batching forks into a closing
 report is exactly what makes him discover decisions after the fact. One or two sentences: what the
 comment asks, what the code actually says, and what you need from him.
 
-Threads on the submodule's PR use that PR's own `--repo` and `--pr` from step 1 — the script resolves
-threads by GraphQL node id, so nothing else changes.
+Threads on the submodule's PR go in the same file, with that PR's own `repo` and `pr` from step 1.
+The script resolves threads by GraphQL node id, so nothing else changes.
 
 ## 7. `RULE:` — fold it into the skill that should have caught it
 
