@@ -1,0 +1,17 @@
+{
+  "name": "retro",
+  "description": "Retrospective on how agents worked in a project: root cause from Claude Code and Codex transcripts and PR reviews, verdicts on the previous retro, fixes applied to the environment",
+  "version": "0.1.0",
+  "author": {
+    "name": "Michał Kędrzyński"
+  },
+  "keywords": [
+    "retrospective",
+    "transcripts",
+    "meta",
+    "agents"
+  ],
+  "dependencies": [
+    "skill-improve"
+  ]
+}
