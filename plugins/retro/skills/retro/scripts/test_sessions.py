@@ -35,6 +35,11 @@ def claude_events(cwd: str) -> list[dict]:
             {"type": "tool_result", "tool_use_id": "t2", "content": "Your questions have been answered: \"Which?\"=\"A\""},
         ]}},
         {**base, "type": "user", "promptSource": "sdk", "message": {"content": [{"type": "text", "text": "<paseo-system> Agent 1 finished"}]}},
+        {**base, "type": "user", "isCompactSummary": True, "message": {"content": "This session is being continued from a previous conversation"}},
+        {**base, "type": "user", "message": {"content": [
+            {"type": "text", "text": "<chat-history-summary>\nChat history from a previous Paseo agent.\n</chat-history-summary>"},
+            {"type": "text", "text": "kontynuuj od testu"},
+        ]}},
         {**base, "type": "user", "turnOrigin": {"kind": "task_notification"}, "message": {"content": "<task-notification>done</task-notification>"}},
         {**base, "type": "user", "message": {"content": [{"type": "text", "text": "[Request interrupted by user]"}]}},
         {**base, "type": "attachment", "attachment": {"type": "queued_command", "prompt": [{"type": "text", "text": "nie, najpierw test"}]}},
@@ -56,7 +61,7 @@ def codex_events(cwd: str, subagent: bool = False) -> list[dict]:
         {"type": "session_meta", "payload": {"timestamp": "2026-10-02T08:00:00Z", "cwd": cwd, "git": {"branch": "main"},
                                              "thread_source": "subagent" if subagent else "user"}},
         {"type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "# AGENTS.md instructions"}]}},
-        item({"type": "UserMessage", "content": [{"type": "text", "text": "/retro why are e2e tests flaky"}]}),
+        item({"type": "UserMessage", "content": [{"type": "text", "text": "<system_instruction>\nYou are working inside Conductor\n</system_instruction>\n\n/retro why are e2e tests flaky"}]}),
         item({"type": "AgentMessage", "content": [{"type": "Text", "text": "Looking at sessions."}]}),
         item({"type": "McpToolCall", "server": "linear", "tool": "list_issues", "arguments": {"query": "flaky"}, "status": "failed", "error": "unauthorized"}),
         item({"type": "FileChange", "changes": {"/r/docs/a.md": {"type": "add"}}}),
@@ -69,6 +74,8 @@ def codex_events(cwd: str, subagent: bool = False) -> list[dict]:
         # Already rendered by the FileChange and McpToolCall items above.
         call("custom_tool_call", "c4", name="apply_patch", input="*** Begin Patch"),
         call("custom_tool_call", "c5", name="exec", input="text(await tools.mcp__linear__list_issues({query: 'flaky'}));"),
+        call("function_call", "c6", name="request_user_input", arguments=json.dumps({"questions": [{"id": "scope"}]})),
+        output("function_call_output", "c6", json.dumps({"answers": {"scope": {"answers": ["Only e2e (Recommended)"]}}})),
         item({"type": "UserMessage", "content": [{"type": "text", "text": "<paseo-system> Agent 2 idle"}]}),
         {"type": "event_msg", "payload": {"type": "turn_aborted", "reason": "interrupted"}},
     ]
@@ -90,7 +97,9 @@ class RenderTests(unittest.TestCase):
         self.assertIn("!! [Request interrupted by user]", out)
         self.assertIn("nie, najpierw test", out)
         self.assertIn("(30 min)", out)
-        for noise in ("paseo-system", "task-notification", "Base directory", "subagent noise", "private"):
+        self.assertIn("kontynuuj od testu", out)
+        for noise in ("paseo-system", "task-notification", "Base directory", "subagent noise", "private",
+                      "being continued", "chat-history-summary"):
             self.assertNotIn(noise, out)
 
     def test_claude_user_only(self):
@@ -112,8 +121,17 @@ class RenderTests(unittest.TestCase):
         for covered in ("wait(", "apply_patch", "mcp__linear"):
             self.assertNotIn(covered, out)
         self.assertIn("!! [turn aborted: interrupted]", out)
-        self.assertNotIn("AGENTS.md", out)
-        self.assertNotIn("paseo-system", out)
+        self.assertIn("## USER (answering request_user_input)\nscope: Only e2e (Recommended)\n", out)
+        self.assertEqual(out.count("scope: Only e2e"), 1)
+        self.assertNotIn("request_user_input(", out)
+        for noise in ("AGENTS.md", "paseo-system", "Conductor"):
+            self.assertNotIn(noise, out)
+
+    def test_codex_user_only_keeps_answers(self):
+        path = write_jsonl(self.tmp / "rollout-x.jsonl", codex_events("/r"))
+        out = self.run_script("render", str(path), "--user-only")
+        self.assertIn("scope: Only e2e (Recommended)", out)
+        self.assertNotIn("exec_command(", out)
 
 
 class ListTests(unittest.TestCase):

@@ -35,7 +35,7 @@ PASEO_WORKSPACES = Path.home() / ".paseo" / "projects" / "workspaces.json"
 USER_VOICE = ("Your questions have been answered", "The user answered", "The user doesn't want to proceed")
 
 # User-role messages that the harness injected rather than the human typed.
-INJECTED = ("<task-notification", "<paseo-system>", "<system-reminder>", "<local-command-", "Caveat: ")
+INJECTED = ("<task-notification", "<paseo-system>", "<system-reminder>", "<local-command-", "Caveat: ", "<chat-history-summary")
 
 
 def read_jsonl(path: Path) -> Iterator[dict]:
@@ -82,7 +82,8 @@ def one_line(value: str, limit: int) -> str:
 
 def classify_user_text(text: str) -> tuple[str, str] | None:
     """Return ("user"|"command"|"interrupt", text), or None for injected context."""
-    stripped = text.strip()
+    # Conductor prepends its instructions to the prompt in the same text, so cut them out rather than drop it.
+    stripped = re.sub(r"<system_instruction>.*?</system_instruction>", "", text, flags=re.S).strip()
     if not stripped:
         return None
     if stripped.startswith("[Request interrupted"):
@@ -119,7 +120,7 @@ def claude_meta(path: Path) -> dict:
 def claude_user_turns(event: dict) -> Iterator[tuple[str, str]]:
     content = (event.get("message") or {}).get("content")
     origin = event.get("turnOrigin")
-    if isinstance(origin, dict) and origin.get("kind") == "task_notification":
+    if event.get("isCompactSummary") or isinstance(origin, dict) and origin.get("kind") == "task_notification":
         return
     blocks = [content] if isinstance(content, str) else [b.get("text", "") for b in content or [] if isinstance(b, dict) and b.get("type") == "text"]
     for block in blocks:
@@ -203,14 +204,8 @@ def codex_turns(path: Path, user_only: bool) -> Iterator[tuple[str, str]]:
 
     Shell calls never become items, so tool calls always come from response_item, paired with their
     output by call_id; where items exist, the calls they already render are skipped."""
-    outputs: dict = {}
+    outputs: dict | None = None
     itemised = False
-    if not user_only:
-        for event in read_jsonl(path):
-            payload = event.get("payload") or {}
-            itemised = itemised or payload.get("type") == "item_completed"
-            if payload.get("type") in ("function_call_output", "custom_tool_call_output"):
-                outputs[payload.get("call_id")] = payload.get("output")
     has_items = False
     fallback: list[tuple[str, str]] = []
     for event in read_jsonl(path):
@@ -237,13 +232,24 @@ def codex_turns(path: Path, user_only: bool) -> Iterator[tuple[str, str]]:
         elif event.get("type") == "event_msg" and payload.get("type") == "turn_aborted":
             yield "interrupt", f"[turn aborted: {payload.get('reason')}]"
         elif event.get("type") == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
-            if user_only or (itemised and codex_call_has_item(payload)):
+            if outputs is None:
+                # Read on the first call, so codex_meta, which stops at the first prompt, never pays for it.
+                outputs, itemised = codex_outputs(path)
+            output = outputs.get(payload.get("call_id"))
+            if payload.get("name") == "request_user_input" and output:
+                # No item covers it, and the human's answers live only in the call's output.
+                turn = "answer", codex_answers(output)
+            elif user_only or (itemised and codex_call_has_item(payload)):
                 continue
-            call = codex_call(payload, outputs.get(payload.get("call_id")))
-            if call and itemised:
-                yield "tool", json.dumps(call)
-            elif call:
-                fallback.append(("tool", json.dumps(call)))
+            else:
+                call = codex_call(payload, output)
+                if not call:
+                    continue
+                turn = "tool", json.dumps(call)
+            if itemised:
+                yield turn
+            else:
+                fallback.append(turn)
         elif not has_items and event.get("type") == "response_item":
             if payload.get("type") == "message" and payload.get("role") == "user":
                 turn = classify_user_text(text_of(payload.get("content")))
@@ -262,6 +268,27 @@ def codex_call_has_item(payload: dict) -> bool:
     # An exec cell is JavaScript that calls tools; it is covered only when every tool it calls is.
     names = re.findall(r"tools\.(\w+)", payload.get("input") or "") if payload.get("name") == "exec" else [payload.get("name") or ""]
     return bool(names) and all(n in ("apply_patch", "update_plan") or n.startswith("mcp__") for n in names)
+
+
+def codex_outputs(path: Path) -> tuple[dict, bool]:
+    """Tool outputs by call_id, and whether the rollout logs items at all."""
+    outputs, itemised = {}, False
+    for event in read_jsonl(path):
+        payload = event.get("payload") or {}
+        itemised = itemised or payload.get("type") == "item_completed"
+        if payload.get("type") in ("function_call_output", "custom_tool_call_output"):
+            outputs[payload.get("call_id")] = payload.get("output")
+    return outputs, itemised
+
+
+def codex_answers(output: object) -> str:
+    """`{"answers": {id: {"answers": [...]}}}` as one `id: answer` line per question."""
+    text = text_of(output)
+    try:
+        answers = json.loads(text)["answers"]
+        return "\n".join(f"{qid}: {'; '.join(map(str, (a or {}).get('answers') or []))}" for qid, a in answers.items())
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return text
 
 
 def codex_call(payload: dict, output: object) -> list | None:
@@ -315,6 +342,8 @@ def header(agent: str, path: Path, first: dict, timestamps: list) -> list[str]:
 def turn_line(kind: str, text: str) -> str:
     if kind == "interrupt":
         return f"!! {text}\n"
+    if kind == "answer":
+        return f"## USER (answering request_user_input)\n{text}\n"
     return f"## USER\n{text}\n"
 
 
