@@ -112,9 +112,8 @@ def main():
             posted.append((key, where, permalink(key[0], key[1], comment_id)))
 
         if failed:
-            # Nothing is published yet: discarding keeps the run one review once
-            # the poster has fixed the routing and re-runs it.
-            discard_all(reviews.values())
+            # Nothing is published yet: discarding (below) keeps the run one review
+            # once the poster has fixed the routing and re-runs it.
             print("Nothing posted. These findings could not be anchored:", file=sys.stderr)
             for line in failed:
                 print(f"  {line}", file=sys.stderr)
@@ -126,10 +125,13 @@ def main():
         for key, where, url in posted:
             print(f"Comment posted at {where} on #{key[1]}: {url}")
     except ReviewError as error:
-        # A review already submitted is published and left out; the rest are discarded.
-        discard_all(reviews.values())
         print(f"Failed: {error}", file=sys.stderr)
         sys.exit(1)
+    finally:
+        # Any exit halfway — a missing key included — would leave a review open under
+        # his account, where his next browser comment would join it. A review already
+        # submitted is published and left out; the rest are discarded.
+        discard_all(reviews.values())
 
 
 if __name__ == "__main__":

@@ -290,7 +290,6 @@ def main():
             answer["url"] = answer_url
 
         if failed:
-            discard_all(reviews.values())
             print("Nothing posted, no thread touched. Name a file the PR changed and re-run:",
                   file=sys.stderr)
             for line in failed:
@@ -301,10 +300,13 @@ def main():
             print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key])}")
             del reviews[key]
     except ReviewError as error:
-        # A review already submitted is published and left out; the rest are discarded.
-        discard_all(reviews.values())
         print(f"Failed: {error}", file=sys.stderr)
         sys.exit(1)
+    finally:
+        # Any exit halfway — the anchor failure above, a failed lookup, a missing key — leaves
+        # reviews open under his account, where his next browser comment would join
+        # them. A review already submitted is published and left out; the rest go.
+        discard_all(reviews.values())
 
     unresolved = [a["threadId"] for a in answers if not resolve_thread(a["threadId"])]
     if unresolved:
