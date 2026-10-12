@@ -1,4 +1,23 @@
+# OS and editors
 .DS_Store
+.idea/
+.vscode/
+
+# Dependencies and build caches
 node_modules/
 __pycache__/
 *.pyc
+*.tsbuildinfo
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Working files of agents and tools
+.context/
+.playwright-mcp/
+.claude/settings.local.json
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+*.log
