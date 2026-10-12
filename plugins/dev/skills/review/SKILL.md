@@ -128,7 +128,7 @@ the findings in chat, say the branch has no PR, and stop — the fetch below exi
 one.
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_comments.py    # every node's threads, resolved included, + its headSha
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_comments.py    # every node's threads, resolved included
 ```
 
 Give the poster the survivors and the existing threads, and let it decide what is **genuinely new** —
@@ -144,23 +144,29 @@ threads and judge, including what he wrote under them:
 |unresolved, no reply|nothing was said; a genuinely new finding may go next to it|
 |unresolved, one of our own `## 🤖` answers|a fix from an earlier run, waiting for him to accept it. It is an answer, not a finding, and the work behind it is done — never re-raise what it reports|
 
-Post each surviving finding in the shape
-`${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` defines (pass the expanded path to a
-poster agent, and tell it the owner's language), against the `prNumber` and `headSha` of **the
-node it belongs to**:
+Post the surviving findings in the shape
+`${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` defines. A poster agent needs the
+expanded path to that file and the owner's language. Each finding goes on the `prNumber` of **the
+node it belongs to**. All of them, from every node and every submodule, go into one file and one
+call:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
-    --repo <owner/repo> --pr <n> --sha <headSha> \
-    --file src/consent/ConsentCreateCommand.ts --line 42 \
-    --severity blocking --category data-integrity \
-    --provenance "Correctness" --delta "adds ~6 lines" \
-    --claim "<owner's language, one sentence>" \
-    --consequence "<owner's language, what goes wrong, for whom, when>" \
-    --details "<English, citations and the proposed fix>"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py --findings <findings.json>
 ```
 
-`--line 0` posts at file level. The script prepends the staleness sentence itself.
+```json
+[{"repo": "<owner/repo>", "pr": 12, "file": "src/consent/ConsentCreateCommand.ts", "line": 42,
+  "severity": "blocking", "category": "data-integrity", "provenance": "Correctness",
+  "delta": "adds ~6 lines", "claim": "<owner's language, one sentence>",
+  "consequence": "<owner's language, what goes wrong, for whom, when>",
+  "details": "<English, citations and the proposed fix>"}]
+```
+
+The script publishes **one GitHub review per PR**. A comment posted on its own is a review of its
+own, so findings posted one at a time reach him, on his phone too, as a wall of separate entries.
+`line: 0` posts at file level. The script prepends the staleness sentence itself. If it stops
+because he has a draft review of his own open on that PR, ask him to submit or discard it, because
+publishing ours would publish his.
 
 Which node a finding belongs to is not a judgement: **a finding belongs to the node whose diff holds
 its lines** — look the file up in that node's `manifest.txt` and check the line is inside one of its
@@ -181,10 +187,10 @@ the submodule:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_description.py --cwd <path>    # → its repo, prNumber
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_comments.py    --cwd <path>    # → its headSha, threads
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_comments.py    --cwd <path>    # → its threads
 ```
 
-Post with those values and with `--file` relative to the submodule root — the `<path>/` prefix
+Post with those values and with `file` relative to the submodule root — the `<path>/` prefix
 stripped, or GitHub matches no line in that PR's diff. It carries its own nit budget: a separate PR,
 read at a separate moment. No PR for the submodule: report those findings in chat.
 
