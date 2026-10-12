@@ -1,0 +1,8 @@
+{
+  "name": "handoff",
+  "description": "Hand the work to a fresh agent: a summary of the session that points at existing artifacts, then a new Paseo agent (or a background claude) started with it",
+  "version": "0.1.0",
+  "author": {
+    "name": "Michał Kędrzyński"
+  }
+}

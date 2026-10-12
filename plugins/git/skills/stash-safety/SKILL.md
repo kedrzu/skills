@@ -24,7 +24,8 @@ apply another agent's stash on top of your working tree and silently corrupt you
    stack, which may belong to another worktree. Restore by ref, matched on your own message.
 
 These hold even for a stash you expect to pop back two commands later: the window is exactly where
-another agent lands.
+another agent lands. In Claude Code the `git` plugin's hook enforces both, and `git stash clear`
+too; when it blocks a command, the recipes below are the way through.
 
 ## Naming a stash
 
