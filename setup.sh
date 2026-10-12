@@ -12,9 +12,35 @@ if [ "$CI" = "true" ] || [ "$REPO_ROOT" = "$CURRENT_DIR" ]; then
     exit 0
 fi
 
+# The developer's personal, gitignored instructions (e.g. the language agents write to him in).
+# Being uncommitted, it is otherwise missing from every fresh worktree.
+if [ -f "$REPO_ROOT/CLAUDE.local.md" ]; then
+    cp "$REPO_ROOT/CLAUDE.local.md" CLAUDE.local.md
+    echo "✅ CLAUDE.local.md copied from main repo"
+fi
+
 # --- Worktree: catch up with origin/main ---
 
-# A worktree is cut from the *local* `main` ref, which may have fallen behind origin.
+# Only a branch based on `main` catches up with it. Merging `main` into anything else drags it into
+# a PR that does not target `main` — a stacked node, or a branch cut from another feature branch.
+# The base, most authoritative first: the open PR's, then the one Paseo recorded when it cut the
+# worktree (`baseRefName` — for a checked-out PR that is the PR's base, for an existing branch the
+# branch itself). No answer means no merge.
+BRANCH=$(git branch --show-current)
+BASE=$(gh pr view --json baseRefName --jq .baseRefName 2> /dev/null || true)
+PASEO_METADATA="$(git rev-parse --git-dir)/paseo/worktree.json"
+if [ -z "$BASE" ] && [ -f "$PASEO_METADATA" ]; then
+    BASE=$(sed -n 's/.*"baseRefName": *"\([^"]*\)".*/\1/p' "$PASEO_METADATA")
+fi
+
+if [ "$BASE" != main ]; then
+    echo ""
+    echo "⏭️  Not catching up: ${BRANCH:-detached HEAD} is based on ${BASE:-an unknown branch}, not main."
+    exit 0
+fi
+
+# Paseo cuts a branch from a freshly fetched `origin/main` when it can, but falls back to the cached
+# ref when the fetch fails, and a re-run on an older branch is behind by definition.
 echo ""
 echo "🔄 Catching up with origin/main..."
 echo ""
@@ -36,12 +62,12 @@ else
         || echo "⚠️  Local main not fast-forwarded (diverged from origin/main)."
 fi
 
-# A fresh worktree fast-forwards. A re-run on a branch carrying real work may not merge cleanly; a
+# A fresh branch fast-forwards. A re-run on a branch carrying real work may not merge cleanly; a
 # conflict under `set -e` would leave a half-merged tree, so an unclean merge is rolled back and
 # reported instead.
 if git merge --quiet --no-edit origin/main; then
     echo "✅ Up to date with origin/main"
 else
     git merge --abort 2> /dev/null || true
-    echo "⚠️  Could not merge origin/main into $(git branch --show-current) — merge it by hand."
+    echo "⚠️  Could not merge origin/main into $BRANCH — merge it by hand."
 fi

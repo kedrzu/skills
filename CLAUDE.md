@@ -29,6 +29,11 @@ plugins/<plugin-name>/            # one installable plugin per directory
 `metadata.pluginRoot` is `./plugins`, so a marketplace entry may use the bare
 directory name as its `source`.
 
+One directory under `plugins/` is not a plugin: `plugins/git-workflow/` holds only a
+`SKILL.md`. It is this repository's own `git-workflow` skill (the `dev` pipeline's contract
+for how a change moves here), loaded through the `.claude/skills` symlink, with no manifest
+and no marketplace entry.
+
 ## Conventions
 
 - **Everything committed here is in English** — manifests, skill bodies, comments,
@@ -79,6 +84,13 @@ when the task turns into something clearly different. No Paseo tools → skip.
   turn with the PR URL.
 - Never merge, never push to `main` directly. Skip all of this only when the user says not
   to commit or the work is an explicit throwaway experiment.
+
+The commands for each step — and for stacked PRs and landing — are in the `git-workflow`
+skill.
+
+Personal, uncommitted instructions (such as the language for chat and PR comments) live in
+a gitignored `CLAUDE.local.md` in the main checkout; `setup.sh` copies it into every new
+worktree.
 
 ## Adding a skill to an existing plugin
 
