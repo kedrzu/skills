@@ -45,6 +45,13 @@ directory name as its `source`.
   (`references/`, `scripts/`) and link to them from `SKILL.md`.
 - Reference bundled files from a skill with `${CLAUDE_PLUGIN_ROOT}`, never with an
   absolute path from this machine.
+- **Decide who invokes a skill.** A model-invoked skill's `description` sits in the context of
+  every session of every project that installs the plugin, so it pays its way only when the
+  model, or another skill, has to reach the skill on its own. Otherwise set
+  `disable-model-invocation: true`: the description then shows only in the `/` menu, so one
+  human-facing line is enough. Such a skill is out of reach of other skills too; point to it as
+  "tell the user to run `/x`". For a model-invoked one, write one trigger per distinct case, and
+  leave out what the body already says.
 - **A skill that needs a secret never asks for it in chat or as an argument** — the
   value would stay in the session transcript. It collects it with `secret.py set` from
   the `secrets` plugin (a masked dialog the agent cannot read), lets its own scripts read
@@ -88,6 +95,7 @@ when the task turns into something clearly different. No Paseo tools → skip.
    ---
    name: <skill-name>
    description: <what it does and when Claude should use it — this is what triggers it>
+   disable-model-invocation: true   # only when nothing but the user should invoke it
    ---
    ```
 

@@ -1,14 +1,6 @@
 ---
 name: setup
-description: >-
-    Configure a project for the dev pipeline — inspect how it builds, tests and ships, ask about
-    what the repository cannot tell, and write the two skills the pipeline relies on: `verify`
-    (scoped and full checks) and `git-workflow` (branch, commit, push, review, stack, land,
-    tracker) — and make sure the owner's language for human-facing text is set. Idempotent: on a
-    project that already has them it checks both against the contract and fills only what is
-    missing. Run it when a /dev:* entry point stops on a missing contract,
-    when adopting the pipeline in a new repository, or after the project's build or release
-    process changed.
+description: Configure a project for the dev pipeline: write, or check against the contract, its `verify` and `git-workflow` skills.
 disable-model-invocation: true
 ---
 

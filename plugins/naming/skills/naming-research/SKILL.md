@@ -1,11 +1,6 @@
 ---
 name: naming-research
-description: >-
-    Research a name for a product, app, site, company or tool over several rounds with the user —
-    propose candidates in deliberately chosen directions, check domain availability in the TLDs that
-    matter, check for conflicting names in the same space, and keep a record in the repo so every
-    round picks up where the last one ended, user feedback included. Invoked explicitly as
-    `/naming-research`, to start a search or to run its next round.
+description: Find a name for a product, app or site over several rounds: candidates, domain and conflict checks, and a record in the repo.
 disable-model-invocation: true
 ---
 

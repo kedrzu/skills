@@ -1,15 +1,6 @@
 ---
 name: review
-description: >-
-    Reviews the branch's diff and posts what it finds as inline PR comments: five finder axes in
-    parallel, one pass that tries to refute everything they found, and only the survivors get
-    published. ON-REQUEST ONLY. Use when the user says "review my changes", "check my code",
-    "review this PR", "/dev:review", or any variation of wanting code reviewed — any of these
-    phrases in any language counts. NEVER runs automatically inside the dev pipeline (/dev:fix,
-    /dev:task, /dev:feature, /dev:build) — a pipeline reviews only when the user asks for it in so
-    many words. Do NOT use for verification (types, lint, tests, builds) — that is the project's
-    verify skill, and the finders assume it is already green. Do NOT use for acting on comments
-    already on a PR — that is /dev:fix-pr-comments.
+description: Review this branch's diff and post the findings that survive a refutation pass as inline PR comments.
 disable-model-invocation: true
 ---
 
