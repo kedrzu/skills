@@ -21,3 +21,6 @@ __pycache__/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 *.log
+
+# Personal instructions, copied into each worktree by setup.sh
+CLAUDE.local.md
