@@ -46,6 +46,12 @@ def claude_events(cwd: str) -> list[dict]:
 def codex_events(cwd: str, subagent: bool = False) -> list[dict]:
     def item(it):
         return {"type": "event_msg", "payload": {"type": "item_completed", "item": it}}
+
+    def call(kind, call_id, **fields):
+        return {"type": "response_item", "payload": {"type": kind, "call_id": call_id, **fields}}
+
+    def output(kind, call_id, value):
+        return {"type": "response_item", "payload": {"type": kind, "call_id": call_id, "output": value}}
     return [
         {"type": "session_meta", "payload": {"timestamp": "2026-10-02T08:00:00Z", "cwd": cwd, "git": {"branch": "main"},
                                              "thread_source": "subagent" if subagent else "user"}},
@@ -54,6 +60,15 @@ def codex_events(cwd: str, subagent: bool = False) -> list[dict]:
         item({"type": "AgentMessage", "content": [{"type": "Text", "text": "Looking at sessions."}]}),
         item({"type": "McpToolCall", "server": "linear", "tool": "list_issues", "arguments": {"query": "flaky"}, "status": "failed", "error": "unauthorized"}),
         item({"type": "FileChange", "changes": {"/r/docs/a.md": {"type": "add"}}}),
+        call("custom_tool_call", "c1", name="exec", input='const r = await tools.exec_command({cmd: "bun test e2e", workdir: "/r"});\ntext(r);'),
+        output("custom_tool_call_output", "c1", [{"type": "input_text", "text": "Script failed"}, {"type": "input_text", "text": "Script error:\n3 tests failed"}]),
+        call("function_call", "c2", name="exec_command", arguments=json.dumps({"cmd": "git status", "workdir": "/r"})),
+        output("function_call_output", "c2", "Wall time 0.1 seconds\nProcess exited with code 0\nOutput:\nclean"),
+        call("function_call", "c3", name="wait", arguments=json.dumps({"cell_id": "7"})),
+        output("function_call_output", "c3", "Script completed"),
+        # Already rendered by the FileChange and McpToolCall items above.
+        call("custom_tool_call", "c4", name="apply_patch", input="*** Begin Patch"),
+        call("custom_tool_call", "c5", name="exec", input="text(await tools.mcp__linear__list_issues({query: 'flaky'}));"),
         item({"type": "UserMessage", "content": [{"type": "text", "text": "<paseo-system> Agent 2 idle"}]}),
         {"type": "event_msg", "payload": {"type": "turn_aborted", "reason": "interrupted"}},
     ]
@@ -92,6 +107,10 @@ class RenderTests(unittest.TestCase):
         self.assertIn("## ASSISTANT\nLooking at sessions.", out)
         self.assertIn("linear.list_issues(flaky) -> ERROR: unauthorized", out)
         self.assertIn("- edit(/r/docs/a.md)", out)
+        self.assertIn("- exec(bun test e2e) -> ERROR: Script failed Script error: 3 tests failed", out)
+        self.assertIn("- exec_command(git status)\n", out)
+        for covered in ("wait(", "apply_patch", "mcp__linear"):
+            self.assertNotIn(covered, out)
         self.assertIn("!! [turn aborted: interrupted]", out)
         self.assertNotIn("AGENTS.md", out)
         self.assertNotIn("paseo-system", out)
@@ -112,10 +131,20 @@ class ListTests(unittest.TestCase):
         (codex_root / "2026").mkdir(parents=True)
         write_jsonl(codex_root / "2026" / "rollout-1.jsonl", codex_events(str(project / "sub")))
         write_jsonl(codex_root / "2026" / "rollout-2.jsonl", codex_events(str(project), subagent=True))
+        # An archived Paseo worktree: gone from git and disk, known only to Paseo's workspace list.
+        archived = tmp / "paseo" / "old_tree"
+        folder = claude_root / (sessions.slug(str(tmp)) + "-paseo-old-tree")  # Claude Code's own name for it
+        folder.mkdir()
+        write_jsonl(folder / "c.jsonl", claude_events(str(archived)))
+        workspaces = tmp / "workspaces.json"
+        workspaces.write_text(json.dumps([
+            {"cwd": str(archived), "mainRepoRoot": str(project), "archivedAt": "2026-10-01T12:00:00Z"},
+            {"cwd": str(tmp / "paseo" / "elsewhere"), "mainRepoRoot": str(tmp / "other"), "archivedAt": None},
+        ]), encoding="utf-8")
 
-        sessions.CLAUDE_ROOT, sessions.CODEX_ROOTS = claude_root, [codex_root]
+        sessions.CLAUDE_ROOT, sessions.CODEX_ROOTS, sessions.PASEO_WORKSPACES = claude_root, [codex_root], workspaces
         found = sessions.list_sessions(project, 86400, None, False)
-        self.assertEqual(sorted(Path(m["path"]).name for m in found), ["a.jsonl", "rollout-1.jsonl"])
+        self.assertEqual(sorted(Path(m["path"]).name for m in found), ["a.jsonl", "c.jsonl", "rollout-1.jsonl"])
         self.assertEqual({m["first"] for m in found}, {"/dev:fix login breaks", "/retro why are e2e tests flaky"})
         with_sub = sessions.list_sessions(project, 86400, "codex", True)
         self.assertEqual(len(with_sub), 2)

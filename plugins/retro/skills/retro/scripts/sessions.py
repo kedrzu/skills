@@ -8,9 +8,10 @@ tool call (with the error when it failed), and the points where a turn was inter
     sessions.py list   --project DIR [--since 14d] [--agent claude|codex] [--subagents]
     sessions.py render FILE [--user-only] [--max-error-chars N]
 
-`list` matches sessions by working directory: the project, every live worktree of it, and the
-folders those worktrees live in (so an archived Paseo or Conductor worktree of the same repo still
-counts). Stdlib only; run with `python3 -I`.
+`list` matches sessions by working directory: the project, every live worktree of it, the folders
+those worktrees live in, and every Paseo workspace of the repo, archived ones included (so an
+archived Paseo or Conductor worktree of the same repo still counts). Stdlib only; run with
+`python3 -I`.
 """
 
 from __future__ import annotations
@@ -28,11 +29,12 @@ from typing import Iterator
 
 CLAUDE_ROOT = Path.home() / ".claude" / "projects"
 CODEX_ROOTS = [Path.home() / ".codex" / "sessions", Path.home() / ".codex" / "archived_sessions"]
+PASEO_WORKSPACES = Path.home() / ".paseo" / "projects" / "workspaces.json"
 
-# User-role messages that the harness injected rather than the human typed.
 # Tool results that carry the human's words: answers to questions, a rejected plan or tool call.
 USER_VOICE = ("Your questions have been answered", "The user answered", "The user doesn't want to proceed")
 
+# User-role messages that the harness injected rather than the human typed.
 INJECTED = ("<task-notification", "<paseo-system>", "<system-reminder>", "<local-command-", "Caveat: ")
 
 
@@ -197,11 +199,21 @@ def codex_meta(path: Path) -> dict | None:
 
 
 def codex_turns(path: Path, user_only: bool) -> Iterator[tuple[str, str]]:
-    """Codex logs each finished item as event_msg/item_completed; older rollouts only as response_item."""
-    events = read_jsonl(path)
+    """Codex logs each finished item as event_msg/item_completed; older rollouts only as response_item.
+
+    Shell calls never become items, so tool calls always come from response_item, paired with their
+    output by call_id; where items exist, the calls they already render are skipped."""
+    outputs: dict = {}
+    itemised = False
+    if not user_only:
+        for event in read_jsonl(path):
+            payload = event.get("payload") or {}
+            itemised = itemised or payload.get("type") == "item_completed"
+            if payload.get("type") in ("function_call_output", "custom_tool_call_output"):
+                outputs[payload.get("call_id")] = payload.get("output")
     has_items = False
     fallback: list[tuple[str, str]] = []
-    for event in events:
+    for event in read_jsonl(path):
         payload = event.get("payload") or {}
         if event.get("type") == "event_msg" and payload.get("type") == "item_completed":
             has_items = True
@@ -220,13 +232,18 @@ def codex_turns(path: Path, user_only: bool) -> Iterator[tuple[str, str]]:
                 yield "tool", json.dumps([f"{item.get('server')}.{item.get('tool')}", item.get("arguments"), text_of(item.get("error") or item.get("result")) if failed else None])
             elif kind == "FileChange":
                 yield "tool", json.dumps(["edit", list((item.get("changes") or {}).keys()), None])
-            elif kind in ("CommandExecution", "ExecCommand"):
-                failed = item.get("exit_code") not in (0, None)
-                yield "tool", json.dumps(["exec", item.get("command"), text_of(item.get("aggregated_output") or item.get("output")) if failed else None])
             elif kind not in ("ContextCompaction", "Reasoning"):
                 yield "tool", json.dumps([kind, None, None])
         elif event.get("type") == "event_msg" and payload.get("type") == "turn_aborted":
             yield "interrupt", f"[turn aborted: {payload.get('reason')}]"
+        elif event.get("type") == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
+            if user_only or (itemised and codex_call_has_item(payload)):
+                continue
+            call = codex_call(payload, outputs.get(payload.get("call_id")))
+            if call and itemised:
+                yield "tool", json.dumps(call)
+            elif call:
+                fallback.append(("tool", json.dumps(call)))
         elif not has_items and event.get("type") == "response_item":
             if payload.get("type") == "message" and payload.get("role") == "user":
                 turn = classify_user_text(text_of(payload.get("content")))
@@ -234,10 +251,31 @@ def codex_turns(path: Path, user_only: bool) -> Iterator[tuple[str, str]]:
                     fallback.append(turn)
             elif payload.get("type") == "message" and payload.get("role") == "assistant" and not user_only:
                 fallback.append(("assistant", text_of(payload.get("content"))))
-            elif payload.get("type") in ("function_call", "custom_tool_call") and not user_only:
-                fallback.append(("tool", json.dumps([payload.get("name"), payload.get("arguments") or payload.get("input"), None])))
     if not has_items:
         yield from fallback
+
+
+def codex_call_has_item(payload: dict) -> bool:
+    """FileChange renders apply_patch, McpToolCall the MCP tools, Plan update_plan, SubAgentActivity the agents."""
+    if (payload.get("namespace") or "").startswith(("mcp__", "collaboration")):
+        return True
+    # An exec cell is JavaScript that calls tools; it is covered only when every tool it calls is.
+    names = re.findall(r"tools\.(\w+)", payload.get("input") or "") if payload.get("name") == "exec" else [payload.get("name") or ""]
+    return bool(names) and all(n in ("apply_patch", "update_plan") or n.startswith("mcp__") for n in names)
+
+
+def codex_call(payload: dict, output: object) -> list | None:
+    """[name, args, error] for one tool call; None for a poll of a running exec cell that did not fail."""
+    name, args = payload.get("name"), payload.get("arguments") or payload.get("input")
+    text = text_of(output)
+    failed = text.startswith(("Script failed", "aborted by user")) or re.search(r"^(Process exited with code|Exit code:) [1-9]", text, re.M)
+    if name == "exec" and isinstance(args, str):
+        # Show the shell commands the cell ran rather than its JavaScript.
+        commands = [m.group(2) for m in re.finditer(r'cmd"?\s*:\s*(["`])((?:\\.|(?!\1).)*)\1', args)]
+        args = "; ".join(commands) or args
+    if name == "wait" and not failed:
+        return None
+    return [name, args, text if failed else None]
 
 
 def render_codex(path: Path, user_only: bool, max_error: int) -> list[str]:
@@ -330,6 +368,15 @@ def project_prefixes(project: Path) -> list[str]:
             # Worktree managers keep one folder per repo; an archived worktree of this repo lived there too.
             if tree != main and tree.parent != main.parent:
                 prefixes.add(str(tree.parent))
+    # Archiving removes a Paseo worktree from git and disk, but Paseo's workspace list keeps it.
+    main = main or project
+    try:
+        workspaces = json.loads(PASEO_WORKSPACES.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        workspaces = []
+    for entry in workspaces if isinstance(workspaces, list) else []:
+        if isinstance(entry, dict) and entry.get("cwd") and entry.get("mainRepoRoot") and Path(entry["mainRepoRoot"]).resolve() == main:
+            prefixes.add(str(Path(entry["cwd"]).resolve()))
     return sorted(prefixes)
 
 
@@ -341,7 +388,8 @@ def under(cwd: str | None, prefixes: list[str]) -> bool:
 
 
 def slug(path: str) -> str:
-    return re.sub(r"[/.]", "-", path)
+    """Claude Code's project folder name: every character but a letter or digit becomes '-'."""
+    return re.sub(r"[^A-Za-z0-9]", "-", path)
 
 
 def list_sessions(project: Path, since_s: float, agent: str | None, subagents: bool) -> list[dict]:
