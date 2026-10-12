@@ -124,9 +124,10 @@ def open_pending(repo, pr):
 def add_thread(review, path, line, body):
     """Add a new thread at `path:line` (file level when `line` is falsy).
 
-    Returns the new comment's `databaseId`, or None with the reason printed by the
-    caller when GitHub rejects the anchor — a line outside this PR's diff, a file
-    the PR did not touch.
+    Returns the new comment's `databaseId`, or None when GitHub rejects the thread —
+    usually the anchor (a line outside this PR's diff, a file the PR did not touch),
+    but also a rate limit, a body too long or a network error. GitHub's reason is
+    printed to stderr here, so the caller can fall back without guessing at it.
     """
     anchor = {"line": line, "side": "RIGHT", "subjectType": "LINE"} if line else {"subjectType": "FILE"}
     try:
@@ -140,7 +141,8 @@ def add_thread(review, path, line, body):
             """,
             input={"pullRequestReviewId": review.id, "path": path, "body": body, **anchor},
         )
-    except ReviewError:
+    except ReviewError as error:
+        print(f"GitHub rejected {path}{f':{line}' if line else ''}: {error}", file=sys.stderr)
         return None
     thread = (data.get("addPullRequestReviewThread") or {}).get("thread")
     if not thread or not thread["comments"]["nodes"]:
