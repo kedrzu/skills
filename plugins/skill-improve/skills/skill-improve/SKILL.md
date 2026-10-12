@@ -89,12 +89,12 @@ jargon has been answered with sixty lines of rules about being concise.
 
 ## Knowledge may grow. Procedure asks him.
 
-A fact the model cannot derive — a path, a command, an API signature, a policy this company chose —
-goes in without discussion. One it can get with a single lookup (`--help`, a config file, a
-`package.json` script) stays where it lives: a copy in the skill only goes stale. Procedure is the other thing: phases, gates, checklists, orderings, "if
-A then first B", another "Do NOT". When your revision adds any of it, **stop and ask him**, showing
-what you are adding and which decision it takes away from the model. Whether that trade is worth it
-is his call, not yours.
+A fact the model cannot get by itself — a path, a command, an API signature, a policy this company
+chose — goes in without discussion; one that `--help`, a config file or a `package.json` script
+gives in a single lookup stays there, where it cannot go stale. Procedure is the other thing:
+phases, gates, checklists, orderings, "if A then first B", another "Do NOT". When your revision adds
+any of it, **stop and ask him**, showing what you are adding and which decision it takes away from
+the model. Whether that trade is worth it is his call, not yours.
 
 **Write the fact, not a pointer to it.** The skill carries everything the agent needs in order to
 act, so no rule may rest on something the agent has to go and look up to understand it. A task id is
