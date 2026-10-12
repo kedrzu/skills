@@ -1,11 +1,7 @@
 ---
 name: skill-improve
-description: >-
-    Revise an EXISTING skill so the agent behaves as intended, without the skill swelling: read how
-    it behaved in past sessions, then ask which instruction should have caught this rather than what
-    is missing. Use when the user asks to change, fix or extend a skill ("popraw skill X", "agent
-    znowu zrobił Y, napraw to w skillu", "improve the X skill"), or when /retro routes a skill fix
-    here. Not for a new skill (`skill-creator`) or `CLAUDE.md` (`claude-md-improver`).
+description: Revise an existing skill so the agent behaves as intended, without the skill swelling.
+disable-model-invocation: true
 ---
 
 # Skill improve
