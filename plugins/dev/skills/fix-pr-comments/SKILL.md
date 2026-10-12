@@ -1,14 +1,6 @@
 ---
 name: fix-pr-comments
-description: >-
-    Acts on the unresolved threads on this task's PRs, every node of a stacked chain included —
-    groups them by what they ask for, fixes each group with its own agent in parallel, verifies
-    once over all of them, then commits, replies and resolves. Use when the user says "fix the PR
-    comments", "address the review feedback", "/dev:fix-pr-comments", or otherwise wants the
-    comments on a PR acted on — any of these phrases in any language counts. Covers a submodule's
-    PR too. Do NOT use to review changes (/dev:review, on request only), to run the full
-    verification protocol standalone (the project's verify skill), or to resolve merge/rebase
-    conflicts (a conflict-resolution skill).
+description: Act on the unresolved review threads on this task's PRs, stacked chains and submodules included: fix, verify once, reply and resolve.
 disable-model-invocation: true
 ---
 

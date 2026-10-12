@@ -15,14 +15,14 @@
       "name": "design-doc",
       "source": "./plugins/design-doc",
       "description": "Think a feature through with the user before building it, and leave behind a design folder: a readable story over an append-only log of what was decided and rejected",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "category": "workflow"
     },
     {
       "name": "dev",
       "source": "./plugins/dev",
       "description": "Plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. On request, /dev:review posts inline PR findings that survived a refutation pass, /dev:fix-pr-comments acts on the unresolved PR threads, and /dev:explain-pr explains a PR or a whole stacked chain in plain language. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup writes",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "category": "workflow"
     },
     {
@@ -57,7 +57,7 @@
       "name": "naming",
       "source": "./plugins/naming",
       "description": "Find a name for a product, app or site over several rounds: candidates in chosen directions, domain checks, conflict checks, and a record in the repo so no feedback has to be repeated",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "category": "research"
     },
     {
@@ -78,7 +78,7 @@
       "name": "skill-improve",
       "source": "./plugins/skill-improve",
       "description": "Revise an existing skill so the agent behaves as intended, without the skill swelling — evidence from real transcripts first, knowledge grows freely, procedure asks",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "workflow"
     },
     {

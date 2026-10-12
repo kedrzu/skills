@@ -1,17 +1,7 @@
 ---
 name: skill-improve
-description: >-
-    Revise an EXISTING skill so the agent behaves the way he wants, without the skill swelling.
-    Wraps `skill-creator` with the discipline that revision needs and authoring does not: read how
-    the skill actually behaved in past sessions, ask which instruction should have caught this
-    rather than what is missing, let knowledge grow freely but never procedure without asking him.
-    Use this whenever an existing skill is the thing being changed — "popraw skill X", "ulepsz
-    skill", "zaktualizuj skill", "agent znowu zrobił Y, napraw to w skillu", "chcę, żeby skill X
-    robił też Z", "output skilla X jest nieczytelny", "improve the X skill", "the X skill makes the
-    agent over-engineer" — including large changes to what a skill reaches for or produces, not just
-    small corrections after a bad run. Human-invoked only; never reach for it on your own. Do NOT
-    use to write a skill from scratch (`skill-creator` directly), to change `CLAUDE.md`
-    (`claude-md-improver`), or to strip code out of a diff.
+description: Revise an existing skill so the agent behaves as intended, without the skill swelling.
+disable-model-invocation: true
 ---
 
 # Skill improve
@@ -47,9 +37,12 @@ runs are on disk and grepping the whole corpus takes about 0.03s, so there is no
 # sessions where skill X really ran — two mechanisms: the Skill tool and slash-commands
 grep -lE '"skill":"X"|<command-name>/X\b' ~/.claude/projects/*/*.jsonl
 
-# only his own turns; promptSource=="sdk" separates them from injected user-role messages
-jq -r 'select(.type=="user" and .promptSource=="sdk") | .message.content[]?
-       | select(.type=="text") | .text' <file>
+# only his own turns: Paseo and task notifications are user-role too (even with promptSource
+# "sdk"), and what he typed while the agent was busy arrives as a queued_command attachment
+jq -r 'select(.isMeta | not) | if .type=="user" then .message.content | if type=="string" then .
+       else (.[]? | select(.type=="text").text) end elif .attachment.type=="queued_command"
+       then .attachment.prompt[]?.text else empty end
+       | select(test("^<(task-notification|paseo-system|system-reminder|local-command)") | not)' <file>
 
 # where he interrupted the agent
 grep -o '\[Request interrupted by user[^]]*\]' <file>
@@ -57,6 +50,8 @@ grep -o '\[Request interrupted by user[^]]*\]' <file>
 
 Look for his frustration, his corrections mid-run, and anything he had to say twice — a repeat marks
 a rule that does not catch. Plain grep on the skill's name is 3-9x noisier than the patterns above.
+Claude Code deletes transcripts after `cleanupPeriodDays` (30 by default); Codex keeps its own in
+`~/.codex/sessions/` and `~/.codex/archived_sessions/`. The `retro` plugin's `sessions.py` reads both.
 
 Transcripts carry whatever the work touched: production records, personal data, secret-shaped
 strings, and the odd file that is half base64 image. Extract `.text` fields, never paste raw lines,
@@ -70,6 +65,10 @@ instruction should have caught this**. The answer carries its own cure:
 - **Nothing covers it** — a real knowledge gap, and text is the remedy. Write it.
 - **Something covers it and lost** — buried, drowned out by a louder neighbour, or worded so it
   reads as optional. A second copy makes it quieter still; cut or sharpen whatever is drowning it.
+  Two shapes lose often: a prohibition ("Do NOT X" keeps X in view, so name the behaviour you want
+  instead), and a completion bound so vague that the agent stops early (sharpen the bound rather
+  than add a step). A sentence the model would obey anyway changes nothing and only adds noise;
+  delete it whole.
 - **Something covers it and was followed** — then the rule is wrong. Rewrite it instead of fencing
   it with an exception.
 
@@ -86,11 +85,12 @@ jargon has been answered with sixty lines of rules about being concise.
 
 ## Knowledge may grow. Procedure asks him.
 
-A fact the model cannot derive — a path, a command, an API signature, a policy this company chose —
-goes in without discussion. Procedure is the other thing: phases, gates, checklists, orderings, "if
-A then first B", another "Do NOT". When your revision adds any of it, **stop and ask him**, showing
-what you are adding and which decision it takes away from the model. Whether that trade is worth it
-is his call, not yours.
+A fact the model cannot get by itself — a path, a command, an API signature, a policy this company
+chose — goes in without discussion; one that `--help`, a config file or a `package.json` script
+gives in a single lookup stays there, where it cannot go stale. Procedure is the other thing:
+phases, gates, checklists, orderings, "if A then first B", another "Do NOT". When your revision adds
+any of it, **stop and ask him**, showing what you are adding and which decision it takes away from
+the model. Whether that trade is worth it is his call, not yours.
 
 **Write the fact, not a pointer to it.** The skill carries everything the agent needs in order to
 act, so no rule may rest on something the agent has to go and look up to understand it. A task id is

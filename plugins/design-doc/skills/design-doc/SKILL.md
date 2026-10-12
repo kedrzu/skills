@@ -1,10 +1,6 @@
 ---
 name: design-doc
-description: >-
-    Think a feature, module or flow through with the user before building it — business, UX,
-    architecture and maintainability together — and leave behind a small folder: a readable account of
-    what you are building, over a log of what was decided, what was rejected and why. Invoked
-    explicitly as `/design-doc:design-doc`; hands the folder off to whatever turns a design into planned work.
+description: Think a feature through with the user before building it, and leave a design folder: what is being built, what was decided and rejected, and why.
 disable-model-invocation: true
 ---
 
