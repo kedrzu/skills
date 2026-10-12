@@ -33,10 +33,9 @@ writes rules and never learns which ones did anything.
 **Sessions.** The bundled script reads both Claude Code and Codex transcripts:
 
 ```bash
-S="python3 -I ${CLAUDE_PLUGIN_ROOT}/skills/retro/scripts/sessions.py"
-$S list --project . --since 14d        # this repo, its worktrees, archived ones too
-$S render <file> --user-only           # the user's turns, answers, interruptions only
-$S render <file>                       # + assistant prose, one line per tool call
+python3 -I ${CLAUDE_PLUGIN_ROOT}/skills/retro/scripts/sessions.py list --project . --since 14d   # this repo, its worktrees, archived ones too
+python3 -I ${CLAUDE_PLUGIN_ROOT}/skills/retro/scripts/sessions.py render <file> --user-only      # the user's turns, answers, interruptions only
+python3 -I ${CLAUDE_PLUGIN_ROOT}/skills/retro/scripts/sessions.py render <file>                  # + assistant prose, one line per tool call
 ```
 
 Start from `--user-only`: frustration, corrections mid-run, interruptions, and anything the user had to
