@@ -1,11 +1,6 @@
 ---
 name: fix-conflicts
-description: >-
-    Resolve git merge, rebase, or cherry-pick conflicts by analyzing the full context — what each
-    side changed, why, and how the incoming change interacts with the branch's intent — instead of
-    picking a side. Classifies every hunk, synthesizes a result that keeps both sides' goals,
-    escalates contradictory design decisions, then verifies and pushes. Run it when a merge, rebase
-    or cherry-pick has stopped on conflicts, or when git status shows unmerged paths.
+description: Resolve merge, rebase or cherry-pick conflicts by both sides' intent instead of picking a side.
 disable-model-invocation: true
 ---
 

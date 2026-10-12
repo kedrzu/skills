@@ -1,7 +1,7 @@
 {
   "name": "git",
-  "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, and stashing safely when several worktrees or parallel agents share one clone",
-  "version": "0.1.0",
+  "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, stashing safely when several worktrees or parallel agents share one clone, and a hook that blocks unnamed stashes, unref'd pops, plain force-pushes and pushes to main",
+  "version": "0.2.0",
   "author": {
     "name": "Michał Kędrzyński"
   },
@@ -11,6 +11,8 @@
     "rebase",
     "conflicts",
     "worktree",
-    "stash"
+    "stash",
+    "hooks",
+    "guardrails"
   ]
 }

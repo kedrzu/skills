@@ -1,0 +1,8 @@
+{
+  "name": "wait-what",
+  "description": "/wait-what: the last message did not land, so the agent pitches it again plainly, with context",
+  "version": "0.1.0",
+  "author": {
+    "name": "Michał Kędrzyński"
+  }
+}

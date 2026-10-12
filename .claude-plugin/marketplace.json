@@ -28,8 +28,8 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, and stashing safely when several worktrees or parallel agents share one clone",
-      "version": "0.1.0",
+      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, stashing safely when several worktrees or parallel agents share one clone, and a hook that blocks unnamed stashes, unref'd pops, plain force-pushes and pushes to main",
+      "version": "0.2.0",
       "category": "development"
     },
     {
@@ -45,6 +45,13 @@
       "description": "Multi-account Gmail for agents: search, read as Markdown, drafts with attachments, label rules — configured per project, several Google Cloud apps at once, never sends",
       "version": "0.1.1",
       "category": "productivity"
+    },
+    {
+      "name": "handoff",
+      "source": "./plugins/handoff",
+      "description": "Hand the work to a fresh agent: a summary of the session that points at existing artifacts, then a new Paseo agent (or a background claude) started with it",
+      "version": "0.1.0",
+      "category": "workflow"
     },
     {
       "name": "naming",
@@ -87,6 +94,13 @@
       "description": "Protocol for effective web research: engine selection, query hygiene, graded negative verdicts and primary-source verification",
       "version": "0.3.0",
       "category": "research"
+    },
+    {
+      "name": "wait-what",
+      "source": "./plugins/wait-what",
+      "description": "/wait-what: the last message did not land, so the agent pitches it again plainly, with context",
+      "version": "0.1.0",
+      "category": "workflow"
     },
     {
       "name": "whatsapp",
