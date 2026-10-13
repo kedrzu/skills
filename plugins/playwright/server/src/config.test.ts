@@ -127,9 +127,19 @@ describe("credentials", () => {
     expect(errors[0]).toContain("PIA_USER");
     expect(errors[0]).toContain(file);
     expect(errors[1]).toContain("does not exist");
+    // A project-chosen file: the remedy is to edit that file, not to reach for a plugin it may not have.
+    expect(errors[0]).toContain(`PIA_USER=… to ${file}`);
+    expect(errors[1]).toContain(`PIA_USER=… to ${path.join(tmp, "missing.env")}`);
     for (const message of errors) {
       expect(message).not.toContain(PASSWORD);
       expect(message).not.toContain("PIA_PASS");
+      expect(message).not.toContain("secret.py");
     }
+  });
+
+  it("points at secret.py set only for the secrets plugin's own store", () => {
+    const env = { CLAUDE_CONFIG_DIR: path.join(tmp, "claude-config") };
+    const shared = path.join(env.CLAUDE_CONFIG_DIR, "secrets", ".env");
+    expect(() => readCredentials(source(shared), env)).toThrow("secret.py set");
   });
 });

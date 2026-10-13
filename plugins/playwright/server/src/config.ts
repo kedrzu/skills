@@ -163,27 +163,35 @@ function stripQuotes(value: string): string {
 export function readCredentials(source: CredentialsSource, env: Env = process.env): Credentials {
   const keys = [source.userKey, source.passwordKey];
   const notInEnv = keys.filter((k) => !env[k]);
-  const fromFile = notInEnv.length ? readCredentialsFile(source.file, notInEnv) : {};
+  const fromFile = notInEnv.length ? readCredentialsFile(source, notInEnv, env) : {};
   const username = env[source.userKey] || fromFile[source.userKey];
   const password = env[source.passwordKey] || fromFile[source.passwordKey];
   if (!username || !password) {
     const missing = keys.filter((k) => !env[k] && !fromFile[k]);
     throw new ConfigError(
       `VPN credentials ${missing.join(" / ")} are set neither in the environment nor in ${source.file}. ` +
-        "Store them with the secrets plugin (secret.py set)."
+        storeHint(source, missing, env)
     );
   }
   return { username, password };
 }
 
-function readCredentialsFile(file: string, missing: string[]): Record<string, string> {
+// How to supply missing keys. `secret.py set` is named only for the secrets plugin's own store;
+// a project that points `credentials.file` elsewhere may not have that plugin enabled at all.
+function storeHint(source: CredentialsSource, missing: string[], env: Env): string {
+  if (source.file === defaultCredentialsFile(env)) return "Store them with the secrets plugin (secret.py set).";
+  return `Add ${missing.map((k) => `${k}=…`).join(" and ")} to ${source.file}.`;
+}
+
+function readCredentialsFile(source: CredentialsSource, missing: string[], env: Env): Record<string, string> {
+  const { file } = source;
   try {
     return parseEnvFile(fs.readFileSync(file, "utf-8"));
   } catch (e) {
     const reason = e instanceof Error && "code" in e && e.code === "ENOENT" ? "does not exist" : "cannot be read";
     throw new ConfigError(
       `VPN credentials ${missing.join(" / ")} are not in the environment and ${file} ${reason}. ` +
-        "Store them with the secrets plugin (secret.py set) or point geo.credentials.file at the right file."
+        `${storeHint(source, missing, env)} Or point geo.credentials.file at the right file.`
     );
   }
 }
