@@ -163,8 +163,9 @@ else's plugin, depend on it instead of copying its config — see below. Either 
 user is asked to trust the server on first use, so installation is never silent.
 
 **Browser automation comes from this marketplace's `playwright` plugin, and every skill
-that drives a browser depends on it.** It runs `@playwright/mcp` through `bunx --bun`, so
-it needs bun and no Node. Declare `"playwright"` in `dependencies` and cite its tools as
+that drives a browser depends on it.** It runs its own bun server that wraps
+`@playwright/mcp` in-process (stock tools keep their names, plus `browser_session` to switch
+profile and VPN region), so it needs bun and no Node. Declare `"playwright"` in `dependencies` and cite its tools as
 `mcp__plugin_playwright_playwright__*` (a server bundled in a plugin is exposed as
 `mcp__plugin_<plugin>_<server>__*`). The cost is accepted on purpose: the dependency is
 installed *and enabled* transitively, and disabling it is then refused. A host project
@@ -191,9 +192,14 @@ worked example:
 { "command": "bun", "args": ["--install=force", "${CLAUDE_PLUGIN_ROOT}/server/src/main.ts", "serve", "--project", "${CLAUDE_PROJECT_DIR}"] }
 ```
 
-- `--install=force` makes bun fetch the dependencies into its global cache on first start,
-  in the versions `bun.lock` pins, and ignore any `node_modules` around. Consumers need
-  bun and nothing else; a cold start takes a couple of seconds.
+- `--install=force` makes bun fetch the dependencies into its global cache on first start and
+  ignore any `node_modules` around. Consumers need bun and nothing else; a cold start takes a
+  couple of seconds. It does not reliably install the versions `bun.lock` pins: a transitive
+  prerelease dependency can differ (a direct `import "playwright-core"` got stable `1.64.0`
+  while `@playwright/mcp`, which pins an alpha, got the alpha). CI tests against
+  `node_modules` after `bun install --frozen-lockfile` and cannot see this, so a server that must
+  share a module instance with a dependency resolves it relative to that dependency
+  (`createRequire(import.meta.resolve(dep))`) and tests the real `--install=force` layout.
 - `${CLAUDE_PROJECT_DIR}` is how a server learns which project it serves, so per-project
   configuration lives in that project (e.g. `.claude/<plugin>.json`) and machine-wide
   state outside every repository (`~/.claude/<plugin>/`).

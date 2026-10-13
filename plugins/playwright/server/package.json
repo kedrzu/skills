@@ -1,0 +1,30 @@
+{
+  "name": "@kedrzu/playwright-mcp",
+  "version": "0.2.0",
+  "description": "Playwright MCP for agents with a per-session browser profile (persistent or fresh) and optional VPN regions through gluetun containers",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "playwright-mcp": "src/main.ts"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "engines": {
+    "bun": ">=1.2"
+  },
+  "scripts": {
+    "start": "bun src/main.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@playwright/mcp": "0.0.83"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "typescript": "^5.9.0"
+  }
+}

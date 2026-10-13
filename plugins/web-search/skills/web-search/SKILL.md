@@ -42,7 +42,8 @@ Three lessons drive everything below:
 | `Bash` + `curl` | sitemaps, XML, JSON APIs, PDFs, the primary-source probe | section 4 |
 
 This plugin brings its own Exa server, and depends on the `playwright` plugin from the
-same marketplace for the browser (Playwright MCP run by `bunx`), so both should be there.
+same marketplace for the browser, so both should be there. When a site needs the user to be
+signed in, call `browser_session({ profile: "persistent" })`; otherwise keep the project default.
 
 **A missing engine is reported, never worked around silently** — it changes which
 conclusions you are entitled to. Without Exa, `WebSearch` becomes the default and the
