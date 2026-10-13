@@ -123,10 +123,12 @@ async function siteUrl(): Promise<string> {
 
 // gluetun behind a substituted `docker`: every call is recorded, a started "container" is a
 // local authenticating proxy and control server that accept exactly the credentials docker
-// received in its environment. A region starting "Bad" exits with gluetun's error, which here
-// also carries the VPN login, to prove it is redacted.
+// received in its environment. The VPN login is read from the secret files mounted at
+// /run/secrets, as gluetun reads it at startup. A region starting "Bad" exits with gluetun's
+// error, which here also carries the VPN login, to prove it is redacted.
 function fakeGluetun() {
   const calls: DockerCall[] = [];
+  const mounts: { source: string; login: Record<string, string> }[] = [];
   const containers = new Map<string, Record<string, string>>();
   const proxied: string[] = [];
   let proxyPort = 0;
@@ -151,7 +153,12 @@ function fakeGluetun() {
     const [command, ...args] = c.args;
     const name = args.at(-1) ?? "";
     if (command === "run" && args[0] === "-d") {
-      containers.set(args[args.indexOf("--name") + 1], c.env);
+      const source = args[args.indexOf("--mount") + 1]?.match(/^type=bind,source=(.+),target=\/run\/secrets,readonly$/)?.[1];
+      const login: Record<string, string> = source
+        ? { OPENVPN_USER: fs.readFileSync(path.join(source, "openvpn_user"), "utf8"), OPENVPN_PASSWORD: fs.readFileSync(path.join(source, "openvpn_password"), "utf8") }
+        : {};
+      if (source) mounts.push({ source, login });
+      containers.set(args[args.indexOf("--name") + 1], { ...c.env, ...login });
       return out("0123456789ab\n");
     }
     if (command === "inspect") {
@@ -175,9 +182,13 @@ function fakeGluetun() {
   };
   return {
     calls,
+    mounts,
     proxied,
     // Every value a start handed to docker that must stay secret.
-    secrets: () => calls.flatMap((c) => [c.env.OPENVPN_USER, c.env.OPENVPN_PASSWORD, c.env.HTTPPROXY_PASSWORD, c.env.HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE]).filter((v): v is string => !!v),
+    secrets: () =>
+      [...mounts.flatMap((m) => Object.values(m.login)), ...calls.flatMap((c) => [c.env.HTTPPROXY_PASSWORD, c.env.HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE])].filter(
+        (v): v is string => !!v
+      ),
     pool: (log: (message: string) => void = () => {}) =>
       new TunnelPool({
         provider: "private internet access",
@@ -372,7 +383,7 @@ describe.skipIf(chromeMissing !== undefined)("browser session", () => {
     expect(pageLoads()).toBe(1);
   }, 60_000);
 
-  it("never lets VPN credentials, the proxy password or the API key reach docker's arguments, tool results or logs", async () => {
+  it("never lets VPN credentials, the proxy password or the API key reach docker's arguments, tool results or logs, nor the VPN login a container's env", async () => {
     const gluetun = fakeGluetun();
     const logs: string[] = [];
     const log = (message: string) => void logs.push(message);
@@ -386,13 +397,14 @@ describe.skipIf(chromeMissing !== undefined)("browser session", () => {
     expect(results.map((r) => !!r.isError)).toEqual([false, false, true, false]);
     expect(text(results[1])).toContain("Page Title: via US Texas");
 
-    // The login did reach docker: by name in argv, by value in its environment.
-    const started = gluetun.calls.filter((c) => c.args[0] === "run" && c.args[1] === "-d");
-    expect(started).toHaveLength(2);
-    for (const run of started) {
-      expect(run.args.join(" ")).toContain("-e OPENVPN_USER -e OPENVPN_PASSWORD");
-      expect(run.env).toMatchObject({ OPENVPN_USER: "vpn-user-7f3a", OPENVPN_PASSWORD: "vpn-password-91c2" });
-    }
+    // The login reached gluetun as its secret files only, deleted once each start was over. The
+    // container env, which `docker inspect` shows, never had it.
+    const login = { OPENVPN_USER: "vpn-user-7f3a", OPENVPN_PASSWORD: "vpn-password-91c2" };
+    expect(gluetun.calls.filter((c) => c.args[0] === "run" && c.args[1] === "-d")).toHaveLength(2);
+    expect(gluetun.mounts.map((m) => m.login)).toEqual([login, login]);
+    for (const { source } of gluetun.mounts) expect(fs.existsSync(source)).toBe(false);
+    const containerEnv = gluetun.calls.flatMap((c) => Object.values(c.env));
+    for (const secret of Object.values(login)) expect(containerEnv.filter((value) => value.includes(secret))).toEqual([]);
     const secrets = [...new Set([...gluetun.secrets(), ...gluetun.secrets().map((role) => role.match(/"apikey":"(\w+)"/)?.[1] ?? role)])];
     // The login, then per start the proxy password, the control role and its API key.
     expect(secrets).toHaveLength(2 + 2 * 3);

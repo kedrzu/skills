@@ -57,8 +57,9 @@ Texas while the service saw Kansas), so confirm the location with the service it
   environment variable of that name, else from a `KEY=value` file: `credentials.file` (relative
   paths resolve from the project, `~` works), by default
   `${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env`, the store of the `secrets` plugin. They are read
-  only when a region is requested and passed to the container by variable name, never on a command
-  line.
+  only when a region is requested and passed to the container as gluetun's secret files, a
+  read-only mount of a temporary directory deleted once the tunnel is up: never on a command line
+  nor in the container's environment, which `docker inspect` shows.
 - **First use is slow.** The image is pulled once, and gluetun's built-in server list goes stale,
   so a refreshed list is cached in the Docker volume `playwright-mcp-servers-<provider>` and renewed
   when older than 24 hours (about a minute for PIA; one refresh at a time across sessions).

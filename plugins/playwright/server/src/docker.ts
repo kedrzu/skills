@@ -1,8 +1,10 @@
 // A thin layer over the `docker` CLI for the VPN tunnel containers.
 //
 // Container environment never appears in argv: `docker run` gets `-e NAME` and the value travels
-// in the docker process's own environment, so the VPN login, the proxy password and the control
-// API key stay out of `ps`, of error messages and of logs.
+// in the docker process's own environment, so the proxy password and the control API key stay out
+// of `ps`, of error messages and of logs. Docker does keep them in the container's config, where
+// `docker inspect` shows them; they are random per container and die with it. A secret that
+// outlives the container (the VPN login) goes in a read-only bind-mounted file instead.
 //
 // Every container is labelled with its owner's PID and that process's start time. A container
 // whose owner is gone, or whose PID now belongs to another process, is an orphan any server may
@@ -57,6 +59,8 @@ export interface ContainerSpec {
   publish?: number[];
   // Named volume → mount path.
   volumes?: Record<string, string>;
+  // Host path → mount path, read-only.
+  binds?: Record<string, string>;
   capAdd?: string[];
   devices?: string[];
   entrypoint?: string;
@@ -245,6 +249,7 @@ export class Docker {
     for (const device of spec.devices ?? []) args.push("--device", device);
     for (const port of spec.publish ?? []) args.push("-p", `127.0.0.1::${port}`);
     for (const [volume, target] of Object.entries(spec.volumes ?? {})) args.push("-v", `${volume}:${target}`);
+    for (const [source, target] of Object.entries(spec.binds ?? {})) args.push("--mount", `type=bind,source=${source},target=${target},readonly`);
     for (const name of Object.keys(spec.env ?? {})) args.push("-e", name);
     if (spec.entrypoint) args.push("--entrypoint", spec.entrypoint);
     args.push(spec.image, ...(spec.command ?? []));

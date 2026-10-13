@@ -9,13 +9,19 @@
 //
 // gluetun's logs can carry the proxy username and more; an error passes on only the lines that
 // explain it (the ERROR line, the last [openvpn] lines), with every secret of the start redacted.
+// The VPN login reaches gluetun as its secret files (/run/secrets/<key>), never in the container's
+// env, which `docker inspect` shows; the host copy is deleted once the start is over.
 
 import { randomBytes } from "crypto";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import type { ProxySettings } from "./browser.js";
 import type { Credentials } from "./config.js";
 import { currentOwner, Docker, DockerTimeoutError, firstLine, formatDuration, type ContainerState, type Owner } from "./docker.js";
 
-export const GLUETUN_IMAGE = "qmcgaw/gluetun:v3.41.3";
+// Pinned by the manifest-list digest: the tag alone can be pushed again.
+export const GLUETUN_IMAGE = "qmcgaw/gluetun:v3.41.3@sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027";
 
 const PROXY_PORT = 8888;
 const CONTROL_PORT = 8000;
@@ -106,16 +112,18 @@ export class TunnelPool implements TunnelSource {
       if (!key) throw new TunnelError(`"${region}" is not a region name`);
       const pooled = this.tunnels.get(key);
       if (pooled) {
-        this.tunnels.delete(key);
         const info = await this.check(pooled);
         if (info) {
+          this.tunnels.delete(key);
           this.tunnels.set(key, pooled);
           return { region: pooled.region, proxy: pooled.proxy, ...info };
         }
-        this.log(`the VPN container for ${pooled.region} is not healthy any more; starting it again`);
-        await this.docker.remove([pooled.name]);
+        this.log(`the VPN container for ${pooled.region} is not healthy any more; starting another`);
       }
+      // The browser may still go through the old container: it stays until its replacement is up.
       const { entry, info } = await this.start(region.trim(), key);
+      if (pooled) await this.docker.remove([pooled.name]).catch((e: unknown) => this.log(`removing ${pooled.name} failed: ${message(e)}`));
+      this.tunnels.delete(key);
       this.tunnels.set(key, entry);
       await this.evict(key, keep);
       return { region: entry.region, proxy: entry.proxy, ...info };
@@ -143,34 +151,38 @@ export class TunnelPool implements TunnelSource {
     await this.ensureImage();
     await this.ensureServerList(owner);
 
-    const name = `${this.prefix}-${owner.pid}-${key}`;
+    // Unique, so a replacement can start beside the container it replaces.
+    const name = `${this.prefix}-${owner.pid}-${key}-${randomHex(3)}`;
     const proxy = { username: `pw-${randomHex(6)}`, password: randomHex(24) };
     const apiKey = randomHex(24);
     const secrets = [credentials.username, credentials.password, proxy.password, apiKey];
-    await this.docker.remove([name]);
+    // A directory only this user can read, holding one file per secret; mounted as /run/secrets.
+    const secretFiles = fs.mkdtempSync(path.join(os.tmpdir(), "playwright-mcp-secrets-"));
+    fs.writeFileSync(path.join(secretFiles, "openvpn_user"), credentials.username, { mode: 0o600 });
+    fs.writeFileSync(path.join(secretFiles, "openvpn_password"), credentials.password, { mode: 0o600 });
     this.log(`starting the VPN container for ${region}`);
-    await this.docker.start({
-      name,
-      image: this.image,
-      owner,
-      capAdd: ["NET_ADMIN"],
-      devices: ["/dev/net/tun"],
-      publish: [PROXY_PORT, CONTROL_PORT],
-      volumes: { [this.volume]: "/gluetun" },
-      env: {
-        VPN_SERVICE_PROVIDER: this.provider,
-        SERVER_REGIONS: region,
-        HTTPPROXY: "on",
-        HTTPPROXY_USER: proxy.username,
-        HTTPPROXY_PASSWORD: proxy.password,
-        HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE: JSON.stringify({ auth: "apikey", apikey: apiKey }),
-        OPENVPN_USER: credentials.username,
-        OPENVPN_PASSWORD: credentials.password,
-      },
-    });
     try {
+      await this.docker.start({
+        name,
+        image: this.image,
+        owner,
+        capAdd: ["NET_ADMIN"],
+        devices: ["/dev/net/tun"],
+        publish: [PROXY_PORT, CONTROL_PORT],
+        volumes: { [this.volume]: "/gluetun" },
+        binds: { [secretFiles]: "/run/secrets" },
+        env: {
+          VPN_SERVICE_PROVIDER: this.provider,
+          SERVER_REGIONS: region,
+          HTTPPROXY: "on",
+          HTTPPROXY_USER: proxy.username,
+          HTTPPROXY_PASSWORD: proxy.password,
+          HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE: JSON.stringify({ auth: "apikey", apikey: apiKey }),
+        },
+      });
       this.assertOpen();
-      const state = await this.waitHealthy(name, region, secrets);
+      const deadline = Date.now() + this.healthTimeoutMs;
+      const state = await this.waitHealthy(name, region, secrets, deadline);
       const proxyPort = hostPort(state, PROXY_PORT);
       const entry: Entry = {
         region,
@@ -179,15 +191,17 @@ export class TunnelPool implements TunnelSource {
         controlPort: hostPort(state, CONTROL_PORT),
         apiKey,
       };
-      return { entry, info: await this.readPublicIp(entry) };
+      return { entry, info: await this.waitPublicIp(entry, deadline) };
     } catch (e) {
       await this.docker.remove([name]).catch((removeError: unknown) => this.log(`removing ${name} failed: ${message(removeError)}`));
       throw e;
+    } finally {
+      // gluetun reads its settings once, at startup.
+      fs.rmSync(secretFiles, { recursive: true, force: true });
     }
   }
 
-  private async waitHealthy(name: string, region: string, secrets: string[]): Promise<ContainerState> {
-    const deadline = Date.now() + this.healthTimeoutMs;
+  private async waitHealthy(name: string, region: string, secrets: string[], deadline: number): Promise<ContainerState> {
     for (;;) {
       const state = await this.docker.inspect(name);
       if (!state) throw new TunnelError(`The VPN container for "${region}" disappeared while starting.`);
@@ -221,17 +235,30 @@ export class TunnelPool implements TunnelSource {
     }
   }
 
-  // gluetun has the public IP by the time the tunnel reports healthy.
-  private async readPublicIp(entry: Entry): Promise<TunnelInfo> {
+  // gluetun reports healthy before it has fetched the public IP, so a new tunnel waits for it.
+  private async waitPublicIp(entry: Entry, deadline: number): Promise<TunnelInfo> {
+    for (;;) {
+      const info = await this.readPublicIp(entry);
+      if (info) return info;
+      if (Date.now() >= deadline) {
+        throw new TunnelError(
+          `The VPN tunnel for "${entry.region}" is up, but gluetun did not report its public IP within ${formatDuration(this.healthTimeoutMs)}.`
+        );
+      }
+      await sleep(POLL_MS);
+    }
+  }
+
+  // Undefined while gluetun has no public IP: before its first fetch, during a restart of the
+  // tunnel, or after the fetch failed.
+  private async readPublicIp(entry: Entry): Promise<TunnelInfo | undefined> {
     const response = await fetch(`http://127.0.0.1:${entry.controlPort}/v1/publicip/ip`, {
       headers: { "X-API-Key": entry.apiKey },
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) throw new TunnelError(`gluetun's control server answered ${response.status} for the public IP of "${entry.region}".`);
     const body: unknown = await response.json();
-    const info = parsePublicIp(body);
-    if (!info) throw new TunnelError(`gluetun reported no public IP for "${entry.region}".`);
-    return info;
+    return parsePublicIp(body);
   }
 
   private async ensureImage(): Promise<void> {
