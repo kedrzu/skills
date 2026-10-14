@@ -519,11 +519,21 @@ async function waitFor(condition: () => boolean, timeoutMs: number): Promise<boo
 describe.skipIf(chromeMissing !== undefined)("main over stdio", () => {
   // VPN regions of a provider, with the login in TEST_VPN_USER / TEST_VPN_PASSWORD.
   const geo = { provider: "private internet access", credentials: { file: "no-credentials.env", userKey: "TEST_VPN_USER", passwordKey: "TEST_VPN_PASSWORD" } };
-  // PATH without any docker on it.
-  const pathWithoutDocker = (process.env.PATH ?? "")
-    .split(path.delimiter)
-    .filter((dir) => dir && !fs.existsSync(path.join(dir, "docker")))
-    .join(path.delimiter);
+  // PATH without any docker on it: every other command of PATH, linked into one directory. Dropping
+  // the directories that hold docker would drop ps and sleep with it on Linux (/usr/bin).
+  function pathWithoutDocker(): string {
+    const bin = project("path-without-docker");
+    const linked = new Set(["docker", ...fs.readdirSync(bin)]);
+    for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+      if (!dir || !fs.existsSync(dir)) continue;
+      for (const name of fs.readdirSync(dir)) {
+        if (linked.has(name)) continue;
+        linked.add(name);
+        fs.symlinkSync(path.join(dir, name), path.join(bin, name));
+      }
+    }
+    return bin;
+  }
 
   // The command .mcp.json runs, with a project whose config starts sessions fresh.
   async function start(name: string, options: { geo?: typeof geo; env?: Record<string, string> } = {}) {
@@ -581,7 +591,7 @@ describe.skipIf(chromeMissing !== undefined)("main over stdio", () => {
   }, 90_000);
 
   it("starts and serves without Docker; only a VPN region fails, saying why", async () => {
-    const server = await start("main-no-docker", { geo, env: { PATH: pathWithoutDocker } });
+    const server = await start("main-no-docker", { geo, env: { PATH: pathWithoutDocker() } });
     expect((await server.client.listTools()).tools.at(-1)?.inputSchema.properties).toHaveProperty("region");
     const result = await call(server.client, SESSION_TOOL, { region: "US Texas" });
     expect(result.isError).toBe(true);
@@ -609,7 +619,7 @@ esac
 `,
       { mode: 0o755 }
     );
-    const server = await start("main-fake-docker", { geo, env: { PATH: `${bin}${path.delimiter}${pathWithoutDocker}` } });
+    const server = await start("main-fake-docker", { geo, env: { PATH: `${bin}${path.delimiter}${pathWithoutDocker()}` } });
     const log = () => fs.readFileSync(calls, "utf-8");
     // start() navigated already: the sweep was not in the way.
     expect(log()).toContain("ps -a --filter label=kedrzu.playwright-mcp.owner --format");
