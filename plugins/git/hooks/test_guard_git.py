@@ -45,6 +45,15 @@ class PushTests(unittest.TestCase):
         git(self.repo, "init", "-q", "-b", "main")
         git(self.repo, "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-q", "--allow-empty", "-m", "init")
         git(self.repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        self.protect('{"protectedBranches": ["main", "master"]}')
+
+    def protect(self, config: str | None) -> None:
+        path = Path(self.repo) / ".claude" / "git.json"
+        if config is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.parent.mkdir(exist_ok=True)
+            path.write_text(config)
 
     def test_force_blocked_lease_allowed(self):
         for command in ["git push --force", "git push -f origin feat", "git push -uf origin feat",
@@ -60,6 +69,13 @@ class PushTests(unittest.TestCase):
                         "git push origin feat:main", "git push origin :main", "git push --all origin",
                         "git push origin refs/heads/main"]:
             self.assertEqual(run(command, self.repo)[0], 2, command)
+
+    def test_main_allowed_unless_the_project_protects_it(self):
+        for config in [None, "{}", '{"protectedBranches": []}', "not json", '["main"]']:
+            self.protect(config)
+            for command in ["git push", "git push origin main", "git push --all origin"]:
+                self.assertEqual(run(command, self.repo)[0], 0, f"{config}: {command}")
+            self.assertEqual(run("git push --force origin main", self.repo)[0], 2, config)
 
     def test_first_push_of_a_new_repo_allowed(self):
         git(self.repo, "update-ref", "-d", "refs/remotes/origin/main")

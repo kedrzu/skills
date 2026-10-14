@@ -6,7 +6,8 @@ Blocked (exit 2, the reason goes back to the agent):
   the stash stack is shared by every worktree of a clone, so the top entry may be another agent's.
 - `git stash clear`: it deletes every worktree's stashes.
 - `git push --force` / `-f` / a `+refspec` / `--mirror`: `--force-with-lease` is the safe form.
-- a push to `main` or `master`, unless the remote has no such branch yet (a repository's first push).
+- a push to a branch listed in `protectedBranches` of the repository's `.claude/git.json`, unless the remote
+  has no such branch yet (a repository's first push). With no such file every branch takes pushes.
 
 Anything it cannot parse is allowed: the guard exists to catch the common slip, not to sandbox.
 """
@@ -15,11 +16,11 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 import shlex
 import subprocess
 import sys
 
-PROTECTED = {"main", "master"}
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")"}
 PREFIXES = {"sudo", "command", "time", "nohup", "exec", "env"}
 GIT_OPTS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
@@ -114,6 +115,16 @@ def remote_has(cwd: str | None, options: list[str], remote: str, branch: str) ->
         return True
 
 
+def protected_branches(cwd: str | None, options: list[str]) -> set[str]:
+    try:
+        top = subprocess.run(["git", *options, "rev-parse", "--show-toplevel"], cwd=cwd or None,
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+        branches = json.loads((Path(top) / ".claude" / "git.json").read_text()).get("protectedBranches")
+    except (OSError, subprocess.SubprocessError, ValueError, AttributeError):
+        return set()
+    return {b for b in branches if isinstance(b, str)} if isinstance(branches, list) else set()
+
+
 def check_push(args: list[str], options: list[str], cwd: str | None) -> str | None:
     flags, positional, rest = [], [], args[1:]
     while rest:
@@ -129,10 +140,13 @@ def check_push(args: list[str], options: list[str], cwd: str | None) -> str | No
         return ("a plain force-push overwrites whatever is on the remote, including commits pushed from another "
                 "worktree or by someone else. Use `git push --force-with-lease` (it refuses when the remote moved "
                 "since you last fetched), and only on a branch that is yours.")
+    protected = protected_branches(cwd, options)
+    if not protected:
+        return None
     remote = positional[0] if positional else "origin"
     refspecs = positional[1:]
     if "--all" in flags:
-        targets = PROTECTED
+        targets = protected
     elif refspecs:
         targets = set()
         for spec in refspecs:
@@ -144,10 +158,11 @@ def check_push(args: list[str], options: list[str], cwd: str | None) -> str | No
     else:
         branch = current_branch(cwd, options)
         targets = {branch} if branch else set()
-    for target in targets & PROTECTED:
+    for target in targets & protected:
         if remote_has(cwd, options, remote, target):
-            return (f"this pushes to `{target}`, which changes reach only through a pull request. Push a task branch "
-                    "and open a PR; if the user really wants this push, ask them to run it themselves.")
+            return (f"this pushes to `{target}`, which this project changes only through pull requests "
+                    "(`.claude/git.json`). Push a task branch and open a PR; if the user really wants this push, "
+                    "ask them to run it themselves.")
     return None
 
 

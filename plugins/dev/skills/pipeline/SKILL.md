@@ -33,7 +33,7 @@ skills with fixed names in the project's `.claude/skills/`: **`verify`** (how a 
 work — a scoped check and the full protocol) and **`git-workflow`** (how a change moves — commit,
 push, ready for review, PR description, tracker comment, stacks, landing). What each must provide,
 and what to do when one is missing, is `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`
-— read it before the first use of either. A missing contract stops the run; `/dev:setup` writes it.
+— read it before the first use of either. A missing contract stops the run; `/dev:setup` writes `verify`, `/git:setup` writes `git-workflow`.
 
 Project rules the pipeline defers to live in the project's `CLAUDE.md`: what counts as shared code,
 which obligations (privacy, compliance, …) are non-negotiable, where ADRs go, how prose is written.
