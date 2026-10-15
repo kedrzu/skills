@@ -14,8 +14,9 @@ Besides the pipeline's entry points, `/dev:review` and `/dev:fix-pr-comments` co
 **A missing contract stops the run.** At the first moment a run needs one, check that the
 skill exists in the skill list. If it does not, or it lacks the operation you need and does not
 say the operation is unsupported, stop and tell the user which skill or operation is missing and
-that `/dev:setup` writes it. Do not improvise a substitute: a guessed test command or a guessed push
-is exactly the project knowledge the contract exists to hold, and a wrong guess fails silently.
+which command writes it: `/dev:setup` for `verify`, `/git:setup` for `git-workflow`. Do not
+improvise a substitute: a guessed test command or a guessed push is exactly the project knowledge
+the contract exists to hold, and a wrong guess fails silently.
 
 ## `verify`
 

@@ -18,7 +18,7 @@ Quick bug-fix pipeline: diagnose the root cause, get the diagnosis approved, the
 
 Verifying and landing the fix go through the project's `verify` and `git-workflow` skills
 (`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`). If either is missing, say so
-before you start — `/dev:setup` writes them — rather than diagnosing a bug you cannot then land.
+before you start — `/dev:setup` writes `verify`, `/git:setup` writes `git-workflow` — rather than diagnosing a bug you cannot then land.
 
 ## When NOT to use — route by structure, first match wins
 

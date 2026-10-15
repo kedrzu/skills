@@ -21,15 +21,15 @@
     {
       "name": "dev",
       "source": "./plugins/dev",
-      "description": "Plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. On request, /dev:review posts inline PR findings that survived a refutation pass, /dev:fix-pr-comments acts on the unresolved PR threads, and /dev:explain-pr explains a PR or a whole stacked chain in plain language. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup writes",
-      "version": "0.4.1",
+      "description": "Plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. On request, /dev:review posts inline PR findings that survived a refutation pass, /dev:fix-pr-comments acts on the unresolved PR threads, and /dev:explain-pr explains a PR or a whole stacked chain in plain language. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup and /git:setup write",
+      "version": "0.5.0",
       "category": "workflow"
     },
     {
       "name": "git",
       "source": "./plugins/git",
-      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, stashing safely when several worktrees or parallel agents share one clone, and a hook that blocks unnamed stashes, unref'd pops, plain force-pushes and pushes to main",
-      "version": "0.2.0",
+      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, stashing safely when several worktrees or parallel agents share one clone, a hook that blocks unnamed stashes, unref'd pops, plain force-pushes and, where a project opts in, pushes to its protected branches, and /git:setup, which writes the project's git-workflow skill and .claude/git.json",
+      "version": "0.3.0",
       "category": "development"
     },
     {
