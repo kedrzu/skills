@@ -85,8 +85,9 @@ when the task turns into something clearly different. No Paseo tools → skip.
   - no PR for the branch → `gh pr create` (ready for review, not draft) with a title and a
     short summary of what changed and why;
   - PR already open → push to it, and update its description when the scope grew.
-- Bump the version of every plugin whose files changed before pushing; the CI version guard
-  fails otherwise.
+- Bump the version of every plugin whose files changed before pushing — in its `plugin.json`
+  and in its `.claude-plugin/marketplace.json` entry; the CI version guard fails on a missing
+  bump, and `validate --strict` on a mismatch between the two.
 - Confirm the push landed (`git status --porcelain` empty, `HEAD` equals `@{u}`) and end the
   turn with the PR URL.
 - Never merge, never push to `main` directly. Skip all of this only when the user says not
@@ -111,7 +112,8 @@ worktree.
    ---
    ```
 
-2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json`.
+2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json` and in the plugin's
+   entry in `.claude-plugin/marketplace.json`.
 3. Run the validation command below.
 
 The `description` is the only thing Claude sees before loading the skill, so write it
