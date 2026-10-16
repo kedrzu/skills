@@ -86,7 +86,9 @@ exactly the findings worth having, so "cite a file that does it right" is not as
 
 Read the skills governing the touched files (the project's code index, if it has one, only as a
 fallback) and **name the rule's source in every finding** — the verifier cannot adjudicate a
-conformance claim without it, so a finding that omits it dies there rather than here.
+conformance claim without it, so a finding that omits it dies there rather than here. The project's
+general design principles govern every touched file: a mechanism, flag or config that no caller or
+requirement exercises is a conformance finding like any other.
 
 ## Testing — deleted coverage only
 

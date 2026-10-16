@@ -250,10 +250,11 @@ in it. So work it out before proposing anything:
    installed), and commit it in this PR so the rule and the instance that motivated it can be read
    side by side.
 
-## 8. Full verification
+## 8. Final verification
 
-Run the project's `verify` skill → **full**, once, at the end. The scoped runs above proved
-nothing about what only the full protocol checks.
+Run the project's `verify` skill once, at the end, at the level its change classification gives for
+everything this run changed — **full** when the fixes reach code only the full protocol checks,
+less when they don't. A one-thread copy fix does not need an hour of e2e.
 
 Then the counts in chat, in his language: **fixed, answered without a change, left open for him.**
 Every answered thread is resolved and its answer is sitting on the PR next to the code, so restating
