@@ -82,6 +82,13 @@
       "category": "security"
     },
     {
+      "name": "shopping-research",
+      "source": "./plugins/shopping-research",
+      "description": "Find the best product to buy against your criteria: an accepted spec first, then a wide longlist, parallel deep dives and a ranking with the best obtainable price and a link to buy every pick",
+      "version": "0.1.0",
+      "category": "research"
+    },
+    {
       "name": "skill-improve",
       "source": "./plugins/skill-improve",
       "description": "Revise an existing skill so the agent behaves as intended, without the skill swelling — evidence from real transcripts first, knowledge grows freely, procedure asks",
