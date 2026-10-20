@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Post a run's review findings as inline PR comments — one GitHub review per PR.
+"""Post a run's review findings as inline PR comments — one GitHub review per PR,
+carrying the run's summary as its body.
 
 The shape it builds, and the rules behind it, live in this skill's
 `references/comment.md`. Why one review rather than a comment each, and how a
@@ -17,7 +18,7 @@ from pr_review import ReviewError, add_thread, discard_all, open_pending, permal
 # test: a comment is ours iff its body starts with one of them.
 SEVERITY_STYLE = {
     "blocking": ("🚨", "BLOCKING"),
-    "nit": ("💡", "NIT"),
+    "should-fix": ("💡", "SHOULD FIX"),
 }
 
 # Constant, so no caller has to remember it: a finding is written against the code
@@ -61,6 +62,16 @@ def main():
         description="Post a run's review findings as inline comments, one GitHub review per PR."
     )
     parser.add_argument(
+        "--summary", required=True,
+        help="Markdown file: the run's summary, starting with `## 🤖 Review summary`. Posted "
+             "as the body of the review on every PR listed under --prs, findings or not, so a "
+             "run that found nothing still leaves its record.",
+    )
+    parser.add_argument(
+        "--prs", required=True, nargs="+",
+        help="Every PR the run reviewed, as owner/repo#number — each gets the summary.",
+    )
+    parser.add_argument(
         "--findings", required=True,
         help="JSON file: a list of {repo, pr, file, line, severity, category, provenance, delta, "
              "claim, consequence, details}. `line` 0 posts at file level; `file` is relative to "
@@ -68,6 +79,12 @@ def main():
     )
     args = parser.parse_args()
 
+    with open(args.summary) as f:
+        summary = f.read()
+    if not summary.lstrip().startswith("## 🤖"):
+        print("The summary must start with `## 🤖 Review summary` — that header is what marks "
+              "it as ours.", file=sys.stderr)
+        sys.exit(1)
     with open(args.findings) as f:
         findings = json.load(f)
     for finding in findings:
@@ -80,6 +97,11 @@ def main():
     posted = []
     failed = []
     try:
+        for target in args.prs:
+            repo, _, number = target.partition("#")
+            key = (repo, int(number))
+            if key not in reviews:
+                reviews[key] = open_pending(*key)
         for finding in findings:
             key = (finding["repo"], int(finding["pr"]))
             if key not in reviews:
@@ -120,7 +142,7 @@ def main():
             sys.exit(1)
 
         for key in list(reviews):
-            print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key])}")
+            print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key], summary)}")
             del reviews[key]
         for key, where, url in posted:
             print(f"Comment posted at {where} on #{key[1]}: {url}")

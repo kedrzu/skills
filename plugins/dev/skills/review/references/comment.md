@@ -40,7 +40,7 @@ Fix: add the unique constraint and handle the conflict, or put check and insert 
 
 |Part|Carries|
 |-|-|
-|Line 1|`🚨 BLOCKING` or `💡 NIT`, then the category — the scan line|
+|Line 1|`🚨 BLOCKING` or `💡 SHOULD FIX`, then the category — the scan line|
 |Line 2|provenance and cost: which axis found it, and where a finding rests on a rule, which rule (`Security · <the project's rule source> → audit at business boundary`, `Spec · spec §3`); then whether the fix adds or removes roughly how many lines|
 |Bold line|the claim, in plain words — no file paths, no type names|
 |Paragraph|what goes wrong, for whom and when|
@@ -61,8 +61,8 @@ gets one entry per run rather than one per comment.
 
 ## Who wrote a comment
 
-A comment is ours if its body starts with `## 🚨 BLOCKING` or `## 💡 NIT` for a finding, `## 🤖` for
-an answer to one — or, on a PR reviewed before this contract, with a legacy `## 🚨 CRITICAL ISSUE` /
+A comment is ours if its body starts with `## 🚨 BLOCKING` or `## 💡 SHOULD FIX` for a finding, `## 🤖`
+for an answer to one or a run's summary — or, on an older PR, with a legacy `## 💡 NIT` / `## 🚨 CRITICAL ISSUE` /
 `## ⚠️ IMPORTANT` / `## 💡 MINOR` / `## 🔍 ISSUE` / `## 👀 HEADS UP` / `## 🧭 FLOW` header. Everything
 else on the PR is the owner's. Agents post with his GitHub token, so `author.login` proves nothing:
 the header is the authorship test. It holds only among comments from authors with write access to

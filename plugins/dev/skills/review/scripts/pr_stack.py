@@ -182,9 +182,10 @@ def is_trusted_author(repo, author):
 # The legacy headers stay listed so PRs reviewed before that contract still classify.
 OUR_HEADERS = (
     "## 🚨 BLOCKING",
-    "## 💡 NIT",
-    "## 🤖",            # an answer to a finding, written by fix-pr-comments
+    "## 💡 SHOULD FIX",
+    "## 🤖",            # an answer to a finding, or a run's summary
     # legacy
+    "## 💡 NIT",
     "## 🚨 CRITICAL ISSUE",
     "## ⚠️ IMPORTANT",
     "## 💡 MINOR",

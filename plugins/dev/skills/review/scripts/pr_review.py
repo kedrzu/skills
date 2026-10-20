@@ -164,18 +164,20 @@ def add_reply(review, thread_id, body):
     )
 
 
-def submit(review):
-    """Publish it as a plain comment review, with no summary body: everything he
-    reads is inline (review/references/comment.md). Returns the review's URL."""
+def submit(review, body=""):
+    """Publish it as a plain comment review. `body` is the run's summary: it shows
+    in the Conversation tab only, never in Files changed, where he reads — so it is
+    a record for whoever audits the reviews, not something he is meant to read.
+    Returns the review's URL."""
     data = _graphql(
         """
-        mutation($review: ID!) {
-          submitPullRequestReview(input: {pullRequestReviewId: $review, event: COMMENT}) {
+        mutation($review: ID!, $body: String!) {
+          submitPullRequestReview(input: {pullRequestReviewId: $review, event: COMMENT, body: $body}) {
             pullRequestReview { url }
           }
         }
         """,
-        review=review.id,
+        review=review.id, body=body,
     )
     return data["submitPullRequestReview"]["pullRequestReview"]["url"]
 

@@ -1,7 +1,7 @@
 # Finder briefs
 
 One agent per axis, all in parallel. Each reads the shared part below and its own section.
-Correctness, consistency & reuse and deleted coverage run **once per node** of the PR chain; spec
+Correctness, conformance & duplication and deleted coverage run **once per node** of the PR chain; spec
 and security & compliance run **once over the whole chain**. An unstacked branch is one node.
 
 ## What they all share
@@ -15,14 +15,18 @@ reporting something a later node already fixed.
 Verification already passed: the project's full verify — types, lint, tests, formatting, builds —
 is green, and anything it would have caught is noise here.
 
-**Open the skills that govern the files you are reading.** Pick them off the available-skills list
-by their descriptions; nothing is handed to you. Read a skill as a hint about where to look, not as
+**Read the area instructions first:** the `AGENTS.md` and `REVIEW.md` files in the directories of the
+files you judge and in each directory above them, up to the root. They are the project's own word on
+what is blocking there, what not to report and what a claim needs as evidence, and they outrank your
+sense of severity. **Then open the skills that govern the files.** Pick them off the available-skills
+list by their descriptions; nothing is handed to you. Read a skill as a hint about where to look, not as
 a checklist to run down the diff — scanning a rulebook for violations is how *"is there one export
 per file?"* became two threads that had to be reverted.
 
 Everything you report goes to an agent whose job is to refute it, and it drops whatever it cannot
 prove. So bring evidence rather than suspicion. Per finding: where it is (`file:line`), what is
-wrong in one sentence, and what makes you believe it — the lines you actually read, or, when the
+wrong in one sentence, the mechanism — why it happens — with every other place in your diff where it
+is at work, and what makes you believe it — the lines you actually read, or, when the
 finding rests on a rule, which rule and where it is written (e.g. `database/SKILL.md` → the transaction
 around check-then-insert). The bar for publishing is held once, by that agent; do not hold it here
 as well.
@@ -76,19 +80,22 @@ committed state change with no audit event where the project requires one; autho
 in one layer where the project requires defense-in-depth; sensitive data reaching logs, errors or
 an error tracker; an endpoint whose input or auth context is unvalidated.
 
-## Consistency & reuse
+## Conformance & duplication
 
-Phase 3 (`dev:prune`) has already compared the diff against the repo and removed duplicates,
-hand-written copies of existing utils, and dead code. What is left for you is the half imitation
-cannot deliver: **conformance to a rule no nearby file demonstrates.** Where every neighbour does it
-the wrong way, imitation spreads the wrong way and there is no correct instance to cite — those are
-exactly the findings worth having, so "cite a file that does it right" is not asked of you.
+Two ways code can work and still be wrong for this repository.
 
-Read the skills governing the touched files (the project's code index, if it has one, only as a
-fallback) and **name the rule's source in every finding** — the verifier cannot adjudicate a
-conformance claim without it, so a finding that omits it dies there rather than here. The project's
-general design principles govern every touched file: a mechanism, flag or config that no caller or
-requirement exercises is a conformance finding like any other.
+**A written rule it breaks** — in a skill governing the file, an area file on its path, or the
+project's `CLAUDE.md`. The valuable ones break a rule no neighbouring file demonstrates: where every
+neighbour does it wrong, imitation spreads the wrong way and there is no correct instance to cite. So
+**name the rule's source in every finding** — the verifier cannot judge a conformance claim without
+it. The project's general design principles govern every file: a mechanism, flag or config that
+nothing exercises is a finding like any other.
+
+**A copy of something that already exists** — a helper the project's code index lists, or one written
+privately inside another file, which no index can see. Search by what the new code does, not by its
+name. Code with no caller is not dead until you have looked for its use further up: in the nodes above
+on a chain, which the working tree shows, and in any plan you were given for work still to come.
+Phase 3 (`dev:prune`) has already removed what it could find; you get what it missed.
 
 ## Testing — deleted coverage only
 
