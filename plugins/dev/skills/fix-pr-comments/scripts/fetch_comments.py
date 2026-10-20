@@ -158,10 +158,9 @@ def get_unresolved_threads(owner, repo, pr_number):
         human_indexes = [i for i, o in enumerate(origins) if o == "human"]
         ask_index = human_indexes[-1] if human_indexes else 0
 
-        # Our own answer to an earlier fix, left unresolved for him to sign off. That
-        # is the steady state now, not an exception — it is our output, and it becomes
-        # his input only when he replies under it, which makes the thread longer than
-        # one comment and sends it down the normal path above.
+        # Our own answer posted as a comment of its own, as older runs did. It is our
+        # output, and it becomes his input only when he replies under it, which makes
+        # the thread longer than one comment and sends it down the normal path above.
         if len(comments) == 1 and origins[0] == "agent" and first_stripped.startswith("## 🤖"):
             continue
 

@@ -76,24 +76,19 @@ draft. A change here is a change in all four.
 
 ## How a comment gets answered
 
-A fix answers with a **new** comment, not with a reply on the thread the finding came from. The fix
-usually changes the very line that thread sits on, which makes it outdated and hides it in the
-Files-changed view; resolving it or not makes no difference to that. So the answer is posted where
-the fix now lives, after the push, the source thread gets a short reply linking to it, and the
-source thread is resolved. `fix-pr-comments/scripts/reply_and_resolve.py` does all of that for a
-whole run in one call, and publishes it as one review per PR.
-
-The answer is left **unresolved**, and that is what he signs off on. It is fresh rather than
-immortal — a later run whose commits touch that line outdates it too.
+A fix answers with a `## 🤖` reply on the thread itself, and the thread is resolved at once.
+`fix-pr-comments/scripts/reply_and_resolve.py` does that for a whole run in one call, published as
+one review per PR. He signs off in chat, where the run lists every fix, so nothing is left on GitHub
+for him to clear; that the fix may outdate the thread and hide it from Files changed no longer
+matters, because nothing there is waiting on him.
 
 |Thread state|Means|
 |-|-|
 |unresolved, no reply|**consent** — the comment stands and gets fixed|
 |unresolved, with a reply from him|**settled by what he wrote** — not consent, and not a fresh claim to assess|
-|resolved, with a `## 🤖` answer elsewhere on the PR|fixed and answered; the answer is where it is judged now|
-|resolved, with no answer anywhere|his **veto**: he read it and said no. It does not come back|
-|our `## 🤖` answer, unresolved, nothing under it|waiting on him. Not a finding, and not work to redo|
-|our `## 🤖` answer with a reply of his under it|the fix did not satisfy him — his reply is the ask|
+|resolved, with our `## 🤖` reply|fixed or answered; never re-raise what the reply reports|
+|resolved, with no reply of ours|his **veto**: he read it and said no. It does not come back|
+|our `## 🤖` answer as a comment of its own, from an older run|its fix is done; with a reply of his under it, his reply is the ask|
 
 A reply from him is an instruction, not a claim to be assessed: a comment naming a change is the
 ask; a comment asking whether something holds wants an answer rather than an edit.

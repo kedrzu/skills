@@ -1,6 +1,6 @@
 ---
 name: fix-pr-comments
-description: Act on the unresolved review threads on this task's PRs, stacked chains and submodules included: fix, verify once, reply and resolve.
+description: Act on the unresolved review threads on this task's PRs, stacked chains and submodules included: fix what is clear, ask in chat about what needs a choice, verify, reply and resolve.
 disable-model-invocation: true
 ---
 
@@ -53,9 +53,9 @@ Every thread it returns is unresolved **on GitHub**, which is the only authority
 saying "done" or "fixed" is not resolution — someone may have changed the code and never resolved
 the thread; the fixer will find that out and answer accordingly. **Nothing of his is dropped here**,
 whatever kind of comment it is: unresolved and unanswered is consent, uniformly. The one thing the
-fetch skips is a lone `## 🤖` answer of ours with nothing under it: that is a fix from an earlier run
-waiting for him to accept it, our output rather than his input. He turns it back into work by
-replying under it — and then it arrives here as an ordinary thread whose ask is his reply.
+fetch skips is a lone `## 🤖` answer of ours with nothing under it, which older runs posted as a
+comment of its own: our output, not his input — unless he replies under it, which makes his reply
+the ask.
 
 ## 2. Group them
 
@@ -91,7 +91,9 @@ unactionable without it. Then the brief:
   thread gets. His own comment naming a change is the ask itself; carry it out. His comment asking
   whether something holds wants an answer, not an edit. And a thread where he replied to talk a
   finding down is **settled** — not consent and not a claim to re-litigate: answer it, change
-  nothing. `askCommentIndex` points at whichever of these is operative.
+  nothing. `askCommentIndex` points at whichever of these is operative. When an agent's finding
+  holds, fix the mechanism it names at every place it lists, and at the cause when that sits
+  somewhere other than the line the comment is on — say so in your report.
 - **Edit, and nothing else.** No test suite, no commit, no push, no `git add`. Running the single
   test you wrote is fine; anything wider is the orchestrator's job and would collide with the other
   fixers.
@@ -99,14 +101,15 @@ unactionable without it. Then the brief:
   not touch is theirs, not yours: note it in your report, finish your own work, and do not
   investigate. The authoritative check runs after everyone is done. This prior matters — without it
   an agent hunts a bug that belongs to someone else and burns the run doing it.
-- **Stop only if the comment is genuinely unclear, or if it implies he has misread the code.** His
+- **Stop only if the comment is genuinely unclear, if it implies he has misread the code, or if the
+  fix needs a choice between workable ways that the comment does not make.** His
   preference is authoritative; his claim about the code is a claim like any other and you may
   contradict it with evidence. If you do stop, first revert your own edits — `git checkout` over the
   files you touched — and come back with the question and a clean tree. A half-applied change in a
   shared tree costs more than redoing the work, and his answer may invalidate it anyway.
-- **Report per thread** what you did, or why you did not — it becomes the answer to that thread —
-  plus **the file and line where that fix now lives**, which is where the answer gets posted, and
-  the full list of files you changed, which is what the commit stages.
+- **Report per thread** what you did and how, or why you did not — it becomes the reply on that
+  thread and his line in chat — plus the full list of files you changed, which is what the commit
+  stages.
 
 ## 4. One verification over all the fixes
 
@@ -157,8 +160,8 @@ staged, then push what is committed.
 convention, on the branch its PR is already open on, as the project's checkpoint operation says —
 before committing in the main repo, which then carries only the moved pointer.
 
-If the push fails, fix the push before anything else — an answer anchored to a commit that never
-reached the remote lands on code nobody can see, if it anchors at all.
+If the push fails, fix the push before anything else — an answer claiming a fix nobody can see is
+worse than none.
 
 **On a chain:** a new commit on a lower node does not update the nodes above it — GitHub only
 cascades on merge — so once every node is committed and pushed, propagate them upward once, through
@@ -173,36 +176,17 @@ call:
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/scripts/reply_and_resolve.py --answers <answers.json>
 ```
 
-`answers.json` is a list with one entry per thread:
-`{"repo", "pr", "threadId", "header", "message", "file", "line"}`. Everything it posts goes out as
-**one GitHub review per PR**. A comment posted on its own is a review of its own, so the run would
-reach him, on his phone too, as a wall of separate entries instead of one. That is why the call
-waits for the last push: a review is submitted once, and nothing can join it afterwards.
+`answers.json` is a list with one entry per thread: `{"repo", "pr", "threadId", "header",
+"message"}`, where `pr` is the PR carrying the thread. Everything it posts goes out as **one GitHub
+review per PR** — a comment posted on its own is a review of its own, and the run would reach him, on
+his phone too, as a wall of separate entries. That is why the call waits for the last push: a review
+is submitted once, and nothing can join it afterwards.
 
-`repo` and `pr` name **the node the fix landed on**, the only PR whose diff the answer can anchor
-inside. Under the grouping rule that is also the node that carried the comment. For the rare thread
-whose fix belonged elsewhere, add `"sourcePr"`: the reply and the quoted links then stay on the PR
-he wrote on, while the answer sits by the changed code.
-
-Per thread, the script posts the answer as a **new** comment at `file`/`line` and replies on the
-source thread with a link to it. Once the review is submitted, it resolves the source thread. The
-answer stays unresolved, because that is his sign-off. A reply alone would not reach him: the fix
-usually changes the line the source comment sits on, which makes that thread outdated and hides it
-in the Files-changed view where he reads.
-
-**`file` and `line` are where the fix lives now**, in the pushed code. That is not where the comment
-was, and not necessarily where the fixer reported it, since `prune` may have moved it since. It is
-the one thing the script cannot work out, and it is what keeps the answer on live code. Where the
-original location is gone, anchor to the file that replaced it or the closest related file this PR
-changed, and say in the message that the original location no longer exists.
-
-An anchor GitHub rejects falls back to the first line of that file that is in the PR's diff. If that
-fails too, the script publishes nothing and names the threads, so correct the file and re-run the
-whole batch. Re-running is safe after any failure: the script finds answers already on the PR and
-does not post them twice. It never falls back to a file-level comment, because any push at all marks
-those outdated, and surviving pushes is the whole point of the answer. If it stops because he has a
-draft review of his own open on that PR, ask him to submit or discard it. Publishing ours would
-publish his.
+Per thread, the script replies on the thread and, once the review is submitted, resolves it. Nothing
+is left on GitHub for him to sign off — he signs off in chat, where step 8 lists every fix. Re-running
+is safe after any failure: a thread that already carries our reply is not replied to twice. If it
+stops because he has a draft review of his own open on that PR, ask him to submit or discard it.
+Publishing ours would publish his.
 
 `header` is `Fixed` when the code changed and `Acknowledged` when it did not — a finding that no
 longer held, a request the code already satisfied, an answer to a question he asked. Say which in
@@ -210,13 +194,16 @@ the message; an answer claiming a fix that did not happen is worse than none. Wr
 language: he is the one who reads it.
 
 If `prune` removed part of what a fixer added, the answer says so. If it removed something the
-thread actually needed, restore that first — the answer is what he signs off on, so it has to be
-true of the code that is now on the PR.
+thread actually needed, restore that first — the answer has to be true of the code now on the PR.
 
 A thread whose fixer stopped with a question stays out of the file and stays open. **Put that question to
-him when it arrives, not at the end of the run** — it is a fork, and batching forks into a closing
-report is exactly what makes him discover decisions after the fact. One or two sentences: what the
-comment asks, what the code actually says, and what you need from him.
+him when it arrives, not at the end of the run, and keep the run going** — it is a fork, and
+batching forks into a closing report is exactly what makes him discover decisions after the fact.
+Ask in an ordinary message, never in a dialog that holds the run until he answers: the groups
+already fixed go through steps 4 to 6 meanwhile, and his reply reaches you like any other event.
+One or two sentences: what the comment asks, what the code actually says, and what you need from
+him. His answer starts one more fixer for that thread's group, which then goes through steps 4 to 6
+on its own.
 
 Threads on the submodule's PR go in the same file, with that PR's own `repo` and `pr` from step 1.
 The script resolves threads by GraphQL node id, so nothing else changes.
@@ -256,7 +243,6 @@ Run the project's `verify` skill once, at the end, at the level its change class
 everything this run changed — **full** when the fixes reach code only the full protocol checks,
 less when they don't. A one-thread copy fix does not need an hour of e2e.
 
-Then the counts in chat, in his language: **fixed, answered without a change, left open for him.**
-Every answered thread is resolved and its answer is sitting on the PR next to the code, so restating
-it in prose is a second copy of what he can already see. What carries news is a thread a fixer
-stopped on — name those and why.
+Then, in his language, one line per thread: what changed and how, or why nothing did, with the
+commit. This is where he signs off — on GitHub there is only a reply under a resolved thread, so he
+needs to be able to come back to it here. Name any thread still open on a question to him.
