@@ -54,7 +54,7 @@ filled with the same unreadable prose.
 ## Posting
 
 `review/scripts/post_review_comment.py` builds this shape and prepends the staleness sentence
-itself. Its invocation and input are in the review skill's step 4 and in the script's `--help`. A
+itself. Its invocation and input are in the review skill's step 5 and in the script's `--help`. A
 path inside a submodule is relative to that submodule's root and goes on that submodule's PR.
 Everything one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so he
 gets one entry per run rather than one per comment.
