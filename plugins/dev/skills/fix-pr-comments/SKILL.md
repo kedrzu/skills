@@ -92,8 +92,10 @@ unactionable without it. Then the brief:
   whether something holds wants an answer, not an edit. And a thread where he replied to talk a
   finding down is **settled** — not consent and not a claim to re-litigate: answer it, change
   nothing. `askCommentIndex` points at whichever of these is operative. When an agent's finding
-  holds, fix the mechanism it names at every place it lists, and at the cause when that sits
-  somewhere other than the line the comment is on — say so in your report.
+  holds, search for every instance of the mechanism it names before editing, not only the places it
+  lists, and fix each, and the cause when that sits somewhere other than the line the comment is on
+  — say so in your report. Outside this change apply only a removal of a duplicate of something that
+  already has a helper, and that across the whole repo.
 - **Edit, and nothing else.** No test suite, no commit, no push, no `git add`. Running the single
   test you wrote is fine; anything wider is the orchestrator's job and would collide with the other
   fixers.
@@ -102,7 +104,8 @@ unactionable without it. Then the brief:
   investigate. The authoritative check runs after everyone is done. This prior matters — without it
   an agent hunts a bug that belongs to someone else and burns the run doing it.
 - **Stop only if the comment is genuinely unclear, if it implies he has misread the code, or if the
-  fix needs a choice between workable ways that the comment does not make.** His
+  fix needs a choice between workable ways that the comment does not make, or reaches code outside
+  this change for more than that removal** — whether it becomes a separate task is his call. His
   preference is authoritative; his claim about the code is a claim like any other and you may
   contradict it with evidence. If you do stop, first revert your own edits — `git checkout` over the
   files you touched — and come back with the question and a clean tree. A half-applied change in a
@@ -202,8 +205,9 @@ batching forks into a closing report is exactly what makes him discover decision
 Ask in an ordinary message, never in a dialog that holds the run until he answers: the groups
 already fixed go through steps 4 to 6 meanwhile, and his reply reaches you like any other event.
 One or two sentences: what the comment asks, what the code actually says, and what you need from
-him. His answer starts one more fixer for that thread's group, which then goes through steps 4 to 6
-on its own.
+him. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
+flight — they need a tree nobody else is editing — and on a chain with that group's node checked
+out; it then goes through steps 4 to 6 on its own, the upward propagation included.
 
 Threads on the submodule's PR go in the same file, with that PR's own `repo` and `pr` from step 1.
 The script resolves threads by GraphQL node id, so nothing else changes.
