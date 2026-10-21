@@ -249,4 +249,6 @@ less when they don't. A one-thread copy fix does not need an hour of e2e.
 
 Then, in his language, one line per thread: what changed and how, or why nothing did, with the
 commit. This is where he signs off — on GitHub there is only a reply under a resolved thread, so he
-needs to be able to come back to it here. Name any thread still open on a question to him.
+needs to be able to come back to it here. A thread still open on a question to him gets that
+question asked again in full — the problem, the options and what each costs — never as a pointer to
+the earlier message: the last message is the one he answers from.
