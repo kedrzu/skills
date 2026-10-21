@@ -10,11 +10,11 @@ Everything one call posts goes out as **one review per PR** (`review/scripts/pr_
 says why and how), so the whole run's answers come in one call, after the last push:
 
 1. clear a leftover pending review of ours
-2. per thread, add a `## 🤖` reply — unless one of ours is already there
+2. per thread, add a `## 🤖` reply — unless one of ours is already the latest comment
 3. submit, then resolve every thread
 
-Idempotent, not atomic. A thread already carrying our reply is not replied to again,
-which is what makes a retry safe. Resolving comes last and fails open: a failure
+Idempotent, not atomic. A thread whose latest comment is our reply is not replied to
+again, which is what makes a retry safe. Resolving comes last and fails open: a failure
 there leaves the thread visible and safe to re-run, where resolving first could
 close a finding whose answer never landed.
 """
@@ -84,20 +84,21 @@ def fetch_thread_comments(thread_id):
 
 
 def already_replied(repo, comments):
-    """True when a trusted author already left one of our replies under the source
-    comment. Only trusted authors count, as in the fetch scripts: anyone can type the
-    `## 🤖` header, and a stranger's comment must not get a thread resolved with no
-    answer of ours on it. Exits on a failed lookup — falling through would post a
-    second reply on exactly the retry this check exists to protect."""
-    for comment in comments[1:]:
-        if not has_our_header(comment.get("body")):
-            continue
+    """True when the latest trusted comment under the source comment is one of our
+    replies. A reply of ours above a later comment of his answered an earlier ask, not
+    the one this run is answering; on a retry, our just-posted reply is the newest.
+    Only trusted authors count, as in the fetch scripts: anyone can type the `## 🤖`
+    header, and a stranger's comment must not get a thread resolved with no answer of
+    ours on it, nor hide his ask behind it. Exits on a failed lookup — falling through
+    would post a second reply on exactly the retry this check exists to protect."""
+    for comment in reversed(comments[1:]):
         try:
-            if is_trusted_author(repo, comment.get("author") or {}):
-                return True
+            if not is_trusted_author(repo, comment.get("author") or {}):
+                continue
         except ChainError as error:
-            print(f"Failed to check a reply's author: {error}", file=sys.stderr)
+            print(f"Failed to check a comment's author: {error}", file=sys.stderr)
             sys.exit(1)
+        return has_our_header(comment.get("body"))
     return False
 
 
