@@ -109,7 +109,8 @@ of progress.
    browser, running the path for a backend or infrastructure change. The full verify runs once, at the
    end, so this is what keeps him from spending his time on something you could have caught.
 5. **Commit and push**, then the checkpoint. The milestone's commit message carries each review
-   pass's count line.
+   pass's count line — written there and by review's step 6 into the memory as
+   `review M<k> pass <p>: …`, never as `/dev:review`'s own `review run <n>`.
 
 ## When you stop
 

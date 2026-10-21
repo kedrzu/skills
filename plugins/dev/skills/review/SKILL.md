@@ -104,10 +104,11 @@ axes, or a pass on one masks a failure on another.
 
 Hand every finding, all axes together, to a single agent running
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` (pass the expanded path), tell it the
-owner's language, and give it the memory — `.context/reviews/<branch>/memory.md`, `<branch>` being
-the bottom node's branch as `nodes.json` lists it, written by step 6 of earlier runs — when it exists. **Only the verifier gets the memory.** A finder that saw
-it would steer away from ground already covered, and fresh eyes are what find what earlier runs
-missed; the verifier is where a finding already settled is recognised and dropped.
+owner's language, and give it the memory when it exists: `.context/reviews/<bottom>/memory.md`,
+written by step 6 of earlier runs, `<bottom>` being the bottom node's branch from `nodes.json` with
+`/` replaced by `-`, as `generate_diffs.py` names its directory. **Only the verifier gets the
+memory.** A finder that saw it would steer away from ground already covered, and fresh eyes are
+what find what earlier runs missed; the verifier is where a finding already settled is recognised and dropped.
 
 It attacks each finding against the code as it stands, and what it cannot prove does not exist.
 Survivors come back with what the finder usually did not write down — the mechanism and every place
@@ -128,7 +129,9 @@ change. A fixer that finds the fix needs a choice, changes behaviour or adds cod
 hands it back unapplied, and it goes to him in step 5 as a should-fix finding.
 
 Commit them through `git-workflow` → **checkpoint**, one commit per group, and push before anything
-is posted, so the comments of step 5 anchor to the code as it now stands.
+is posted. The fixes move lines under the findings left for him, so after a push re-run
+`generate_diffs.py` as you ran it and re-anchor each of those findings on the code as it now stands:
+step 5 posts on the pushed head and places them by the fresh `manifest.txt`.
 
 ## 5. Post
 
@@ -221,7 +224,8 @@ a rule, a decision. **An objection to the approach itself does not belong here a
 planning question, and raising it after implementation asks for a rewrite. Nothing else goes to chat.
 
 Then say whether review is finished. It is when this run and the one before it brought him nothing
-blocking — the memory holds each run's count line. Asking for nothing at all would never end: fresh
+blocking — the memory holds each run's `review run <n>` line; a `/dev:deliver` milestone pass's
+`review M<k> pass <p>` line is not a run. Asking for nothing at all would never end: fresh
 reviewers always find a few more things worth fixing.
 
 ## 6. Record the run
