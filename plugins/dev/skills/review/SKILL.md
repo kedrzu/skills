@@ -104,8 +104,8 @@ axes, or a pass on one masks a failure on another.
 
 Hand every finding, all axes together, to a single agent running
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` (pass the expanded path), tell it the
-owner's language, and give it the branch's memory — `.context/reviews/<branch>/memory.md`, written
-by step 6 of earlier runs — when it exists. **Only the verifier gets the memory.** A finder that saw
+owner's language, and give it the memory — `.context/reviews/<branch>/memory.md`, `<branch>` being
+the bottom node's branch as `nodes.json` lists it, written by step 6 of earlier runs — when it exists. **Only the verifier gets the memory.** A finder that saw
 it would steer away from ground already covered, and fresh eyes are what find what earlier runs
 missed; the verifier is where a finding already settled is recognised and dropped.
 
@@ -226,7 +226,7 @@ reviewers always find a few more things worth fixing.
 
 ## 6. Record the run
 
-Append to `.context/reviews/<branch>/memory.md`, one line each, with the commit it was settled on:
+Append to the memory file of step 3, one line each, with the commit it was settled on:
 every refuted finding and what refuted it, every finding fixed here, and the run's count line. What
 was posted stays out — the PR's threads are its memory. Nothing else holds this file; lost, it costs
 the next verifier a second refutation, nothing more.

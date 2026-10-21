@@ -97,10 +97,19 @@ of progress.
    found while writing it goes to him as a question.
 2. **Build it** — pipeline Phase 3, then the Phase 3.5 audit over this milestone's tasks. A task
    the audit classifies CHANGED is a divergence candidate: if it never reached him, it does now.
-3. **Try the surface yourself** before handing it over — the project's manual-testing skill, if it has one, for anything in a
+3. **Review it, twice, unattended** — `/dev:review`'s steps 2 to 4 and 6
+   (`${CLAUDE_PLUGIN_ROOT}/skills/review/SKILL.md`) over this milestone's commits:
+   `generate_diffs.py <the commit before the milestone>` writes their diffs, the design and this
+   milestone's plan are the spec, and the finders also get the plans of the milestones still to come,
+   so code a later milestone will call is not taken for dead. What review fixes without him it
+   commits; what is for him goes into the checkpoint, never onto GitHub. Then a second pass, fresh,
+   over the milestone as the first one left it. He reads no code during the run, so nothing here
+   waits for him.
+4. **Try the surface yourself** before handing it over — the project's manual-testing skill, if it has one, for anything in a
    browser, running the path for a backend or infrastructure change. The full verify runs once, at the
    end, so this is what keeps him from spending his time on something you could have caught.
-4. **Commit and push**, then the checkpoint.
+5. **Commit and push**, then the checkpoint. The milestone's commit message carries each review
+   pass's count line.
 
 ## When you stop
 
@@ -116,8 +125,14 @@ Execution Autonomy table says; the milestone plan is the boundary.
   diff against the design.
 - **The milestone checkpoint.** It has to stand alone; assume he has not looked at the terminal for an
   hour. How to see and try it, and what to pay attention to; what you decided on your own that he
-  would want to know; the divergences settled since the last one; a specific piece of code worth his
-  eyes and why, only if there is one; what comes next. Then yield.
+  would want to know; the divergences settled since the last one; what review fixed without him, one
+  line each, and what it brings him, each as a question he can answer in a line; a specific piece
+  of code worth his eyes and why, only if there is one; what comes next. Then yield.
+
+  His answers to review's questions go into the review memory. Chat has no rule that silence means
+  yes: a question he leaves unanswered is asked once more at the next checkpoint, and if it is still
+  open when the chain is up, it is posted on its node with `/dev:review`'s step 5, where silence does
+  mean yes.
 
 While he has not answered a checkpoint, explore and plan the next milestone, but write no code — his
 answer may change the direction. It may rearrange the remaining milestones; finished ones are redone
