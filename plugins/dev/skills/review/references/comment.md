@@ -5,9 +5,10 @@ Read by `/dev:review`, which writes these comments, and by `/dev:fix-pr-comments
 ## Everything the owner reads is inline
 
 Anchored to a line of code, on the PR. Top-level PR comments do not appear in the Files-changed
-view, which is where he works, so one posted there is a comment nobody reads. The one top-level
-comment is a run's `## 🤖 Review summary`: the record that the run happened and what it found, not a
-verdict and not something he reads. There is no verdict comment, no guide comment.
+view, which is where he works, so nothing he must act on goes there. The top-level comments are the
+runs' summaries — `## 🤖 Review summary` after a review, `## 🤖 Fix summary` after a fix run: the
+history of what each round found and fixed, which he skims later without opening the code. There is
+no verdict comment, no guide comment.
 
 ## Two layers
 

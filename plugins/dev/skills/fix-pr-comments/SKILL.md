@@ -248,7 +248,10 @@ everything this run changed — **full** when the fixes reach code only the full
 less when they don't. A one-thread copy fix does not need an hour of e2e.
 
 Then, in his language, one line per thread: what changed and how, or why nothing did, with the
-commit. This is where he signs off — on GitHub there is only a reply under a resolved thread, so he
-needs to be able to come back to it here. A thread still open on a question to him gets that
+commit. This is where he signs off — on GitHub there is only a reply under a resolved thread. Post
+the same list, headed `## 🤖 Fix summary` with the verification result under it, as a top-level
+comment on every PR whose threads this run answered (`gh pr comment <n> --repo <owner/repo>
+--body-file <summary.md>`). It stays out of Files changed and sits next to the review's summary:
+what he skims later to see what a round of fixes did without opening the code. A thread still open on a question to him gets that
 question asked again in full — the problem, the options and what each costs — never as a pointer to
 the earlier message: the last message is the one he answers from.
