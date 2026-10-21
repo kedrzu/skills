@@ -5,8 +5,9 @@ Read by `/dev:review`, which writes these comments, and by `/dev:fix-pr-comments
 ## Everything the owner reads is inline
 
 Anchored to a line of code, on the PR. Top-level PR comments do not appear in the Files-changed
-view, which is where he works, so one posted there is a comment nobody reads. There is no summary
-comment, no verdict comment, no guide comment.
+view, which is where he works, so one posted there is a comment nobody reads. The one top-level
+comment is a run's `## 🤖 Review summary`: the record that the run happened and what it found, not a
+verdict and not something he reads. There is no verdict comment, no guide comment.
 
 ## Two layers
 
@@ -56,8 +57,9 @@ filled with the same unreadable prose.
 `review/scripts/post_review_comment.py` builds this shape and prepends the staleness sentence
 itself. Its invocation and input are in the review skill's step 5 and in the script's `--help`. A
 path inside a submodule is relative to that submodule's root and goes on that submodule's PR.
-Everything one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so he
-gets one entry per run rather than one per comment.
+Every finding one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so
+he gets one entry per run rather than one per comment; the summary follows as a top-level comment on
+every PR the run reviewed.
 
 ## Who wrote a comment
 

@@ -175,11 +175,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
   "details": "<English, citations and the proposed fix>"}]
 ```
 
-The script publishes **one GitHub review per PR**, on every PR in `--prs`, findings or not — posted
-one at a time they would reach him, on his phone too, as a wall of separate entries. Its body is the
-run's summary: the closing lists below and one count line, `review run <n>: <a> to owner (<b>
-blocking), <c> fixed, <d> refuted, <e> already settled`. It shows only in the Conversation tab, not
-where he works: it is the record that the run happened, a run that found nothing included.
+The script publishes **one GitHub review per PR** that has findings — posted one at a time they
+would reach him, on his phone too, as a wall of separate entries. Then it posts the run's summary as
+a top-level comment on every PR in `--prs`, findings or not: the record that the run happened, a run
+that found nothing included. It shows only in the Conversation tab, not where he works.
+`summary.md` holds the **fixed without him** and **refuted** lists below and one count line,
+`review run <n>: <a> to owner (<b> blocking), <c> fixed, <d> refuted, <e> already settled`. Leave
+the **posted** list out: the script appends it, because the links exist only once it has posted.
 `line: 0` posts at file level. The script prepends the staleness sentence itself. If it stops
 because he has a draft review of his own open on that PR, ask him to submit or discard it, because
 publishing ours would publish his.
@@ -210,7 +212,7 @@ whether it ran well. One line per finding:
 
 - **fixed without him** — what changed and in how many places; it is where he looks when something
   later seems off, and how he tells whether the line between the two exits sits in the right place;
-- **posted** — the claim as published, plus the link to the comment;
+- **posted** — the claim as published, plus the link the script printed for it;
 - **refuted** — the claim, and what the verifier proved against it. Findings dropped as already
   settled are counted, not listed: he has seen them before.
 

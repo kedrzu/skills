@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
-"""Post a run's review findings as inline PR comments — one GitHub review per PR,
-carrying the run's summary as its body.
+"""Post a run's review findings as inline PR comments — one GitHub review per PR —
+then the run's summary as a top-level comment on every PR it reviewed.
 
 The shape it builds, and the rules behind it, live in this skill's
 `references/comment.md`. Why one review rather than a comment each, and how a
 pending review is opened and submitted, is `pr_review.py`.
+
+The reviews go out first and the summaries last. A run that fails before any
+review is submitted publishes nothing and is simply re-run; one that fails later
+has published what it printed, and a re-run would post that a second time.
 """
 
 import argparse
 import json
 import sys
 
-from pr_review import ReviewError, add_thread, discard_all, open_pending, permalink, submit
+from pr_review import (
+    ReviewError, add_thread, discard_all, open_pending, permalink, post_comment, submit,
+)
 
 
 # Severity → (emoji, label) for line 1. These two markers are also the authorship
@@ -59,13 +65,15 @@ def build_body(severity, category, provenance, delta, claim, consequence, detail
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Post a run's review findings as inline comments, one GitHub review per PR."
+        description="Post a run's review findings as inline comments, one GitHub review per PR, "
+                    "then the run's summary as a top-level comment on every PR it reviewed."
     )
     parser.add_argument(
         "--summary", required=True,
-        help="Markdown file: the run's summary, starting with `## 🤖 Review summary`. Posted "
-             "as the body of the review on every PR listed under --prs, findings or not, so a "
-             "run that found nothing still leaves its record.",
+        help="Markdown file: the run's summary, starting with `## 🤖 Review summary` — its fixed "
+             "and refuted lists and its count line. The script appends the posted list, each "
+             "finding's claim and link, and posts it as a top-level comment on every PR listed "
+             "under --prs, findings or not, so a run that found nothing still leaves its record.",
     )
     parser.add_argument(
         "--prs", required=True, nargs="+",
@@ -93,15 +101,15 @@ def main():
                   file=sys.stderr)
             sys.exit(1)
 
+    targets = []
+    for target in args.prs:
+        repo, _, number = target.partition("#")
+        targets.append((repo, int(number)))
+
     reviews = {}
     posted = []
     failed = []
     try:
-        for target in args.prs:
-            repo, _, number = target.partition("#")
-            key = (repo, int(number))
-            if key not in reviews:
-                reviews[key] = open_pending(*key)
         for finding in findings:
             key = (finding["repo"], int(finding["pr"]))
             if key not in reviews:
@@ -131,7 +139,7 @@ def main():
             if comment_id is None:
                 failed.append(f"PR #{key[1]} {where}: not in this PR's diff")
                 continue
-            posted.append((key, where, permalink(key[0], key[1], comment_id)))
+            posted.append((key, where, finding["claim"], permalink(key[0], key[1], comment_id)))
 
         if failed:
             # Nothing is published yet: discarding (below) keeps the run one review
@@ -142,10 +150,17 @@ def main():
             sys.exit(1)
 
         for key in list(reviews):
-            print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key], summary)}")
+            print(f"Review submitted on {key[0]}#{key[1]}: {submit(reviews[key])}")
             del reviews[key]
-        for key, where, url in posted:
+        for key, where, _, url in posted:
             print(f"Comment posted at {where} on #{key[1]}: {url}")
+
+        record = "\n".join(
+            [summary.rstrip(), "", "**Posted**"]
+            + ([f"- {claim} — {url}" for _, _, claim, url in posted] or ["- none"])
+        )
+        for repo, number in targets:
+            print(f"Summary posted on {repo}#{number}: {post_comment(repo, number, record)}")
     except ReviewError as error:
         print(f"Failed: {error}", file=sys.stderr)
         sys.exit(1)

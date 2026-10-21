@@ -164,22 +164,33 @@ def add_reply(review, thread_id, body):
     )
 
 
-def submit(review, body=""):
-    """Publish it as a plain comment review. `body` is the run's summary: it shows
-    in the Conversation tab only, never in Files changed, where he reads — so it is
-    a record for whoever audits the reviews, not something he is meant to read.
-    Returns the review's URL."""
+def submit(review):
+    """Publish it as a plain comment review, with no summary body: everything he
+    reads is inline (review/references/comment.md). Returns the review's URL."""
     data = _graphql(
         """
-        mutation($review: ID!, $body: String!) {
-          submitPullRequestReview(input: {pullRequestReviewId: $review, event: COMMENT, body: $body}) {
+        mutation($review: ID!) {
+          submitPullRequestReview(input: {pullRequestReviewId: $review, event: COMMENT}) {
             pullRequestReview { url }
           }
         }
         """,
-        review=review.id, body=body,
+        review=review.id,
     )
     return data["submitPullRequestReview"]["pullRequestReview"]["url"]
+
+
+def post_comment(repo, pr, body):
+    """Post `body` as a top-level PR comment, outside any review. It shows in the
+    Conversation tab only, never in Files changed, where he reads. Returns its URL."""
+    result = subprocess.run(
+        ["gh", "api", "-X", "POST", f"repos/{repo}/issues/{pr}/comments",
+         "--input", "-", "--jq", ".html_url"],
+        input=json.dumps({"body": body}), capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise ReviewError(result.stderr.strip() or f"posting a comment on {repo}#{pr} failed")
+    return result.stdout.strip()
 
 
 def discard(review):
