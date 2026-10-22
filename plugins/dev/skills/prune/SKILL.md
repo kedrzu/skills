@@ -4,7 +4,8 @@ description: >-
     Phase 3 of the dev pipeline — a subtractive self-review of the change just made. Removes the
     helper that duplicates an existing one, the single-caller indirection, the abstraction with no
     producer, the code the change orphaned, and — after implementation only — the test that carries
-    no signal. It may delete code and repoint call sites at code that already exists; it never adds.
+    no signal. It may delete code, repoint call sites at code that already exists, and move an
+    existing helper to where the code index can find it; it never adds.
     Runs after implementation and again after a fix run, between the scoped check and the full
     verify. Invoked by the pipeline and by whatever applies review fixes; use it directly when asked to "prune
     this", "shrink the diff", "usuń zbędny kod", or to strip what a change over-built. Do NOT use to
@@ -31,7 +32,8 @@ the same failure coming back.
 
 That is the whole permission. It is a property, not a list of allowed edits: the diff does not grow
 and no design decision gets made here. Repointing five call sites at an existing util is fine — the
-util is not new. Inlining a helper's body at its one call site is fine, for the same reason.
+util is not new. Inlining an indirection's body at its one call site is fine, for the same reason,
+and so is moving an existing helper into a file of its own.
 Extracting a shared function is not, however obvious the duplication.
 
 ## Where you run
@@ -58,16 +60,27 @@ did not touch and did not orphan.
 ### Standing on a node of a chain, "no consumer" is judged against the chain
 
 A node can hold an endpoint whose only caller arrives in the node above it, which reads as an
-abstraction with no producer. **Look up the chain before deleting.**
+abstraction with no producer. **Look up the chain before deleting.** Inside a `/deliver` run, look
+ahead too: the design and the plans of milestones not yet built say what a later milestone will
+call, and code they name is not dead.
 
 ## What to look for
 
 - **A helper that duplicates something that already exists.** Delete it and repoint its call sites.
-- **A single-caller helper, factory or constant.** Inline it.
+- **A single-caller indirection** — a wrapper, factory or constant that adds a name but no
+  capability (`getUserId(u) { return u.id }`). Inline it. A function a caller elsewhere could use
+  without knowing its file (`parseDate`) is a helper even with one caller today — the next item, not
+  this one. Which of the two it is is your judgement.
 - **Speculative generality** — a parameter nobody passes, a hook with no producer, an option with
   one value, an abstraction over a single case.
 - **Code the change orphaned** — the branch that can no longer be reached, the field nothing reads,
   the import nothing uses.
+- **A helper no lookup can find.** A function that would serve another caller, left private inside
+  the file that uses it, never reaches the code index, so the next agent writes it again. Move it to
+  its own exported file in the nearest `utils/` folder of its module or package and tag it the way
+  the project's `CLAUDE.md` says helpers are listed. Nothing goes to a shared package until a second
+  caller outside that scope exists; when you find two copies, the merged one goes to the nearest
+  `utils/` both share.
 - **A test the change added that carries no signal** — after implementation only; see below.
 
 ### The duplicate search is by capability, not by name

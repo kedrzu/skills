@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review this branch's diff and post the findings that survive a refutation pass as inline PR comments.
+description: Review this branch's diff — fix what nobody would argue with, post the rest that survives a refutation pass as inline PR comments.
 disable-model-invocation: true
 ---
 
@@ -14,11 +14,14 @@ never report what they catch.
 The shape is fixed: the same agents, in the same order, every run. No modes, no skips, no cap that
 reroutes control flow. The judgement inside each step belongs to the agent running it.
 
-The output is inline PR comments and nothing else — no report, no verdict, no reading guide. **An
-unresolved thread is something waiting on him** — a finding he has not judged, or a fix he has not
-accepted — so nothing unresolved means nothing is waiting, rendered natively by GitHub's count of
-them. Publishing a comment effectively decides the code will change — his only cheap answer is to
-resolve the thread — so nothing is published that has not survived step 3's attempt to refute it.
+A finding that survives step 3's attempt to refute it leaves by one of two exits. **What he would
+never argue with is fixed here, without him** — a written rule broken, a copy of code that already
+exists, a plain code smell — when the fix removes code or adds none and changes no behaviour. The agent that wrote the code
+cannot see these in its own work, and their cost is not harm but recurrence: every later reviewer
+trips over the same thing again. **The rest goes to him, inline on the PR** — no report, no verdict,
+no reading guide. An unresolved thread is something waiting on him, so nothing unresolved means
+nothing is waiting, rendered natively by GitHub's count of them; and since his only cheap answer is
+to resolve it, publishing one effectively decides the code will change.
 
 **Prerequisites.** The project is on GitHub and `gh` is installed and authenticated: the scripts
 read the PR, its threads and its chain through the GitHub API, including the Stacks API, which
@@ -26,16 +29,15 @@ returns `[]` for an ordinary PR on any repository. Pushing and checking out go t
 project's `git-workflow` skill — what it must provide, and that a missing one stops the run, is
 `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
-**The owner's language** is the language named for human-facing text in his personal, uncommitted
-`CLAUDE.local.md` at the project root, else in the project's `CLAUDE.md` — or, without such a rule,
-the language he writes to you in. Everything below written for him — the comments' human layer, the refuted list,
-the closing lists in chat — is in it. Settle it once, here, and name it in the brief of every agent
-that writes for him: a subagent sees only your prompt, so it cannot work this out itself.
+**The owner's language** is the one named for human-facing text in his uncommitted `CLAUDE.local.md`
+at the project root, else in the project's `CLAUDE.md`, else the one he writes to you in. Everything
+written for him is in it. Name it in the brief of every agent that writes for him — a subagent sees
+only your prompt.
 
 ## 1. Context
 
-Push first, through `git-workflow` → **checkpoint**, pushing only — review never commits; comments
-must land on the reviewed commits. Then:
+Push first, through `git-workflow` → **checkpoint**, pushing only — comments must land on commits
+the PR has. The only commits review makes are its own fixes, in step 4. Then:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/generate_diffs.py          # → .context/reviews/<branch>/diffs/
@@ -52,11 +54,9 @@ guessing wrong means posting the whole chain's findings on one PR. Report what i
 If the push fails, `git status --porcelain` is non-empty, or `HEAD` ≠ `@{u}`, stop and report it: a
 comment anchored to a commit that is not on the PR lands nowhere.
 
-Pick up the spec too, if one is on disk. They are named `.context/specs/<YYYY-MM-DD>-<topic>.md` —
-**no issue id in the filename**, so list the directory and pick the one whose topic matches this
-branch. Pass it whole; summarising it loses the acceptance criteria the spec axis checks against. If
-nothing matches, say so rather than passing the nearest file — the spec axis behaves differently
-when it knows there is no spec.
+Pick up the spec too, if one is on disk: `.context/specs/<YYYY-MM-DD>-<topic>.md`, with no issue id
+in the name, so pick the one whose topic matches this branch. Pass it whole — a summary loses the
+acceptance criteria. If nothing matches, say so rather than passing the nearest file.
 
 ### The chain, and the node
 
@@ -75,7 +75,7 @@ chain's tip.
 ## 2. The finders, in parallel
 
 One agent per axis in `${CLAUDE_PLUGIN_ROOT}/skills/review/references/axes.md` — correctness, spec,
-security & compliance, consistency & reuse, and the narrow testing axis. Each gets that file's path
+security & compliance, conformance & duplication, and the narrow testing axis. Each gets that file's path
 (expanded — a subagent cannot resolve `${CLAUDE_PLUGIN_ROOT}`) and its own section of it, the diff
 files it is reading, the PR description and the spec. Nothing else: finders open the skills they
 need themselves.
@@ -88,7 +88,7 @@ The axes split by whether their standard is local or global:
 |Axis|Runs|Reads|
 |-|-|-|
 |Correctness|per node|that node's `diffs/nodes/<k>/`|
-|Consistency & reuse|per node|"|
+|Conformance & duplication|per node|"|
 |Testing — deleted coverage|per node|"|
 |Spec|once over the chain|`diffs/` at the root|
 |Security & compliance|once over the chain|"|
@@ -103,16 +103,39 @@ axes, or a pass on one masks a failure on another.
 ## 3. One verifier: try to refute
 
 Hand every finding, all axes together, to a single agent running
-`${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` (pass the expanded path), and tell it the
-owner's language. It attacks each one against the code as it stands, and what it cannot prove does
-not exist. Survivors come back with the thing the finder usually did not write down — what
-concretely goes wrong, for whom and when — plus whether the fix adds or removes code, and whether it
-is blocking or a nit.
+`${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` (pass the expanded path), tell it the
+owner's language, and give it the memory when it exists: `.context/reviews/<bottom>/memory.md`,
+written by step 6 of earlier runs, `<bottom>` being the bottom node's branch from `nodes.json` with
+`/` replaced by `-`, as `generate_diffs.py` names its directory. **Only the verifier gets the
+memory.** A finder that saw it would steer away from ground already covered, and fresh eyes are
+what find what earlier runs missed; the verifier is where a finding already settled is recognised and dropped.
+
+It attacks each finding against the code as it stands, and what it cannot prove does not exist.
+Survivors come back with what the finder usually did not write down — the mechanism and every place
+in the change it occurs, and what concretely goes wrong — plus their exit: fixed here, or brought to
+him as blocking or should-fix.
 
 One verifier over the whole chain, whatever the node count: splitting it loses the duplicates between
 nodes and the ability to kill a finding a higher node already repaired.
 
-## 4. Post
+## 4. Fix what needs nobody
+
+Fix the survivors whose exit is *fixed here* the way `/dev:fix-pr-comments` fixes threads — its
+steps 2 to 5 in `${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/SKILL.md`: the same grouping rule, the
+same fixer brief, one scoped `verify` over every fix, then `prune` as a fix run, bottom-up on a
+chain. Each fixer gets its finding's mechanism and every place it occurs, and fixes all of them; a
+duplicate of something that already exists is removed across the whole repository, not only in this
+change. A fixer that finds the fix needs a choice, changes behaviour or adds code after all
+hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
+delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
+
+Commit them through `git-workflow` → **checkpoint**, one commit per group — in a submodule, a message
+held to `comment.md` → **Posting** — and push before anything is posted. The fixes move lines under
+the findings left for him, so after a push re-run `generate_diffs.py` as you ran it and re-anchor
+each of those findings on the code as it now stands: step 5 posts on the pushed head and places them
+by the fresh `manifest.txt`.
+
+## 5. Post
 
 Step 1 already told you whether there is a PR. With `prNumber: null` there is nowhere to post: give
 the findings in chat, say the branch has no PR, and stop — the fetch below exits non-zero without
@@ -133,16 +156,17 @@ threads and judge, including what he wrote under them:
 |resolved|his "no", and it stands. Re-deriving it from another call site or another axis, in different words, is the failure to avoid|
 |unresolved, with a reply arguing it down|also settled — `humanReplies` carries what he wrote, and it is there to be read|
 |unresolved, no reply|nothing was said; a genuinely new finding may go next to it|
-|unresolved, one of our own `## 🤖` answers|a fix from an earlier run, waiting for him to accept it. It is an answer, not a finding, and the work behind it is done — never re-raise what it reports|
+|resolved with our `## 🤖` reply, or an older `## 🤖` answer of ours|a fix or answer from an earlier run — the work behind it is done; never re-raise what it reports|
 
-Post the surviving findings in the shape
+Post the findings whose exit is *to him* in the shape
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` defines. A poster agent needs the
 expanded path to that file and the owner's language. Each finding goes on the `prNumber` of **the
 node it belongs to**. All of them, from every node and every submodule, go into one file and one
-call:
+call, with one summary file per PR the run reviewed:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py --findings <findings.json>
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
+  --findings <findings.json> --summary <owner/repo#n>=<summary.md> [<owner/repo#n>=<summary.md> …]
 ```
 
 ```json
@@ -150,11 +174,20 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py --fin
   "severity": "blocking", "category": "data-integrity", "provenance": "Correctness",
   "delta": "adds ~6 lines", "claim": "<owner's language, one sentence>",
   "consequence": "<owner's language, what goes wrong, for whom, when>",
-  "details": "<English, citations and the proposed fix>"}]
+  "details": "<English: the mechanism and every place it occurs, citations, the proposed fix>"}]
 ```
 
-The script publishes **one GitHub review per PR**. A comment posted on its own is a review of its
-own, so findings posted one at a time reach him, on his phone too, as a wall of separate entries.
+The script publishes **one GitHub review per PR** that has findings — posted one at a time they
+would reach him, on his phone too, as a wall of separate entries. Then it posts each PR's summary as
+a top-level comment on that PR, findings or not: the record that the run happened, a run that found
+nothing included. It shows only in the Conversation tab, not where he works. A PR's summary holds
+**only that PR's items**, because a chain may span repositories that are not equally private
+(`comment.md` → **Posting** says what anything posted outside this repository may cite): its
+share of the **fixed without him** and **refuted** lists below — a refuted finding belongs to the PR
+whose diff holds its lines, a fix to the PR whose branch its commit landed on — and its own count
+line, `review run <n>: <a> to owner (<b> blocking), <c> fixed, <d> refuted, <e> already settled`.
+Leave the **posted** list out: the script appends each PR's own, because the links exist only once
+it has posted.
 `line: 0` posts at file level. The script prepends the staleness sentence itself. If it stops
 because he has a draft review of his own open on that PR, ask him to submit or discard it, because
 publishing ours would publish his.
@@ -167,14 +200,8 @@ level or is rejected outright.
 A finding whose fix spans several nodes goes on the **lowest node that must change**, once — fixing
 a lower node cascades upward anyway, so saying it twice buys nothing but threads.
 
-Caps are applied after that dedup, so an already-posted nit does not consume one: **at most five
-nits whose fix adds code, per node.** Findings that remove code are uncapped and blocking ones are
-never dropped. Past five, keep the ones you would defend.
-
-A finding on a path inside a submodule belongs on the submodule's own PR. Every key of
-`submodules.json` is a submodule whose gitlink this chain moved, and the file gives you only its
-path and remote — not its PR. Resolve that PR the same way you resolved the parent's, from inside
-the submodule:
+A finding on a path inside a submodule belongs on the submodule's own PR. `submodules.json` lists
+each submodule whose gitlink this chain moved, by path and remote; resolve its PR from inside it:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_description.py --cwd <path>    # → its repo, prNumber
@@ -182,20 +209,21 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/fetch_pr_comments.py    --cw
 ```
 
 Post with those values and with `file` relative to the submodule root — the `<path>/` prefix
-stripped, or GitHub matches no line in that PR's diff. It carries its own nit budget: a separate PR,
-read at a separate moment. No PR for the submodule: report those findings in chat.
+stripped, or GitHub matches no line in that PR's diff. No PR for the submodule: report those
+findings in chat.
 
 Finish in chat, in the owner's language, with three **lists** — not three counts. He reads this to
 judge the review rather than the code, and *"5 refuted"* tells him the pass ran and nothing about
 whether it ran well. One line per finding:
 
-- **posted** — the claim as published, plus the link to the comment;
-- **refuted** — the claim, and what the verifier proved against it;
-- **dropped past the cap** — the claim, and nothing else; the cap is the reason.
+- **fixed without him** — what changed and in how many places; it is where he looks when something
+  later seems off, and how he tells whether the line between the two exits sits in the right place;
+- **posted** — the claim as published, plus the link the script printed for it;
+- **refuted** — the claim, and what the verifier proved against it. Findings dropped as already
+  settled are counted, not listed: he has seen them before.
 
-With more than one node, say which node each posted line landed on — he reads them one PR at a time.
-It always prints, whatever the numbers: no threshold, no short version, no skipping it when nothing
-was refuted.
+With more than one node, say which node each posted line landed on. The lists always print,
+whatever the numbers.
 
 If a survivor cannot be anchored to a line — the same missing check across three handlers, a premise
 the plan rested on that did not hold, a chain-level gap that belongs to no single node — say it there
@@ -203,8 +231,19 @@ in a sentence or two; chat is the only route it has. It has to be as concrete as
 a rule, a decision. **An objection to the approach itself does not belong here at all** — that is a
 planning question, and raising it after implementation asks for a rewrite. Nothing else goes to chat.
 
+Then say whether review is finished, over the whole chain rather than per PR. It is when this run
+and the one before it brought him nothing blocking on any node — the memory holds each run's
+`review run <n>` line; a `/dev:deliver` milestone pass's `review M<k> pass <p>` line is not a run. Asking for nothing at all would never end: fresh
+reviewers always find a few more things worth fixing.
+
+## 6. Record the run
+
+Append to the memory file of step 3, one line each, with the commit it was settled on:
+every refuted finding and what refuted it, every finding fixed here, and the run's count line over
+the whole chain. What was posted stays out — the PR's threads are its memory. Nothing else holds this file.
+
 ## References
 
 - `${CLAUDE_PLUGIN_ROOT}/skills/review/references/axes.md` — the five finder briefs. Step 2 hands each agent its own section.
 - `${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` — the refutation brief. Step 3.
-- `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` — the comment contract, shared with `/dev:fix-pr-comments`. Step 4.
+- `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` — the comment contract, shared with `/dev:fix-pr-comments`. Step 5.

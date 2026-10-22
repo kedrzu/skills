@@ -8,7 +8,7 @@ description: >-
     protocols — the approval gate, the Socratic protocol, the escalation protocol, the test
     requirements, stacked PRs. Not an entry point: with work to do and no entry point chosen,
     ask which one. Do NOT use for standalone verification (the project's verify skill) or
-    code review (`/dev:review`, on explicit user request only, never a pipeline step).
+    code review of a finished PR (`/dev:review`, on the user's request).
 user-invocable: false
 ---
 
@@ -22,7 +22,7 @@ The engine behind `/dev:fix`, `/dev:task`, `/dev:feature`, `/dev:build`, `/dev:d
 
 ## When NOT to use
 
-- Code review → NEVER a pipeline step. `/dev:review` is on-request only: run it when the user explicitly asks for a review, and at no other time.
+- Code review of a finished PR → `/dev:review`, run when the user asks for it. The one review inside the pipeline is `/dev:deliver`'s, per milestone, and its own skill says how.
 - Standalone "verify / make it green" work → the project's `verify` skill.
 - Researched answers without implementation → a research skill, if the project has one.
 
@@ -246,7 +246,7 @@ Per-task flow — strictly sequential, ONE implementer at a time:
 
 Implement the whole change on this one branch. Whether it eventually lands as one PR or as a chain of stacked ones is decided after Phase 4, with the finished code in view — nothing here is per-node.
 
-There is NO review step in this flow. Code review runs only when the user explicitly requests it — never insert one.
+There is no review step in this per-task flow. `/dev:deliver` reviews each milestone, and `/dev:review` runs on a finished PR when the user asks.
 
 ### Implementation Dispatch
 
@@ -399,7 +399,6 @@ rules (`CLAUDE.md` or a skill), those win.
 - Suppress errors, skip tests, or disable lint rules — every suppression is debt someone else pays; if a rule seems wrong, escalate instead.
 - Start implementation before spec/plan approval (when those phases apply) — building before agreement produces thrown-away code.
 - Treat ambiguity answers, feedback, or lukewarm positives as approval — the gate exits only on a whitelist match; classify every reply exactly as written in `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`.
-- Run a code review as a pipeline step — `/dev:review` is on-request only; the user asks for it explicitly or it does not happen.
 - Invent an answer from thin air to a material decision the approved plan did not settle — no silent scope expansion, no guessed schema/contract/behavior. Surface it per `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/escalation-protocol.md` (problem + options). Equally: do NOT stop for in-boundary trivia — babysitting and thin-air decisions are the two failures this rule sits between.
 
 **If stuck:** describe the issue clearly, show what you tried, ask the user for guidance. A legal exit beats an improvised shortcut.

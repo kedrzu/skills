@@ -180,6 +180,19 @@ def submit(review):
     return data["submitPullRequestReview"]["pullRequestReview"]["url"]
 
 
+def post_comment(repo, pr, body):
+    """Post `body` as a top-level PR comment, outside any review. It shows in the
+    Conversation tab only, never in Files changed, where he reads. Returns its URL."""
+    result = subprocess.run(
+        ["gh", "api", "-X", "POST", f"repos/{repo}/issues/{pr}/comments",
+         "--input", "-", "--jq", ".html_url"],
+        input=json.dumps({"body": body}), capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise ReviewError(result.stderr.strip() or f"posting a comment on {repo}#{pr} failed")
+    return result.stdout.strip()
+
+
 def discard(review):
     _graphql(
         """

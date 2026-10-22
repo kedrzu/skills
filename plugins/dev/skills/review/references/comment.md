@@ -5,8 +5,10 @@ Read by `/dev:review`, which writes these comments, and by `/dev:fix-pr-comments
 ## Everything the owner reads is inline
 
 Anchored to a line of code, on the PR. Top-level PR comments do not appear in the Files-changed
-view, which is where he works, so one posted there is a comment nobody reads. There is no summary
-comment, no verdict comment, no guide comment.
+view, which is where he works, so nothing he must act on goes there. The top-level comments are the
+runs' summaries — `## 🤖 Review summary` after a review, `## 🤖 Fix summary` after a fix run: the
+history of what each round found and fixed, which he skims later without opening the code. There is
+no verdict comment, no guide comment.
 
 ## Two layers
 
@@ -40,11 +42,11 @@ Fix: add the unique constraint and handle the conflict, or put check and insert 
 
 |Part|Carries|
 |-|-|
-|Line 1|`🚨 BLOCKING` or `💡 NIT`, then the category — the scan line|
+|Line 1|`🚨 BLOCKING` or `💡 SHOULD FIX`, then the category — the scan line|
 |Line 2|provenance and cost: which axis found it, and where a finding rests on a rule, which rule (`Security · <the project's rule source> → audit at business boundary`, `Spec · spec §3`); then whether the fix adds or removes roughly how many lines|
 |Bold line|the claim, in plain words — no file paths, no type names|
 |Paragraph|what goes wrong, for whom and when|
-|`<details>`|the staleness check, the citations, the proposed fix — he never has to open it|
+|`<details>`|the staleness check, the mechanism and every place it occurs, the citations, the proposed fix — he never has to open it|
 
 **The forcing function:** if the paragraph cannot be written without a file path or a step-by-step
 trace, the finding is not understood well enough to post. That makes readability a property of the
@@ -54,15 +56,22 @@ filled with the same unreadable prose.
 ## Posting
 
 `review/scripts/post_review_comment.py` builds this shape and prepends the staleness sentence
-itself. Its invocation and input are in the review skill's step 4 and in the script's `--help`. A
+itself. Its invocation and input are in the review skill's step 5 and in the script's `--help`. A
 path inside a submodule is relative to that submodule's root and goes on that submodule's PR.
-Everything one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so he
-gets one entry per run rather than one per comment.
+Every finding one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so
+he gets one entry per run rather than one per comment; each PR the run reviewed then gets its own
+summary as a top-level comment, holding only that PR's items.
+
+A chain may span repositories that are not equally private, so whatever a run publishes in a
+repository other than the one it runs in — every layer of a finding (provenance, claim, paragraph,
+`<details>`), a fix's reply, a summary line, a commit message — cites only that repository's own
+paths, rules and content. Anything outside it is "the parent repository": never its paths, quotes,
+decisions or task IDs.
 
 ## Who wrote a comment
 
-A comment is ours if its body starts with `## 🚨 BLOCKING` or `## 💡 NIT` for a finding, `## 🤖` for
-an answer to one — or, on a PR reviewed before this contract, with a legacy `## 🚨 CRITICAL ISSUE` /
+A comment is ours if its body starts with `## 🚨 BLOCKING` or `## 💡 SHOULD FIX` for a finding, `## 🤖`
+for an answer to one or a run's summary — or, on an older PR, with a legacy `## 💡 NIT` / `## 🚨 CRITICAL ISSUE` /
 `## ⚠️ IMPORTANT` / `## 💡 MINOR` / `## 🔍 ISSUE` / `## 👀 HEADS UP` / `## 🧭 FLOW` header. Everything
 else on the PR is the owner's. Agents post with his GitHub token, so `author.login` proves nothing:
 the header is the authorship test. It holds only among comments from authors with write access to
@@ -76,24 +85,19 @@ draft. A change here is a change in all four.
 
 ## How a comment gets answered
 
-A fix answers with a **new** comment, not with a reply on the thread the finding came from. The fix
-usually changes the very line that thread sits on, which makes it outdated and hides it in the
-Files-changed view; resolving it or not makes no difference to that. So the answer is posted where
-the fix now lives, after the push, the source thread gets a short reply linking to it, and the
-source thread is resolved. `fix-pr-comments/scripts/reply_and_resolve.py` does all of that for a
-whole run in one call, and publishes it as one review per PR.
-
-The answer is left **unresolved**, and that is what he signs off on. It is fresh rather than
-immortal — a later run whose commits touch that line outdates it too.
+A fix answers with a `## 🤖` reply on the thread itself, and the thread is resolved at once.
+`fix-pr-comments/scripts/reply_and_resolve.py` does that for a whole run in one call, published as
+one review per PR. He signs off in chat, where the run lists every fix, so nothing is left on GitHub
+for him to clear; that the fix may outdate the thread and hide it from Files changed no longer
+matters, because nothing there is waiting on him.
 
 |Thread state|Means|
 |-|-|
 |unresolved, no reply|**consent** — the comment stands and gets fixed|
 |unresolved, with a reply from him|**settled by what he wrote** — not consent, and not a fresh claim to assess|
-|resolved, with a `## 🤖` answer elsewhere on the PR|fixed and answered; the answer is where it is judged now|
-|resolved, with no answer anywhere|his **veto**: he read it and said no. It does not come back|
-|our `## 🤖` answer, unresolved, nothing under it|waiting on him. Not a finding, and not work to redo|
-|our `## 🤖` answer with a reply of his under it|the fix did not satisfy him — his reply is the ask|
+|resolved, with our `## 🤖` reply|fixed or answered; never re-raise what the reply reports|
+|resolved, with no reply of ours|his **veto**: he read it and said no. It does not come back|
+|our `## 🤖` answer as a comment of its own, from an older run|its fix is done; with a reply of his under it, his reply is the ask|
 
 A reply from him is an instruction, not a claim to be assessed: a comment naming a change is the
 ask; a comment asking whether something holds wants an answer rather than an edit.
