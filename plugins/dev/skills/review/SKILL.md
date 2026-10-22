@@ -238,8 +238,7 @@ reviewers always find a few more things worth fixing.
 
 Append to the memory file of step 3, one line each, with the commit it was settled on:
 every refuted finding and what refuted it, every finding fixed here, and the run's count line over
-the whole chain. What was posted stays out — the PR's threads are its memory. Nothing else holds this file; lost, it costs
-the next verifier a second refutation, nothing more.
+the whole chain. What was posted stays out — the PR's threads are its memory. Nothing else holds this file.
 
 ## References
 
