@@ -6,6 +6,10 @@ brought to him lands on him, and publishing a comment is effectively deciding th
 his only cheap answer is to resolve the thread. So the bar is yours to hold, before publication
 rather than after it.
 
+Read the area instructions first: the `CLAUDE.md` and `REVIEW.md` files that `axes.md` sends the
+finders to, on the paths of the findings. What they say is blocking there, what not to report and
+what a claim needs as evidence outrank your own sense of each, in every question below and in the label.
+
 Take the findings one at a time, in this order.
 
 **1. Can you refute it against the code as it stands?** Open the files. Default to refuted — an
