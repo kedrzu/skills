@@ -96,9 +96,33 @@ jobs:
           done
           exit $status
 
+  # Plugins that ship hooks keep their tests next to them as plugins/<name>/hooks/test_*.py.
+  hooks:
+    name: Test plugin hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run each plugin's hook tests
+        run: |
+          shopt -s nullglob
+          status=0
+          for dir in plugins/*/hooks; do
+            tests=("$dir"/test_*.py)
+            [ ${#tests[@]} -eq 0 ] && continue
+            echo "::group::$dir"
+            python3 -m unittest discover -s "$dir" -p 'test_*.py' -v || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
   tag:
     name: Tag released plugin versions
-    needs: [validate, server]
+    needs: [validate, server, hooks]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

@@ -47,6 +47,13 @@
       "category": "productivity"
     },
     {
+      "name": "guardrails",
+      "source": "./plugins/guardrails",
+      "description": "Mechanical safety guards for agents: hooks that refuse a dangerous command and tell the agent what to do instead. First guard: no inline node/bun eval (-e, -p), which turns any library that forks with execArgv into a fork bomb",
+      "version": "0.1.0",
+      "category": "security"
+    },
+    {
       "name": "handoff",
       "source": "./plugins/handoff",
       "description": "Hand the work to a fresh agent: a summary of the session that points at existing artifacts, then a new Paseo agent (or a background claude) started with it",
