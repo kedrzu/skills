@@ -200,14 +200,19 @@ If `prune` removed part of what a fixer added, the answer says so. If it removed
 thread actually needed, restore that first — the answer has to be true of the code now on the PR.
 
 A thread whose fixer stopped with a question stays out of the file and stays open. **Put that question to
-him when it arrives, not at the end of the run, and keep the run going** — it is a fork, and
+him when it arrives, not at the end of the run, and keep fixing** — it is a fork, and
 batching forks into a closing report is exactly what makes him discover decisions after the fact.
 Ask in an ordinary message, never in a dialog that holds the run until he answers: the groups
 already fixed go through steps 4 to 6 meanwhile, and his reply reaches you like any other event.
 One or two sentences: what the comment asks, what the code actually says, and what you need from
 him. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
 flight — they need a tree nobody else is editing — and on a chain with that group's node checked
-out; it then goes through steps 4 to 6 on its own, the upward propagation included.
+out; it then goes through steps 4 to 6 like the rest, the upward propagation included. **The run
+does not go on to step 8 while any question is open:** final verification and the closing list
+cover every thread, so they wait until the last answer's fix has been through step 6. When
+everything else is done and a question is still unanswered, ask it again in full — the problem, the
+options and what each costs — never as a pointer to the earlier message: the last message is the one
+he answers from.
 
 Threads on the submodule's PR go in the same file, with that PR's own `repo` and `pr` from step 1.
 The script resolves threads by GraphQL node id, so nothing else changes.
@@ -248,10 +253,8 @@ everything this run changed — **full** when the fixes reach code only the full
 less when they don't. A one-thread copy fix does not need an hour of e2e.
 
 Then, in his language, one line per thread: what changed and how, or why nothing did, with the
-commit. This is where he signs off — on GitHub there is only a reply under a resolved thread. Post
-the same list, headed `## 🤖 Fix summary` with the verification result under it, as a top-level
-comment on every PR whose threads this run answered (`gh pr comment <n> --repo <owner/repo>
+commit. This is where he signs off — on GitHub there is only a reply under a resolved thread. On
+each PR whose threads this run answered, post that PR's lines only, headed `## 🤖 Fix summary` with
+the verification result under it, as a top-level comment (`gh pr comment <n> --repo <owner/repo>
 --body-file <summary.md>`). It stays out of Files changed and sits next to the review's summary:
-what he skims later to see what a round of fixes did without opening the code. A thread still open on a question to him gets that
-question asked again in full — the problem, the options and what each costs — never as a pointer to
-the earlier message: the last message is the one he answers from.
+what he skims later to see what a round of fixes did without opening the code.
