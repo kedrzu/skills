@@ -38,6 +38,8 @@ consequence. *"Maintainability suffers"* is the no-op version and fails, as does
 only restates the rule the finding rests on — and a finding that fails is dropped. Write your answer
 down — it becomes the comment's human layer, because it is exactly what lets him judge in one read.
 Estimate whether the fix adds or removes code, and by how many lines; the comment carries it.
+A *fixed here* finding whose fixer handed it back — the fix needed a choice, added code or changed
+behaviour after all — comes back to you for this question; one that fails is dropped as refuted.
 
 Then label each one for him. **Blocking** — a consequence you would not ship. Wrong or lost data, a
 security, privacy or authorization hole, and a requirement the change was meant to meet and does

@@ -46,7 +46,7 @@ Fix: add the unique constraint and handle the conflict, or put check and insert 
 |Line 2|provenance and cost: which axis found it, and where a finding rests on a rule, which rule (`Security · <the project's rule source> → audit at business boundary`, `Spec · spec §3`); then whether the fix adds or removes roughly how many lines|
 |Bold line|the claim, in plain words — no file paths, no type names|
 |Paragraph|what goes wrong, for whom and when|
-|`<details>`|the staleness check, the citations, the proposed fix — he never has to open it|
+|`<details>`|the staleness check, the mechanism and every place it occurs, the citations, the proposed fix — he never has to open it|
 
 **The forcing function:** if the paragraph cannot be written without a file path or a step-by-step
 trace, the finding is not understood well enough to post. That makes readability a property of the
@@ -59,8 +59,8 @@ filled with the same unreadable prose.
 itself. Its invocation and input are in the review skill's step 5 and in the script's `--help`. A
 path inside a submodule is relative to that submodule's root and goes on that submodule's PR.
 Every finding one run posts goes out as one GitHub review per PR (`review/scripts/pr_review.py`), so
-he gets one entry per run rather than one per comment; the summary follows as a top-level comment on
-every PR the run reviewed.
+he gets one entry per run rather than one per comment; each PR the run reviewed then gets its own
+summary as a top-level comment, holding only that PR's items.
 
 ## Who wrote a comment
 

@@ -126,7 +126,8 @@ same fixer brief, one scoped `verify` over every fix, then `prune` as a fix run,
 chain. Each fixer gets its finding's mechanism and every place it occurs, and fixes all of them; a
 duplicate of something that already exists is removed across the whole repository, not only in this
 change. A fixer that finds the fix needs a choice, changes behaviour or adds code after all
-hands it back unapplied, and it goes to him in step 5 as a should-fix finding.
+hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
+delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
 
 Commit them through `git-workflow` → **checkpoint**, one commit per group, and push before anything
 is posted. The fixes move lines under the findings left for him, so after a push re-run
@@ -160,11 +161,11 @@ Post the findings whose exit is *to him* in the shape
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` defines. A poster agent needs the
 expanded path to that file and the owner's language. Each finding goes on the `prNumber` of **the
 node it belongs to**. All of them, from every node and every submodule, go into one file and one
-call:
+call, with one summary file per PR the run reviewed:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
-  --findings <findings.json> --summary <summary.md> --prs <owner/repo#n> [<owner/repo#n> …]
+  --findings <findings.json> --summary <owner/repo#n>=<summary.md> [<owner/repo#n>=<summary.md> …]
 ```
 
 ```json
@@ -172,16 +173,19 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
   "severity": "blocking", "category": "data-integrity", "provenance": "Correctness",
   "delta": "adds ~6 lines", "claim": "<owner's language, one sentence>",
   "consequence": "<owner's language, what goes wrong, for whom, when>",
-  "details": "<English, citations and the proposed fix>"}]
+  "details": "<English: the mechanism and every place it occurs, citations, the proposed fix>"}]
 ```
 
 The script publishes **one GitHub review per PR** that has findings — posted one at a time they
-would reach him, on his phone too, as a wall of separate entries. Then it posts the run's summary as
-a top-level comment on every PR in `--prs`, findings or not: the record that the run happened, a run
-that found nothing included. It shows only in the Conversation tab, not where he works.
-`summary.md` holds the **fixed without him** and **refuted** lists below and one count line,
-`review run <n>: <a> to owner (<b> blocking), <c> fixed, <d> refuted, <e> already settled`. Leave
-the **posted** list out: the script appends it, because the links exist only once it has posted.
+would reach him, on his phone too, as a wall of separate entries. Then it posts each PR's summary as
+a top-level comment on that PR, findings or not: the record that the run happened, a run that found
+nothing included. It shows only in the Conversation tab, not where he works. A PR's summary holds
+**only that PR's items**, because a chain may span repositories that are not equally private: its
+share of the **fixed without him** and **refuted** lists below — a refuted finding belongs to the PR
+whose diff holds its lines, a fix to the PR whose branch its commit landed on — and its own count
+line, `review run <n>: <a> to owner (<b> blocking), <c> fixed, <d> refuted, <e> already settled`.
+Leave the **posted** list out: the script appends each PR's own, because the links exist only once
+it has posted.
 `line: 0` posts at file level. The script prepends the staleness sentence itself. If it stops
 because he has a draft review of his own open on that PR, ask him to submit or discard it, because
 publishing ours would publish his.
@@ -225,16 +229,16 @@ in a sentence or two; chat is the only route it has. It has to be as concrete as
 a rule, a decision. **An objection to the approach itself does not belong here at all** — that is a
 planning question, and raising it after implementation asks for a rewrite. Nothing else goes to chat.
 
-Then say whether review is finished. It is when this run and the one before it brought him nothing
-blocking — the memory holds each run's `review run <n>` line; a `/dev:deliver` milestone pass's
-`review M<k> pass <p>` line is not a run. Asking for nothing at all would never end: fresh
+Then say whether review is finished, over the whole chain rather than per PR. It is when this run
+and the one before it brought him nothing blocking on any node — the memory holds each run's
+`review run <n>` line; a `/dev:deliver` milestone pass's `review M<k> pass <p>` line is not a run. Asking for nothing at all would never end: fresh
 reviewers always find a few more things worth fixing.
 
 ## 6. Record the run
 
 Append to the memory file of step 3, one line each, with the commit it was settled on:
-every refuted finding and what refuted it, every finding fixed here, and the run's count line. What
-was posted stays out — the PR's threads are its memory. Nothing else holds this file; lost, it costs
+every refuted finding and what refuted it, every finding fixed here, and the run's count line over
+the whole chain. What was posted stays out — the PR's threads are its memory. Nothing else holds this file; lost, it costs
 the next verifier a second refutation, nothing more.
 
 ## References

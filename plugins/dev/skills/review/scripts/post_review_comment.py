@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Post a run's review findings as inline PR comments — one GitHub review per PR —
-then the run's summary as a top-level comment on every PR it reviewed.
+then each PR's own summary as a top-level comment on that PR.
+
+Each PR gets a summary holding only its own items: a chain can span repositories
+of different visibility, and one PR's findings must never reach another's.
 
 The shape it builds, and the rules behind it, live in this skill's
 `references/comment.md`. Why one review rather than a comment each, and how a
@@ -66,18 +69,15 @@ def build_body(severity, category, provenance, delta, claim, consequence, detail
 def main():
     parser = argparse.ArgumentParser(
         description="Post a run's review findings as inline comments, one GitHub review per PR, "
-                    "then the run's summary as a top-level comment on every PR it reviewed."
+                    "then each PR's own summary as a top-level comment on that PR."
     )
     parser.add_argument(
-        "--summary", required=True,
-        help="Markdown file: the run's summary, starting with `## 🤖 Review summary` — its fixed "
-             "and refuted lists and its count line. The script appends the posted list, each "
-             "finding's claim and link, and posts it as a top-level comment on every PR listed "
-             "under --prs, findings or not, so a run that found nothing still leaves its record.",
-    )
-    parser.add_argument(
-        "--prs", required=True, nargs="+",
-        help="Every PR the run reviewed, as owner/repo#number — each gets the summary.",
+        "--summary", required=True, nargs="+", metavar="OWNER/REPO#N=FILE",
+        help="One per PR the run reviewed: the PR, then a Markdown file holding that PR's summary, "
+             "starting with `## 🤖 Review summary` — its own fixed and refuted lists and its count "
+             "line. The script appends the posted list, the claim and link of each finding posted "
+             "on that PR only, and posts it as a top-level comment there, findings or not, so a "
+             "run that found nothing still leaves its record. Every PR a finding names needs one.",
     )
     parser.add_argument(
         "--findings", required=True,
@@ -87,12 +87,24 @@ def main():
     )
     args = parser.parse_args()
 
-    with open(args.summary) as f:
-        summary = f.read()
-    if not summary.lstrip().startswith("## 🤖"):
-        print("The summary must start with `## 🤖 Review summary` — that header is what marks "
-              "it as ours.", file=sys.stderr)
-        sys.exit(1)
+    # Everything is checked before anything is published.
+    summaries = {}
+    for entry in args.summary:
+        target, sep, path = entry.partition("=")
+        repo, _, number = target.partition("#")
+        if not sep or not repo or not number.isdigit() or not path:
+            print(f"--summary takes owner/repo#number=file, got {entry!r}", file=sys.stderr)
+            sys.exit(1)
+        if (repo, int(number)) in summaries:
+            print(f"Two --summary files for {target}: one per PR.", file=sys.stderr)
+            sys.exit(1)
+        with open(path) as f:
+            summary = f.read()
+        if not summary.lstrip().startswith("## 🤖"):
+            print(f"The summary in {path} must start with `## 🤖 Review summary` — that header is "
+                  "what marks it as ours.", file=sys.stderr)
+            sys.exit(1)
+        summaries[(repo, int(number))] = summary
     with open(args.findings) as f:
         findings = json.load(f)
     for finding in findings:
@@ -100,11 +112,12 @@ def main():
             print(f"Unknown severity {finding.get('severity')!r}: one of {sorted(SEVERITY_STYLE)}",
                   file=sys.stderr)
             sys.exit(1)
-
-    targets = []
-    for target in args.prs:
-        repo, _, number = target.partition("#")
-        targets.append((repo, int(number)))
+    missing = {(finding["repo"], int(finding["pr"])) for finding in findings} - summaries.keys()
+    if missing:
+        names = ", ".join(f"{repo}#{number}" for repo, number in sorted(missing))
+        print(f"No --summary for {names}, which has findings — each PR gets its own.",
+              file=sys.stderr)
+        sys.exit(1)
 
     reviews = {}
     posted = []
@@ -155,12 +168,14 @@ def main():
         for key, where, _, url in posted:
             print(f"Comment posted at {where} on #{key[1]}: {url}")
 
-        record = "\n".join(
-            [summary.rstrip(), "", "**Posted**"]
-            + ([f"- {claim} — {url}" for _, _, claim, url in posted] or ["- none"])
-        )
-        for repo, number in targets:
-            print(f"Summary posted on {repo}#{number}: {post_comment(repo, number, record)}")
+        for target, summary in summaries.items():
+            record = "\n".join(
+                [summary.rstrip(), "", "**Posted**"]
+                + ([f"- {claim} — {url}" for key, _, claim, url in posted if key == target]
+                   or ["- none"])
+            )
+            print(f"Summary posted on {target[0]}#{target[1]}: "
+                  f"{post_comment(*target, record)}")
     except ReviewError as error:
         print(f"Failed: {error}", file=sys.stderr)
         sys.exit(1)
