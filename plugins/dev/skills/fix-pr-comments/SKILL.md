@@ -172,8 +172,8 @@ cascades on merge — so once every node is committed and pushed, propagate them
 upper nodes keep their anchors. Skipping it leaves those nodes reviewing — and later squashing
 against — a base they never saw.
 
-Then, once every push has succeeded — every node, every submodule — answer all the threads in one
-call:
+Then, once every push has succeeded — every node, every submodule — and no question to him is still
+open, answer all the threads in one call:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/scripts/reply_and_resolve.py --answers <answers.json>
@@ -182,8 +182,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/scripts/reply_and_resolve.p
 `answers.json` is a list with one entry per thread: `{"repo", "pr", "threadId", "header",
 "message"}`, where `pr` is the PR carrying the thread. Everything it posts goes out as **one GitHub
 review per PR** — a comment posted on its own is a review of its own, and the run would reach him, on
-his phone too, as a wall of separate entries. That is why the call waits for the last push: a review
-is submitted once, and nothing can join it afterwards.
+his phone too, as a wall of separate entries. That is why the call waits for the last push and the last
+answer: a review is submitted once, and nothing can join it afterwards.
 
 Per thread, the script replies on the thread and, once the review is submitted, resolves it. Nothing
 is left on GitHub for him to sign off — he signs off in chat, where step 8 lists every fix. Re-running
@@ -203,13 +203,14 @@ A thread whose fixer stopped with a question stays out of the file and stays ope
 him when it arrives, not at the end of the run, and keep fixing** — it is a fork, and
 batching forks into a closing report is exactly what makes him discover decisions after the fact.
 Ask in an ordinary message, never in a dialog that holds the run until he answers: the groups
-already fixed go through steps 4 to 6 meanwhile, and his reply reaches you like any other event.
+already fixed are verified, pruned, committed and pushed meanwhile, their answers waiting for that
+one call, and his reply reaches you like any other event.
 One or two sentences: what the comment asks, what the code actually says, and what you need from
 him. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
 flight — they need a tree nobody else is editing — and on a chain with that group's node checked
 out; it then goes through steps 4 to 6 like the rest, the upward propagation included. **The run
 does not go on to step 8 while any question is open:** final verification and the closing list
-cover every thread, so they wait until the last answer's fix has been through step 6. When
+cover every thread, so they wait until the last answer's fix has been through step 6 and every thread is answered. When
 everything else is done and a question is still unanswered, ask it again in full — the problem, the
 options and what each costs — never as a pointer to the earlier message: the last message is the one
 he answers from.
