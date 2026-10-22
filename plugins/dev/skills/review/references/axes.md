@@ -15,7 +15,7 @@ reporting something a later node already fixed.
 Verification already passed: the project's full verify — types, lint, tests, formatting, builds —
 is green, and anything it would have caught is noise here.
 
-**Read the area instructions first:** the `AGENTS.md` and `REVIEW.md` files in the directories of the
+**Read the area instructions first:** the `CLAUDE.md` and `REVIEW.md` files in the directories of the
 files you judge and in each directory above them, up to the root. They are the project's own word on
 what is blocking there, what not to report and what a claim needs as evidence, and they outrank your
 sense of severity. **Then open the skills that govern the files.** Pick them off the available-skills
