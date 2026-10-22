@@ -129,10 +129,11 @@ change. A fixer that finds the fix needs a choice, changes behaviour or adds cod
 hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
 delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
 
-Commit them through `git-workflow` → **checkpoint**, one commit per group, and push before anything
-is posted. The fixes move lines under the findings left for him, so after a push re-run
-`generate_diffs.py` as you ran it and re-anchor each of those findings on the code as it now stands:
-step 5 posts on the pushed head and places them by the fresh `manifest.txt`.
+Commit them through `git-workflow` → **checkpoint**, one commit per group — in a submodule, a message
+held to `comment.md` → **Posting** — and push before anything is posted. The fixes move lines under
+the findings left for him, so after a push re-run `generate_diffs.py` as you ran it and re-anchor
+each of those findings on the code as it now stands: step 5 posts on the pushed head and places them
+by the fresh `manifest.txt`.
 
 ## 5. Post
 
@@ -180,7 +181,8 @@ The script publishes **one GitHub review per PR** that has findings — posted o
 would reach him, on his phone too, as a wall of separate entries. Then it posts each PR's summary as
 a top-level comment on that PR, findings or not: the record that the run happened, a run that found
 nothing included. It shows only in the Conversation tab, not where he works. A PR's summary holds
-**only that PR's items**, because a chain may span repositories that are not equally private: its
+**only that PR's items**, because a chain may span repositories that are not equally private
+(`comment.md` → **Posting** says what anything posted outside this repository may cite): its
 share of the **fixed without him** and **refuted** lists below — a refuted finding belongs to the PR
 whose diff holds its lines, a fix to the PR whose branch its commit landed on — and its own count
 line, `review run <n>: <a> to owner (<b> blocking), <c> fixed, <d> refuted, <e> already settled`.

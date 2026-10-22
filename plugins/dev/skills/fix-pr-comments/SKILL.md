@@ -214,8 +214,9 @@ everything else is done and a question is still unanswered, ask it again in full
 options and what each costs — never as a pointer to the earlier message: the last message is the one
 he answers from.
 
-Threads on the submodule's PR go in the same file, with that PR's own `repo` and `pr` from step 1.
-The script resolves threads by GraphQL node id, so nothing else changes.
+Threads on the submodule's PR go in the same file, with that PR's own `repo` and `pr` from step 1;
+their messages, the submodule's commits and its step 8 lines cite only what `comment.md` →
+**Posting** allows. The script resolves threads by GraphQL node id, so nothing else changes.
 
 ## 7. `RULE:` — fold it into the skill that should have caught it
 

@@ -62,6 +62,12 @@ Every finding one run posts goes out as one GitHub review per PR (`review/script
 he gets one entry per run rather than one per comment; each PR the run reviewed then gets its own
 summary as a top-level comment, holding only that PR's items.
 
+A chain may span repositories that are not equally private, so whatever a run publishes in a
+repository other than the one it runs in — every layer of a finding (provenance, claim, paragraph,
+`<details>`), a fix's reply, a summary line, a commit message — cites only that repository's own
+paths, rules and content. Anything outside it is "the parent repository": never its paths, quotes,
+decisions or task IDs.
+
 ## Who wrote a comment
 
 A comment is ours if its body starts with `## 🚨 BLOCKING` or `## 💡 SHOULD FIX` for a finding, `## 🤖`
