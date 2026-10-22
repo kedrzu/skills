@@ -68,7 +68,7 @@ Follow pipeline **Phase 2: Plan** (read spec → check memory → surface durabl
 
 Run pipeline **Phase 3** (per-task, strictly sequential, ONE implementer at a time; dispatch implementer, handle status, scoped-verify → `prune` → scoped-verify again) and then **Phase 3.5: Plan Completion Audit** (re-read the plan, classify every task DONE/PARTIAL/NOT DONE/CHANGED, and open whatever discharges each `**Must protect:**` entry). An undischarged protection makes a task PARTIAL — finish it before Phase 4.
 
-There is NO code-review step here. Review is on-request only — never insert one into the pipeline (pipeline Red Flags).
+There is NO code-review step here. Review is on-request only — never insert one into the pipeline (pipeline → Phase 3: no review step in the per-task flow).
 
 ### Phase 4: Verify
 
