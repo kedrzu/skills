@@ -39,8 +39,6 @@ Returning nothing is a normal outcome, not a failure to find something.
 
 ## Correctness
 
-Read no repo rules; a bug is a bug, and no convention tells you whether a condition is inverted.
-
 What the code does against what the surrounding code plainly means it to do: an inverted or missing
 condition, a null/empty/error path nobody handles, an off-by-one, an ordering or concurrency
 assumption that does not hold, a check and a write that can interleave, an external call that is not
