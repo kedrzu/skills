@@ -65,7 +65,10 @@ class BlockedTests(unittest.TestCase):
         self.assertBlocked([
             "npx node -e 1", "npx -y node@20 -e 1", "npx --package=foo node -e 1", "bunx node -e 1",
             "bunx bun -e 1", "bun x node -e 1", "npm exec -- node -e 1", "pnpm exec node -e 1",
-            "yarn exec node -e 1", "npx -c 'node -e 1'",
+            "yarn exec node -e 1", "npx -c 'node -e 1'", "pnpm --filter web exec node -e 1",
+            "pnpm -F web exec bun -e 1", "pnpm -C dir exec node -e 1", "pnpm --dir dir exec node -e 1",
+            "pnpm -w exec node -e 1", "npm -w pkg exec -- node -e 1", "npm --workspace pkg exec node -e 1",
+            "yarn --cwd x exec node -e 1", "npx -w pkg node -e 1",
         ])
 
     def test_chains_and_substitutions(self):
@@ -74,7 +77,9 @@ class BlockedTests(unittest.TestCase):
             "node -e 1 | cat", "(cd x && node -e 1)", "( node -e 1 )", "echo $(node -e 1)",
             'echo "$(node -p 1)"', "echo `node -p 1`", "x=$(bun -e 1)", "diff <(node -e 1) b",
             "echo a\nnode -e 1", "echo a &\nbun -e 1", "make build 2>&1 && node -e 1 > out.txt",
-            "echo $(echo $(node -e 1))",
+            "echo $(echo $(node -e 1))", "cat <<EOF\n$(node -e 1)\nEOF",
+            "cat > .env <<EOF\nVERSION=$(node -p \"require('./package.json').version\")\nEOF",
+            "cat <<EOF\n`bun -e 1`\nEOF", "cat <<-EOF\n\t$(node -e 1)\n\tEOF",
         ])
 
     def test_nested_shells(self):
@@ -83,6 +88,15 @@ class BlockedTests(unittest.TestCase):
             "bash -euo pipefail -c 'node -e 1'", "/bin/bash -c 'timeout 5 bun -e 1'",
             "bash -c \"sh -c 'node -e 1'\"", "sudo bash -c 'node -e 1'", "eval 'node -e 1'",
             "bash <<'EOF'\nnode -e 1\nEOF", "sh <<< 'bun -e 1'", "xargs sh -c 'node -e 1'",
+        ])
+
+    def test_shells_fed_through_a_pipe(self):
+        self.assertBlocked([
+            "cat <<'EOF' | bash\nnode -e 1\nEOF", "echo 'node -e 1' | bash", "echo 'node -e 1' | sh -s",
+            "printf 'node -e 1\\n' | bash", "printf 'cd x\\nbun -e 1\\n' | sh", "printf '%s\\n' 'node -e 1' | zsh",
+            "cat <<EOF | bash\nnode -e 1\nEOF", "cat <<-EOF | sh\n\tbun -e 1\n\tEOF", "cat <<< 'node -e 1' | bash",
+            "echo -n 'node -e 1' |& bash", "echo 'node -e 1' |\nbash", "echo 'node -e 1' | sudo bash",
+            "echo 'node -e 1' | (bash)", "cd x && echo 'node -e 1' | bash -s",
         ])
 
     def test_message_names_the_command_and_the_fix(self):
@@ -134,11 +148,16 @@ class AllowedTests(unittest.TestCase):
             "git commit -m 'Block node -e in the guard'",
             "git commit -F - <<'EOF'\nBlock `node -e` and bun -e\n\nIt's a fork bomb (see $(node -e 1))\nEOF",
             'git commit -m "$(cat <<\'EOF\'\nBlock node -e; it\'s dangerous (really)\nEOF\n)"',
-            "cat > notes.md <<'EOF'\nnode -e 1\nbun -e 2\nEOF",
+            "cat > notes.md <<'EOF'\nnode -e 1\nbun -e 2\nEOF", "cat > notes.md <<EOF\nnode -e 1\nbun -e 2\nEOF",
+            "cat <<'EOF'\n$(node -e 1)\nEOF", "cat <<\"EOF\"\n$(node -e 1)\nEOF", "cat <<\\EOF\n$(node -e 1)\nEOF",
+            "cat <<E\"O\"F\n`node -e 1`\nEOF", "cat <<EOF\n\\$(node -e 1)\nEOF",
             "cat > x.sh <<-EOF\n\tnode -e 1\n\tEOF\nchmod +x x.sh",
             "grep -rn 'node -e' .", "rg \"bun -e\" src", "echo hi # node -e 1", "# node -e 1",
             "bash script.sh -c 'node -e 1'", "bash x.sh <<'EOF'\nnode -e 1\nEOF", "gh pr create --body 'no node -e'",
             "echo node -e 1", "echo ${X:-node -e 1}",
+            "echo 'node -e 1' | cat", "echo hi | bash", "cat file.sh | bash", "echo 'node -e 1' > x.sh",
+            "echo 'node -e 1' || bash", "echo 'node -e 1'; bash", "printf 'node -e 1' | bash x.sh",
+            "cat <<'EOF' | bash -c 'echo hi'\nnode -e 1\nEOF",
         ])
 
 

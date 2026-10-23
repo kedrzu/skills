@@ -22,18 +22,19 @@ claude plugin install guardrails@kedrzu-skills
 | Shape | Example |
 | --- | --- |
 | chains, pipes, subshells | `cd x && timeout 90 bun -e "…"`, `a; node -e 1`, `( node -e 1 )`, `x \| node -e 1` |
-| substitutions | `$(node -p 1)`, `` `node -p 1` ``, `<(node -e 1)`, also inside double quotes |
+| substitutions | `$(node -p 1)`, `` `node -p 1` ``, `<(node -e 1)`, also inside double quotes and heredocs with an unquoted delimiter (`<<EOF`) |
 | env-var prefixes | `FOO=1 node -e 1` |
 | wrappers | `env`, `timeout`/`gtimeout`, `nice`, `time`, `command`, `exec`, `nohup`, `caffeinate`, `stdbuf`, `xargs`, `sudo`, `doas` |
 | paths | `/Users/x/.bun/bin/bun -e`, `~/.nvm/…/bin/node -e` |
-| package runners | `npx node -e`, `npx -c '…'`, `bunx node -e`, `bun x node -e`, `npm`/`pnpm`/`yarn exec node -e` |
-| nested shells | `bash -c '…'`, `sh -c`, `zsh -lc`, `bash -euo pipefail -c`, `eval '…'`, `bash <<EOF` and `sh <<< '…'` |
+| package runners | `npx node -e`, `npx -c '…'`, `bunx node -e`, `bun x node -e`, `npm`/`pnpm`/`yarn exec node -e`, also `pnpm --filter web exec` |
+| nested shells | `bash -c '…'`, `sh -c`, `zsh -lc`, `bash -euo pipefail -c`, `eval '…'`, `bash <<EOF`, `sh <<< '…'`, and a shell fed by a pipe from `echo`, `printf` or `cat <<EOF` (`echo '…' \| bash`) |
 
 **Allows**: `-e` that belongs to another program (`grep -e`, `sed -e`, `perl -e`,
 `python -c`, `bun build -e`), flags after the script (`node script.js -e`, which are the
 script's own), `bun run`/`test`/`install`/`x`, plain `node file.mjs` / `bun file.ts`, and
 text that merely mentions `node -e`: `echo`, `grep`, commit messages, comments, and heredoc
-bodies written to a file (`cat > f <<EOF`).
+bodies written to a file (`cat > f <<EOF`) — save a `$(…)` or backticks under an unquoted
+delimiter, which bash runs.
 
 **Why.** Under an eval flag `process.execArgv` is `["-e", "<the whole script>"]`. A library
 that forks workers with the parent's `execArgv` — `jest-worker`, used by
@@ -50,7 +51,9 @@ children escape mid-fork. Run from a file, `execArgv` is empty and nothing re-ru
 **Limits.** It parses the command, it does not sandbox it. A command it cannot parse (an
 unterminated quote, say — which the shell would reject too) is allowed with a warning shown to
 the user, never blocked. Code started some other way (`python -c "subprocess.run('node -e …')"`,
-a script file that calls `node -e`, a `package.json` script) is out of its reach.
+a script file that calls `node -e`, a `package.json` script) is out of its reach, and so is what
+a file, a download or a variable pipes into a shell (`cat x.sh | bash`, `curl … | sh`,
+`echo "$CODE" | bash`): only `echo`, `printf` and `cat` with a heredoc are read.
 
 ## Layout
 

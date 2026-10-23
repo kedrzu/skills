@@ -5,8 +5,9 @@ Blocked (exit 2, the reason goes back to the agent): `-e`, `--eval`, `-p`, `--pr
 and short-flag clusters holding `e` or `p` (`-pe`), given to `node`, `nodejs` or `bun` before any
 script file. The call is found behind env-var prefixes, wrappers (`env`, `timeout`, `nice`, `time`,
 `command`, `exec`, `caffeinate`, `xargs`, `sudo`, ...), absolute paths, `npx` / `bunx` / `bun x`,
-`;` `&&` `||` `|` chains, subshells, `$(...)` and backticks, and `bash -c` / `sh -c` / `zsh -c`
-strings, nested or fed on stdin.
+`;` `&&` `||` `|` chains, subshells, `$(...)` and backticks, `bash -c` / `sh -c` / `zsh -c`
+strings, nested, and the script a shell reads on stdin from a heredoc, a here-string or a pipe from
+`echo`, `printf` or `cat <<EOF`. What a file, `curl` or a variable pipes into a shell is not seen.
 
 Why: under `-e` the parent's `process.execArgv` is `["-e", "<the whole script>"]`, and any library
 that forks workers with it (jest-worker under terser, for one) makes every child re-run the script
@@ -26,7 +27,7 @@ import signal
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from shellparse import parse  # noqa: E402
+from shellparse import ANSI_ESCAPES, Command, parse  # noqa: E402
 
 MAX_DEPTH = 8
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\[[^]]*\])?\+?=")
@@ -53,10 +54,16 @@ WRAPPERS: dict[str, tuple[set[str], int]] = {
     "sudo": ({"-u", "--user", "-g", "--group", "-h", "--host", "-p", "--prompt", "-C", "--close-from",
               "-D", "--chdir", "-r", "--role", "-t", "--type", "-U", "--other-user", "-T", "--command-timeout"}, 0),
     "doas": ({"-u", "-C"}, 0),
-    "npx": ({"-p", "--package"}, 0),
+    "npx": ({"-p", "--package", "-w", "--workspace"}, 0),
     "bunx": ({"-p", "--package"}, 0),
 }
-PACKAGE_RUNNERS = {"npm": {"exec", "x"}, "pnpm": {"exec", "dlx"}, "yarn": {"exec", "dlx"}}
+# Package managers: the subcommands that run a command, and the options that take a separate value
+# (`pnpm --filter web exec`). pnpm's `-w` is `--workspace-root` and takes none.
+PACKAGE_RUNNERS: dict[str, tuple[set[str], set[str]]] = {
+    "npm": ({"exec", "x"}, {"-w", "--workspace", "-C", "--prefix"}),
+    "pnpm": ({"exec", "dlx"}, {"-F", "--filter", "--filter-prod", "-C", "--dir"}),
+    "yarn": ({"exec", "dlx"}, {"--cwd"}),
+}
 
 NODE_VALUE_OPTIONS = {"-r", "--require", "--import", "--loader", "--experimental-loader", "-C", "--conditions",
                       "--env-file", "--env-file-if-exists", "--input-type", "--inspect-port", "--title",
@@ -151,10 +158,41 @@ def snippet(words: list[str], flag: int) -> str:
     return shlex.join(shown).replace("\n", " ")
 
 
-def check_command(words: list[str], stdin: list[str], depth: int) -> str | None:
+def strip_prefixes(words: list[str]) -> list[str]:
+    while words and (words[0] in KEYWORDS or ASSIGNMENT.match(words[0])):
+        words = words[1:]
+    return words
+
+
+def unescape(text: str) -> str:
+    return re.sub(r"\\(.)", lambda m: ANSI_ESCAPES.get(m.group(1), m.group(0)), text, flags=re.S)
+
+
+def piped_text(feeder: Command | None) -> list[str]:
+    """What the left side of a pipe writes, when it is `echo`, `printf` or `cat` fed by a heredoc.
+
+    Backslash escapes are decoded (as `printf` and zsh's `echo` do), and `printf` prints its format and
+    then each argument on a line of its own instead of filling in `%s`: enough to see a command in it.
+    """
+    words = strip_prefixes(feeder.words) if feeder else []
+    if not words:
+        return []
+    name, args = program(words[0]), words[1:]
+    if name == "cat":
+        return feeder.stdin if all(a.startswith("-") for a in args) else []
+    if name == "echo":
+        while args and re.fullmatch(r"-[neE]+", args[0]):
+            args = args[1:]
+        return [unescape(" ".join(args))]
+    if name == "printf":
+        args = skip_options(args, {"-v"})
+        return ["\n".join([unescape(args[0]), *args[1:]])] if args else []
+    return []
+
+
+def check_command(words: list[str], stdin: list[str], depth: int, fed: Command | None) -> str | None:
     while True:
-        while words and (words[0] in KEYWORDS or ASSIGNMENT.match(words[0])):
-            words = words[1:]
+        words = strip_prefixes(words)
         if not words:
             return None
         name, args = program(words[0]), words[1:]
@@ -185,10 +223,11 @@ def check_command(words: list[str], stdin: list[str], depth: int) -> str | None:
             words = skip_options(args, with_value)[positional:]
             continue
         if name in PACKAGE_RUNNERS:
-            rest = skip_options(args, set())
-            if not rest or rest[0] not in PACKAGE_RUNNERS[name]:
+            subcommands, with_value = PACKAGE_RUNNERS[name]
+            rest = skip_options(args, with_value)
+            if not rest or rest[0] not in subcommands:
                 return None
-            words = skip_options(rest[1:], {"-p", "--package", "-w", "--workspace", "--filter", "-F", "-C", "--dir"})
+            words = skip_options(rest[1:], with_value | {"-p", "--package"})
             continue
         if name == "eval":
             return check_text(" ".join(args), depth + 1)
@@ -197,7 +236,7 @@ def check_command(words: list[str], stdin: list[str], depth: int) -> str | None:
             if how == "c":
                 return check_text(text, depth + 1) if text is not None else None
             if how == "stdin":
-                for body in stdin:
+                for body in [*stdin, *piped_text(fed)]:
                     found = check_text(body, depth + 1)
                     if found:
                         return found
@@ -209,7 +248,7 @@ def check_text(command: str, depth: int = 0) -> str | None:
     if depth > MAX_DEPTH:
         return None
     for cmd in parse(command):
-        found = check_command(cmd.words, cmd.stdin, depth)
+        found = check_command(cmd.words, cmd.stdin, depth, cmd.piped_from)
         if found:
             return found
     return None
