@@ -12,7 +12,8 @@ it is why this skill has no plan gate and no critic: judging the findings alread
 where he was already reading. It acts.
 
 The shape is fixed: the same steps in the same order every run. There is no re-triage loop — if he
-wants another pass, he runs `/dev:review` again.
+wants another pass, he runs `/dev:review` again, or `/dev:review-and-fix` to loop both until review
+calls the branch finished.
 
 What a thread state means, and who wrote a comment, are defined in
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md`. Read it before step 2; it is the

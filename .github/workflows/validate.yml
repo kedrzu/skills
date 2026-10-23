@@ -6,8 +6,10 @@ on:
   pull_request:
 
 jobs:
-  validate:
-    name: Validate manifests
+  # Every check lives in the repository's verify skill (plugins/verify/), so CI and an agent's
+  # local run cannot drift apart: manifests, the version guard, references, server and hook tests.
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,111 +20,30 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-
-      - name: Validate marketplace
-        run: claude plugin validate . --strict
-
-      - name: Validate each plugin
-        run: |
-          shopt -s nullglob
-          for manifest in plugins/*/.claude-plugin/plugin.json; do
-            dir=$(dirname "$(dirname "$manifest")")
-            echo "::group::$dir"
-            claude plugin validate "./$dir" --strict
-            echo "::endgroup::"
-          done
-
-      # A plugin's version is the cache key consumers update against: content that
-      # changes without a version bump never reaches them.
-      - name: Require a version bump for every changed plugin
-        env:
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          if [ -z "$BASE_SHA" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-            echo "No base commit to compare against, skipping"
-            exit 0
-          fi
-          shopt -s nullglob
-          status=0
-          for manifest in plugins/*/.claude-plugin/plugin.json; do
-            dir=$(dirname "$(dirname "$manifest")")
-            name=$(basename "$dir")
-            if git diff --quiet "$BASE_SHA" HEAD -- "$dir"; then
-              continue
-            fi
-            old=$(git show "$BASE_SHA:$manifest" 2>/dev/null | jq -r '.version // empty' || true)
-            if [ -z "$old" ]; then
-              echo "$name: new plugin, no previous version to compare"
-              continue
-            fi
-            new=$(jq -r '.version // empty' "$manifest")
-            if [ "$old" = "$new" ]; then
-              echo "::error file=$manifest::$name changed but its version is still $old — bump it"
-              status=1
-            else
-              echo "$name: $old -> $new"
-            fi
-          done
-          exit $status
-
-  # Plugins that carry code keep it in plugins/<name>/server, run from source by bun.
-  server:
-    name: Test plugin servers
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - uses: oven-sh/setup-bun@v2
-
-      - name: Typecheck and test each server
-        run: |
-          shopt -s nullglob
-          status=0
-          for pkg in plugins/*/server/package.json; do
-            dir=$(dirname "$pkg")
-            plugin=$(dirname "$dir")
-            echo "::group::$dir"
-            # The server package is published under the plugin's version.
-            manifest_version=$(jq -r '.version' "$plugin/.claude-plugin/plugin.json")
-            package_version=$(jq -r '.version' "$pkg")
-            if [ "$manifest_version" != "$package_version" ]; then
-              echo "::error file=$pkg::version $package_version differs from plugin.json $manifest_version"
-              status=1
-            fi
-            (cd "$dir" && bun install --frozen-lockfile && bunx tsc --noEmit && bun test) || status=1
-            echo "::endgroup::"
-          done
-          exit $status
-
-  # Plugins that ship hooks keep their tests next to them as plugins/<name>/hooks/test_*.py.
-  hooks:
-    name: Test plugin hooks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Run each plugin's hook tests
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # A plugin's version is the cache key consumers update against: content that changes
+      # without a version bump never reaches them. The version guard compares with this base;
+      # with none (a first push), it is skipped.
+      - name: Run the full verify protocol
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          shopt -s nullglob
-          status=0
-          for dir in plugins/*/hooks; do
-            tests=("$dir"/test_*.py)
-            [ ${#tests[@]} -eq 0 ] && continue
-            echo "::group::$dir"
-            python3 -m unittest discover -s "$dir" -p 'test_*.py' -v || status=1
-            echo "::endgroup::"
-          done
-          exit $status
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            BASE_SHA=""
+          fi
+          python3 plugins/verify/scripts/verify.py --full --base "$BASE_SHA"
 
   tag:
     name: Tag released plugin versions
-    needs: [validate, server, hooks]
+    needs: [verify]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
