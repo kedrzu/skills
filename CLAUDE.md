@@ -29,10 +29,10 @@ plugins/<plugin-name>/            # one installable plugin per directory
 `metadata.pluginRoot` is `./plugins`, so a marketplace entry may use the bare
 directory name as its `source`.
 
-One directory under `plugins/` is not a plugin: `plugins/git-workflow/` holds only a
-`SKILL.md`. It is this repository's own `git-workflow` skill (the `dev` pipeline's contract
-for how a change moves here), loaded through the `.claude/skills` symlink, with no manifest
-and no marketplace entry.
+Two directories under `plugins/` are not plugins: `plugins/git-workflow/` and
+`plugins/verify/` are this repository's own skills — the `dev` pipeline's contracts for how a
+change moves here and how it is proven to work — loaded through the `.claude/skills` symlink,
+with no manifest and no marketplace entry.
 
 ## Conventions
 
@@ -255,15 +255,17 @@ the reader why it is there.
 
 ## Validation
 
-Always run before committing a manifest or skill change:
+Always run before committing a manifest or skill change — the `verify` skill
+(`plugins/verify/`) holds the step list, and CI runs the same script:
 
 ```bash
-claude plugin validate . --strict                       # marketplace + entries
-claude plugin validate ./plugins/<plugin-name> --strict  # a single plugin
+python3 plugins/verify/scripts/verify.py --scoped   # the plugins this change touched
+python3 plugins/verify/scripts/verify.py --full     # every plugin
 ```
 
-`claude plugin eval <plugin-name>` runs a plugin's eval suite when one exists under
-`plugins/<plugin-name>/evals/`.
+It runs `claude plugin validate --strict` on the marketplace and each plugin, the version
+guard, a reference check, the server packages' typecheck and tests, every `test_*.py`, and
+(full, outside CI) `claude plugin eval <plugin-name>` for a plugin with an `evals/` directory.
 
 ## Testing a change locally
 
@@ -326,13 +328,13 @@ Other distribution routes, for reference:
 
 `.github/workflows/validate.yml` runs on every push and pull request:
 
-1. **validate** — `claude plugin validate --strict` on the marketplace and on each
-   plugin. Needs no API key; the CLI is installed from npm.
-2. **version guard** — fails the build when files under `plugins/<name>/` changed
-   without a bump to that plugin's `version`. A new plugin with no previous manifest
-   is allowed through. This is the safety net for the rule above: content that ships
-   without a version bump silently never reaches consumers.
-3. **tag** — on `main` only, creates and pushes a `<plugin-name>--v<version>` tag for
+1. **verify** — `verify.py --full` (see "Validation") against the PR's base, or the previous
+   `main` on a push. Needs no API key; the CLI is installed from npm. Its version guard fails
+   the build when files under `plugins/<name>/` changed without a bump to that plugin's
+   `version`; a new plugin with no previous manifest is allowed through. This is the safety net
+   for the rule above: content that ships without a version bump silently never reaches
+   consumers.
+2. **tag** — on `main` only, creates and pushes a `<plugin-name>--v<version>` tag for
    any plugin whose current manifest version has no tag yet.
 
 Tags matter because dependency version constraints resolve against them. Bumping
