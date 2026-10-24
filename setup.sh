@@ -19,6 +19,19 @@ if [ -f "$REPO_ROOT/CLAUDE.local.md" ]; then
     echo "✅ CLAUDE.local.md copied from main repo"
 fi
 
+# Plugins from other marketplaces that .claude/settings.json enables. A project-scope install is
+# recorded per project path, so in a fresh worktree they are enabled but not installed: they do not
+# load, and every skills-dir plugin depending on one (skill-improve → skill-creator) is dropped as
+# `dependency-unsatisfied`. Installing rewrites settings.json, so restore it afterwards.
+if command -v claude > /dev/null; then
+    for plugin in $(python3 -c 'import json; print(*json.load(open(".claude/settings.json")).get("enabledPlugins", {}))'); do
+        claude plugin install "$plugin" --scope project > /dev/null \
+            && echo "✅ $plugin installed" \
+            || echo "⚠️  $plugin not installed — run: claude plugin install $plugin --scope project"
+    done
+    git checkout --quiet -- .claude/settings.json
+fi
+
 # --- Worktree: catch up with origin/main ---
 
 # Only a branch based on `main` catches up with it. Merging `main` into anything else drags it into
