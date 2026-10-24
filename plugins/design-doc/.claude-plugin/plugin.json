@@ -1,7 +1,7 @@
 {
   "name": "design-doc",
-  "description": "Think a feature through with the user before building it, and leave behind a design folder: a readable story over an append-only log of what was decided and rejected",
-  "version": "0.2.1",
+  "description": "Think a feature through with the user before building it, and leave behind a design folder: a readable story over a record of the decisions in force and what each rejected, with its history archived beside it",
+  "version": "0.3.0",
   "author": {
     "name": "Michał Kędrzyński"
   },
@@ -9,6 +9,6 @@
     "design",
     "architecture",
     "planning",
-    "decision-log"
+    "decision-record"
   ]
 }

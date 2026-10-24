@@ -224,13 +224,16 @@ event, it is the work item, and alerts are observations that attach to one"* —
 unreadable there, because nothing has yet said that alerts pile up unread or that the scarce thing is a
 developer's attention. Fifteen lines later the same sentence lands.
 
-**`DECISIONS.md` is the agent's, and it is a log** — every decision with its ID, what was rejected and
-why, what superseded what, and the evidence attached to the claim it supports. Grepped and re-entered,
-never read front to back. `JOURNAL.md` sits beside it.
+**`DECISIONS.md` is the agent's, and it holds only what is in force** — each decision with its
+claim, why it holds and the evidence that still supports it, and every alternative already rejected.
+Grepped and re-entered, never read front to back. Everything that held once — retired decisions in
+full, the journal, notes from reviews and redesigns — lives in `history/`, so the current design is
+not buried under its own past, and the past can still be read without git.
 
 A decision's heading is its ID alone — `## D7`, with the claim on the first line under it — so that
 `DECISIONS.md#d7` still resolves after the wording changes. Put the ID in the title and every link into
-that decision breaks the next time you sharpen it.
+that decision breaks the next time you sharpen it. The entry's shape, the file's header, the layout of
+`history/` and what to do when a decision changes are in `references/decision-record.md`.
 
 ```text
 docs/design/<slug>/
@@ -239,15 +242,17 @@ docs/design/<slug>/
                  chapter in reading order
   <topic>.md     a chapter: the same prose, deeper. Written when README stops being readable in one
                  sitting — not from a template
-  DECISIONS.md   decisions, rejections, supersessions, evidence
-  JOURNAL.md     append-only, one line per turn that settled something
+  DECISIONS.md   the decisions in force: claim, why, evidence, what was rejected
+  history/       DECISIONS.md (retired decisions under their original IDs), JOURNAL.md, and dated
+                 notes of reviews and redesigns
   ui/<path>.md   UI specs, per `references/ui-spec.md`
-  <dir>/         anything that is neither prose nor log — policy drafts, schemas, fixtures — in a
+  <dir>/         anything that is neither prose nor record — policy drafts, schemas, fixtures — in a
                  subfolder the chapter that uses it links to
 ```
 
-A small design is three files. And the split is not technical versus simple — it is **prose you read**
-versus **a log you grep**, so a chapter may go deep and end in a table and still be theirs.
+A small design is README, `DECISIONS.md` and the journal. And the split is not technical versus
+simple — it is **prose you read** versus **a record you grep**, so a chapter may go deep and end in a
+table and still be theirs.
 
 **The record is the source of truth, and the story is written from it.** The two will say the same thing
 twice; that is fine. Where they disagree, the record wins and the story is out of date.
@@ -255,8 +260,9 @@ twice; that is fine. Where they disagree, the record wins and the story is out o
 > **Story.** The router could branch on which system sent the message. We dropped that: every new source
 > would add a branch. It branches on what the message asks for instead.
 >
-> **Record.** `D12 — the router branches on the kind of message, not on the sender. Rejected:
-> per-source dispatch, one branch per integration. Raised by the 2026-08-04 sweep.`
+> **Record.** `D12 — the router branches on the kind of message, not on the sender. Why: the set of
+> things a message asks for is small and stable. Rejected: one branch per integration — every new
+> source adds router code.`
 
 Out of the story, always: an ID used as a reference, a `Checked` note, a status table, footnotes at the
 end, an argument made by citing a path. Naming a file because the file *is* the subject is fine.
@@ -271,8 +277,14 @@ follow.
 
 **Rejections matter more than decisions.** What was chosen is visible in the design itself; what was
 tried and abandoned is invisible, and its absence is exactly why the next agent walks back into the same
-dead end. Record the fork, not just the answer. And never leave currency to be inferred from chronology —
-when something is superseded, say so where it is written.
+dead end. Record the fork, not just the answer: every alternative goes into its decision's
+**Rejected** lines, one sentence and the reason. When a decision is replaced, its full text moves to
+`history/` under its own ID and the old answer becomes a **Rejected** line of the new one — so
+`DECISIONS.md` never needs chronology to tell what is current, and never leaves a stub behind.
+
+**The story tells the current state too.** README and the chapters describe the design as it stands;
+a "how we got here" passage moves to a dated note in `history/`, and README may link to it where the
+detour helps a reader trust the result.
 
 The record carries its own test: **a fresh agent, possibly a different model with no memory of any of
 this, can pick the folder up and be useful.** It finds where you are and what is currently being argued
@@ -282,8 +294,8 @@ in README, and it is the only thing that stops a design growing forever, so esta
 it down; so do what gets built first and where things stand, which is what planning and the next
 session pick up. Where each of those sits in the story is your call.
 
-Keep the journal append-only. Add a line whenever a turn produced a decision, a rejection or an answer
-from the user, and note how far you have folded into the story. Nobody reads it top to bottom — it exists
+Keep the journal, `history/JOURNAL.md`, append-only. Add a line whenever a turn produced a decision,
+a rejection or an answer from the user, and note how far you have folded into the story. Nobody reads it top to bottom — it exists
 so that forty minutes of conversation don't vanish when a session dies, and so you can pick up
 mid-thread. That is also why the journal is written as you go while the tidying-up happens occasionally:
 capturing and organising are different jobs, and only the second one can wait.
@@ -329,13 +341,17 @@ goes in the spec and how to review what comes back.
 ## Coming back to it
 
 You may be the fresh agent — different model, clean context, none of the accumulated bias. That is the
-point. Read README for the shape of it, then `DECISIONS.md` for what holds and what was already
-tried, then get to work on whatever they want. **No challenge dump on arrival**; flag
-what you find as you go, and do a full second opinion only if asked.
+point. Read README for the shape of it, then `DECISIONS.md` for what holds, then get to work on
+whatever they want. Leave `history/` alone until you are about to reopen an area. **No challenge dump
+on arrival**; flag what you find as you go, and do a full second opinion only if asked.
 
-Before proposing something in an area, check what was already rejected there. Mentioning a rejected
-option is fine; repeating it *without knowing it was rejected* is not, and reopening it because its
-premise changed is right.
+Before proposing something in an area, read the **Rejected** lines of its decisions and the history
+they link to. Mentioning a rejected option is fine; repeating it *without knowing it was rejected* is
+not, and reopening it because its premise changed is right.
+
+A folder still in the old shape — superseded entries and stubs among the live ones, the journal at
+the top level — is converted by `references/compress-design.md`, as its own change, before anything
+substantive.
 
 Re-check a dated external claim when it is about to carry the decision in front of you — not as an
 arrival ritual over everything in the folder.
@@ -375,5 +391,7 @@ Technical terms stay English everywhere.
 
 |File|Read when|
 |-|-|
+|`references/decision-record.md`|Writing or changing a decision, or creating `DECISIONS.md` and `history/`.|
+|`references/compress-design.md`|Picking up a folder whose `DECISIONS.md` still keeps superseded entries, stubs or narration.|
 |`references/failure-sweep.md`|Testing a model that has taken shape against the cases reality will throw at it.|
 |`references/ui-spec.md`|They ask for a UI spec, or come back with a mockup to review.|

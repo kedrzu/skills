@@ -48,8 +48,9 @@ What he checks is direction, usability, whether it works the way he meant, wheth
 
 ## Reading the design
 
-`README.md` for the goal and the model, `DECISIONS.md` for what holds and what was already tried, then
-the chapters the work touches, then the tail of `JOURNAL.md`. The folder carries evidence as
+`README.md` for the goal and the model, `DECISIONS.md` for what holds and what was already rejected,
+then the chapters the work touches, then the tail of `history/JOURNAL.md`; the rest of `history/`
+only when a stop reopens an area. The folder carries evidence as
 `Checked <date>:` notes next to the claims — use them rather than paying for the same research twice;
 re-check only what a decision now rests on and is old enough to have moved. What sits under "Still
 open" and blocks the first milestones is the first thing to talk about.
@@ -125,10 +126,11 @@ options, recommendation. Between stops, in-boundary work stays autonomous exactl
 Execution Autonomy table says; the milestone plan is the boundary.
 
 - **A question the design did not settle.**
-- **A divergence or a better idea.** Once he decides, write it back into the design in this run: a
-  new `DECISIONS.md` entry that supersedes the old one (and says so under the old one), plus the edit
-  to the chapter or README prose that described it. Only what a stop settled — never an audit of the
-  diff against the design.
+- **A divergence or a better idea.** Once he decides, write it back into the design in this run: the
+  `DECISIONS.md` change `/design-doc:design-doc` prescribes in its `references/decision-record.md` —
+  a replaced decision's text moves to `history/` and the old answer becomes a Rejected line, links
+  repointed — plus the edit to the chapter or README prose that described it. Only what a stop
+  settled — never an audit of the diff against the design.
 - **The milestone checkpoint.** It has to stand alone; assume he has not looked at the terminal for an
   hour. How to see and try it, and what to pay attention to; what you decided on your own that he
   would want to know; the divergences settled since the last one; what review fixed without him, one
