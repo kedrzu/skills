@@ -295,6 +295,10 @@ plugin under `plugins/` is picked up automatically.
 - An installed marketplace plugin with the same manifest name wins over the
   skills-dir copy. Keep `<name>@kedrzu-skills` disabled in this project, and expect a
   `Not loaded` row when a plugin shares its name with one from another marketplace.
+- A skills-dir plugin's dependency on another marketplace's plugin is never installed for it,
+  and a project-scope install is recorded per path, so each new worktree starts without the
+  plugins `.claude/settings.json` enables. `setup.sh` installs them; when one is missing,
+  `skill-improve` does not load (`dependency-unsatisfied` in the debug log).
 - Do not register this checkout with `claude plugin marketplace add .`: marketplaces
   are recorded per user by name, so it would repoint `kedrzu-skills` in every project
   at this working copy.
