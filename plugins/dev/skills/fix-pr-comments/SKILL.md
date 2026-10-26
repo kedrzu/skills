@@ -58,7 +58,8 @@ whatever kind of comment it is: unresolved and unanswered is consent, uniformly 
 `🤔 RECOMMENDATION`, a proposal to remove something over-built, which he opts into: it is acted on
 only when he has replied (fix it, fix it this way, or let's talk), on the thread or in the direction
 given with the run, and without a reply it is left
-open and untouched. The one thing the
+open and untouched, still up for discussion. When he rejects it, answer and resolve it like any
+thread he talked down: the topic is closed. The one thing the
 fetch skips is a lone `## 🤖` answer of ours with nothing under it, which older runs posted as a
 comment of its own: our output, not his input — unless he replies under it, which makes his reply
 the ask.

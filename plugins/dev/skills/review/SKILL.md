@@ -164,7 +164,7 @@ threads and judge, including what he wrote under them:
 |-|-|
 |resolved|his "no", and it stands. Re-deriving it from another call site or another axis, in different words, is the failure to avoid|
 |unresolved, with a reply arguing it down|also settled — `humanReplies` carries what he wrote, and it is there to be read|
-|unresolved, no reply|nothing was said; a genuinely new finding may go next to it|
+|unresolved, no reply|nothing was said; a genuinely new finding may go next to it. An open `🤔 RECOMMENDATION` is still standing, waiting for him: do not post it again|
 |resolved with our `## 🤖` reply, or an older `## 🤖` answer of ours|a fix or answer from an earlier run — the work behind it is done; never re-raise what it reports|
 
 Post the findings whose exit is *to him* in the shape
