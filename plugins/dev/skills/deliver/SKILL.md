@@ -141,7 +141,7 @@ Execution Autonomy table says; the milestone plan is the boundary.
   His answers to review's questions go into the review memory. Chat has no rule that silence means
   yes: a question he leaves unanswered is asked once more at the next checkpoint, and if it is still
   open when the chain is up, it is posted on its node with `/dev:review`'s step 5, where silence does
-  mean yes.
+  mean yes — except a recommendation, which stays open until he answers.
 
 While he has not answered a checkpoint, explore and plan the next milestone, but write no code — his
 answer may change the direction. It may rearrange the remaining milestones; finished ones are redone
