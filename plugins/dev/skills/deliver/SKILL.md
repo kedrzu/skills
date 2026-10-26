@@ -7,8 +7,8 @@ description: >-
     better idea the design did not settle, and land the whole thing as a stacked chain of PRs cut
     at the end. Use whenever the user wants a design folder built — "zaimplementuj design X",
     "wdróż X z designu", "build docs/design/<slug>", "zrób to, co mamy w designie", a handoff
-    from /design-doc:design-doc — even if they do not name this skill. Do NOT use to write or change a design
-    (/design-doc:design-doc), for large work with no design folder (/dev:build designs it itself), to turn a design
+    from /dev:design — even if they do not name this skill. Do NOT use to write or change a design
+    (/dev:design), for large work with no design folder (/dev:build designs it itself), to turn a design
     into tracker issues, or to fan many tasks out across worktrees.
 ---
 
@@ -127,7 +127,7 @@ Execution Autonomy table says; the milestone plan is the boundary.
 
 - **A question the design did not settle.**
 - **A divergence or a better idea.** Once he decides, write it back into the design in this run: the
-  `DECISIONS.md` change `/design-doc:design-doc` prescribes in its `references/decision-record.md` —
+  `DECISIONS.md` change `/dev:design` prescribes in its `references/decision-record.md` —
   a replaced decision's text moves to `history/` and the old answer becomes a Rejected line, links
   repointed — plus the edit to the chapter or README prose that described it. Only what a stop
   settled — never an audit of the diff against the design.
