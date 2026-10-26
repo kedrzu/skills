@@ -36,7 +36,7 @@ no new mechanism has nothing for this skill: say so in one line and stop.
 
 1. **What requirement does it buy?** Name the concrete case where the simpler thing breaks. A
    property — "scalability", "flexibility", "auditability", "future-proofing" — is not a case. If
-   no case can be named, the simpler thing wins.
+   no case can be named, recommend the simpler thing.
 2. **Where did that requirement come from?** The user; a law or regulation, named; a measured
    number, with where it was measured; another system's contract; or the agent's own inference.
    Report it, and never use it as a pass. A requirement the user stated is questioned like any
