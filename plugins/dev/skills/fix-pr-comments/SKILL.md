@@ -216,7 +216,7 @@ Ask in an ordinary message, never in a dialog that holds the run until he answer
 already fixed are verified, pruned, committed and pushed meanwhile, their answers waiting for that
 one call, and his reply reaches you like any other event.
 One or two sentences: what the comment asks, what the code actually says, and what you need from
-him. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
+him. A stop on a new mechanism instead carries both versions and what the simpler one gives up. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
 flight — they need a tree nobody else is editing — and on a chain with that group's node checked
 out; it then goes through steps 4 to 6 like the rest, the upward propagation included. **The run
 does not go on to step 8 while any question is open:** final verification and the closing list
