@@ -380,7 +380,10 @@ Done when the blocking questions are closed, the risks are named, and the first 
 
 **Before you propose closing, run the `rightsize` skill over the design.** It is the gate for
 "reaching for the more general solution" above: by now the mechanisms exist and can be questioned
-one by one.
+one by one. It only reports; weighing each item is yours. Drop what the user already chose with the
+simpler version in front of them, and put every other item to them as the two versions with your
+recommendation. Close only once they have picked; the pick is a decision, the other version its
+Rejected line.
 
 **You propose closing; they close.** Then `docs/design/<slug>/` is the deliverable: it goes to whatever
 turns a design into planned work — a planning skill, an issue tracker, the implementer — and is meant to
