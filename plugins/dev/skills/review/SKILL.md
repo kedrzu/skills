@@ -60,7 +60,9 @@ comment anchored to a commit that is not on the PR lands nowhere.
 
 Pick up the spec too, if one is on disk: `.context/specs/<YYYY-MM-DD>-<topic>.md`, with no issue id
 in the name, so pick the one whose topic matches this branch. Pass it whole — a summary loses the
-acceptance criteria. If nothing matches, say so rather than passing the nearest file.
+acceptance criteria. If nothing matches, say so rather than passing the nearest file. Look the same
+way for the plan (`.context/plans/<YYYY-MM-DD>-<topic>.md`) and for a `docs/design/<slug>/` folder
+the change was built from: the verifier checks over-building findings against what he chose there.
 
 ### The chain, and the node
 

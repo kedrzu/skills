@@ -54,7 +54,8 @@ List only these entries.
 
 ## How to run it
 
-Run three fresh subagents and merge what they return. Give each one the whole subject, this file and
+Run three fresh subagents and merge what they return; tell each that it is one of the three, so it
+answers the questions itself. Give each one the whole subject, this file and
 `${CLAUDE_PLUGIN_ROOT}/skills/rightsize/references/cases.md`, both by expanded path (a subagent
 cannot resolve the variable). The cases are five mechanisms from one real feature and what each
 turned into once someone asked. One pass over a large change sees part of it, and a different part

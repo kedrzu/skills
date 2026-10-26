@@ -48,7 +48,8 @@ with its context intact, and you wait for its next report as before.
 2. **His triage.** Show him what was posted — each claim with its link — and what came only to chat,
    then wait. He resolves on GitHub what he rejects, or talks it through with you; what he settles
    here goes into the fix brief as direction, as he would have written it after
-   `/dev:fix-pr-comments`. When review brought him nothing, there is nothing to triage or fix: go to 4.
+   `/dev:fix-pr-comments`. A `🤔 RECOMMENDATION` is the exception to silence: it is fixed only on his
+   explicit yes, and a yes given here counts as his reply on its thread. When review brought him nothing, there is nothing to triage or fix: go to 4.
 3. **Fix.** A subagent carries out steps 1 to 7 of `fix-pr-comments/SKILL.md`; step 8 belongs to the
    end of the loop. It returns the lines step 8 would print — per thread, what changed or why nothing
    did, with the commit.
