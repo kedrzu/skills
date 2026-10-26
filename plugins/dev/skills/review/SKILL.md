@@ -16,12 +16,15 @@ reroutes control flow. The judgement inside each step belongs to the agent runni
 
 A finding that survives step 3's attempt to refute it leaves by one of two exits. **What he would
 never argue with is fixed here, without him** — a written rule broken, a copy of code that already
-exists, a plain code smell — when the fix removes code or adds none and changes no behaviour. The agent that wrote the code
+exists, a plain code smell — when the fix carries no risk he would want to see: it changes no
+behaviour and nothing that matters in infrastructure, whatever its size. The agent that wrote the code
 cannot see these in its own work, and their cost is not harm but recurrence: every later reviewer
 trips over the same thing again. **The rest goes to him, inline on the PR** — no report, no verdict,
 no reading guide. An unresolved thread is something waiting on him, so nothing unresolved means
 nothing is waiting, rendered natively by GitHub's count of them; and since his only cheap answer is
-to resolve it, publishing one effectively decides the code will change.
+to resolve it, publishing one effectively decides the code will change. The one exception is a
+`🤔 RECOMMENDATION` — a mechanism that is bigger than its problem. Removing it is a design change,
+so it waits for his answer, never blocks, and is never fixed without him.
 
 **Prerequisites.** The project is on GitHub and `gh` is installed and authenticated: the scripts
 read the PR, its threads and its chain through the GitHub API, including the Stacks API, which
@@ -75,7 +78,7 @@ chain's tip.
 ## 2. The finders, in parallel
 
 One agent per axis in `${CLAUDE_PLUGIN_ROOT}/skills/review/references/axes.md` — correctness, spec,
-security & compliance, conformance & duplication, and the narrow testing axis. Each gets that file's path
+security & compliance, conformance & duplication, over-building, and the narrow testing axis. Each gets that file's path
 (expanded — a subagent cannot resolve `${CLAUDE_PLUGIN_ROOT}`) and its own section of it, the diff
 files it is reading, the PR description and the spec. Nothing else: finders open the skills they
 need themselves.
@@ -92,6 +95,7 @@ The axes split by whether their standard is local or global:
 |Testing — deleted coverage|per node|"|
 |Spec|once over the chain|`diffs/` at the root|
 |Security & compliance|once over the chain|"|
+|Over-building|once over the chain|"|
 
 Tell each per-node finder which node it has.
 
@@ -113,7 +117,7 @@ what find what earlier runs missed; the verifier is where a finding already sett
 It attacks each finding against the code as it stands, and what it cannot prove does not exist.
 Survivors come back with what the finder usually did not write down — the mechanism and every place
 in the change it occurs, and what concretely goes wrong — plus their exit: fixed here, or brought to
-him as blocking or should-fix.
+him as blocking, should-fix or recommendation.
 
 One verifier over the whole chain, whatever the node count: splitting it loses the duplicates between
 nodes and the ability to kill a finding a higher node already repaired.
@@ -125,8 +129,8 @@ steps 2 to 5 in `${CLAUDE_PLUGIN_ROOT}/skills/fix-pr-comments/SKILL.md`: the sam
 same fixer brief, one scoped `verify` over every fix, then `prune` as a fix run, bottom-up on a
 chain. Each fixer gets its finding's mechanism and every place it occurs, and fixes all of them; a
 duplicate of something that already exists is removed across the whole repository, not only in this
-change. A fixer that finds the fix needs a choice, changes behaviour or adds code after all
-hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
+change. A fixer that finds the fix needs a choice or carries risk after all — it changes
+behaviour or something that matters in infrastructure — hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
 delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
 
 Commit them through `git-workflow` → **checkpoint**, one commit per group — in a submodule, a message
@@ -228,11 +232,10 @@ whatever the numbers.
 If a survivor cannot be anchored to a line — the same missing check across three handlers, a premise
 the plan rested on that did not hold, a chain-level gap that belongs to no single node — say it there
 in a sentence or two; chat is the only route it has. It has to be as concrete as any comment: a file,
-a rule, a decision. **An objection to the approach itself does not belong here at all** — that is a
-planning question, and raising it after implementation asks for a rewrite. Nothing else goes to chat.
+a rule, a decision. Nothing else goes to chat.
 
 Then say whether review is finished, over the whole chain rather than per PR. It is when this run
-and the one before it brought him nothing blocking on any node — the memory holds each run's
+and the one before it brought him nothing blocking on any node (a recommendation is never blocking) — the memory holds each run's
 `review run <n>` line; a `/dev:deliver` milestone pass's `review M<k> pass <p>` line is not a run. Asking for nothing at all would never end: fresh
 reviewers always find a few more things worth fixing.
 
@@ -244,6 +247,6 @@ the whole chain. What was posted stays out — the PR's threads are its memory. 
 
 ## References
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/review/references/axes.md` — the five finder briefs. Step 2 hands each agent its own section.
+- `${CLAUDE_PLUGIN_ROOT}/skills/review/references/axes.md` — the six finder briefs. Step 2 hands each agent its own section.
 - `${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` — the refutation brief. Step 3.
 - `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` — the comment contract, shared with `/dev:fix-pr-comments`. Step 5.

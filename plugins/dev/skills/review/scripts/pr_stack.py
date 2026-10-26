@@ -183,6 +183,7 @@ def is_trusted_author(repo, author):
 OUR_HEADERS = (
     "## 🚨 BLOCKING",
     "## 💡 SHOULD FIX",
+    "## 🤔 RECOMMENDATION",
     "## 🤖",            # an answer to a finding, or a run's summary
     # legacy
     "## 💡 NIT",

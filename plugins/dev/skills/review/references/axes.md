@@ -1,8 +1,8 @@
 # Finder briefs
 
 One agent per axis, all in parallel. Each reads the shared part below and its own section.
-Correctness, conformance & duplication and deleted coverage run **once per node** of the PR chain; spec
-and security & compliance run **once over the whole chain**. An unstacked branch is one node.
+Correctness, conformance & duplication and deleted coverage run **once per node** of the PR chain; spec,
+security & compliance and over-building run **once over the whole chain**. An unstacked branch is one node.
 
 ## What they all share
 
@@ -31,9 +31,9 @@ finding rests on a rule, which rule and where it is written (e.g. `database/SKIL
 around check-then-insert). The bar for publishing is held once, by that agent; do not hold it here
 as well.
 
-**Concrete technical decisions only — files, lines, a rule this change breaks.** If your objection
-is to the approach itself, it is out of scope: that belongs to planning, where it costs a paragraph,
-not to review, where acting on it costs a rewrite.
+**Concrete, and anchored to what this change built** — files, lines, a rule it breaks. The approach
+itself is fair game when it is seriously wrong for what the change does: name the decision it rests
+on and what goes wrong, as concretely as any other finding.
 
 Returning nothing is a normal outcome, not a failure to find something.
 
@@ -94,6 +94,13 @@ privately inside another file, which no index can see. Search by what the new co
 name. Code with no caller is not dead until you have looked for its use further up: in the nodes above
 on a chain, which the working tree shows, and in any plan you were given for work still to come.
 Phase 3 (`dev:prune`) has already removed what it could find; you get what it missed.
+
+## Over-building
+
+A mechanism much bigger than its problem: one that works, has a caller at every layer, and still is
+not needed. Run the `rightsize` skill over the change as it says, and pass on every entry it reports
+as a finding, unchanged: the mechanism, its premise and where that came from, the simpler version,
+what it gives up. Do not judge them; the verifier does.
 
 ## Testing — deleted coverage only
 

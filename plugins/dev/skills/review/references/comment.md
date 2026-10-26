@@ -42,11 +42,15 @@ Fix: add the unique constraint and handle the conflict, or put check and insert 
 
 |Part|Carries|
 |-|-|
-|Line 1|`🚨 BLOCKING` or `💡 SHOULD FIX`, then the category — the scan line|
+|Line 1|`🚨 BLOCKING`, `💡 SHOULD FIX` or `🤔 RECOMMENDATION`, then the category — the scan line|
 |Line 2|provenance and cost: which axis found it, and where a finding rests on a rule, which rule (`Security · <the project's rule source> → audit at business boundary`, `Spec · spec §3`); then whether the fix adds or removes roughly how many lines|
 |Bold line|the claim, in plain words — no file paths, no type names|
 |Paragraph|what goes wrong, for whom and when|
 |`<details>`|the staleness check, the mechanism and every place it occurs, the citations, the proposed fix — he never has to open it|
+
+A `🤔 RECOMMENDATION` uses the same shape. The bold line names the mechanism, and the paragraph gives
+the premise it rests on, the simpler version and what that version gives up. It never ends in a
+fix of its own: nothing happens until he answers.
 
 **The forcing function:** if the paragraph cannot be written without a file path or a step-by-step
 trace, the finding is not understood well enough to post. That makes readability a property of the
@@ -70,7 +74,7 @@ decisions or task IDs.
 
 ## Who wrote a comment
 
-A comment is ours if its body starts with `## 🚨 BLOCKING` or `## 💡 SHOULD FIX` for a finding, `## 🤖`
+A comment is ours if its body starts with `## 🚨 BLOCKING`, `## 💡 SHOULD FIX` or `## 🤔 RECOMMENDATION` for a finding, `## 🤖`
 for an answer to one or a run's summary — or, on an older PR, with a legacy `## 💡 NIT` / `## 🚨 CRITICAL ISSUE` /
 `## ⚠️ IMPORTANT` / `## 💡 MINOR` / `## 🔍 ISSUE` / `## 👀 HEADS UP` / `## 🧭 FLOW` header. Everything
 else on the PR is the owner's. Agents post with his GitHub token, so `author.login` proves nothing:
@@ -93,7 +97,7 @@ matters, because nothing there is waiting on him.
 
 |Thread state|Means|
 |-|-|
-|unresolved, no reply|**consent** — the comment stands and gets fixed|
+|unresolved, no reply|**consent** — the comment stands and gets fixed; a `🤔 RECOMMENDATION` is the exception, and waits for his reply|
 |unresolved, with a reply from him|**settled by what he wrote** — not consent, and not a fresh claim to assess|
 |resolved, with our `## 🤖` reply|fixed or answered; never re-raise what the reply reports|
 |resolved, with no reply of ours|his **veto**: he read it and said no. It does not come back|

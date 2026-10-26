@@ -134,7 +134,8 @@ Execution Autonomy table says; the milestone plan is the boundary.
 - **The milestone checkpoint.** It has to stand alone; assume he has not looked at the terminal for an
   hour. How to see and try it, and what to pay attention to; what you decided on your own that he
   would want to know; the divergences settled since the last one; what review fixed without him, one
-  line each, and what it brings him, each as a question he can answer in a line; a specific piece
+  line each, and what it brings him, each as a question he can answer in a line, with its
+  recommendations apart, as proposals he may take or leave; a specific piece
   of code worth his eyes and why, only if there is one; what comes next. Then yield.
 
   His answers to review's questions go into the review memory. Chat has no rule that silence means

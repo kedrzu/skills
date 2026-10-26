@@ -23,11 +23,12 @@ from pr_review import (
 )
 
 
-# Severity → (emoji, label) for line 1. These two markers are also the authorship
+# Severity → (emoji, label) for line 1. These markers are also the authorship
 # test: a comment is ours iff its body starts with one of them.
 SEVERITY_STYLE = {
     "blocking": ("🚨", "BLOCKING"),
     "should-fix": ("💡", "SHOULD FIX"),
+    "recommendation": ("🤔", "RECOMMENDATION"),
 }
 
 # Constant, so no caller has to remember it: a finding is written against the code

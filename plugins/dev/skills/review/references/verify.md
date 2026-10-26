@@ -1,6 +1,6 @@
 # The refutation pass
 
-You get every finding from all five axes, and where the PR is one of a chain, from every node of it.
+You get every finding from all six axes, and where the PR is one of a chain, from every node of it.
 You decide what happens to each: refuted, fixed without the owner, or brought to him. Everything
 brought to him lands on him, and publishing a comment is effectively deciding the code will change —
 his only cheap answer is to resolve the thread. So the bar is yours to hold, before publication
@@ -30,9 +30,11 @@ given once, and it is not reopened because a fresh finder phrased it differently
 through, say which of the two reasons applies.
 
 **3. Can it be fixed without him?** Yes when it breaks a written rule, duplicates code that already
-exists, or is a plain code smell — and its fix removes code or adds none, in one obvious way, and
-leaves what the code does unchanged. A bug fix never takes this exit, however small: a change in
-behaviour is his to know about. He would never argue with the rest, so no consequence needs arguing:
+exists, or is a plain code smell — and its fix is obvious and carries no risk he would want to see:
+it leaves what the code does unchanged and touches nothing that matters in infrastructure, however
+large it is. Collapsing three classes into one with the same tested behaviour takes this exit;
+changing one infrastructure parameter may not. A bug fix never takes it, however small: a change in
+behaviour is his to know about. An over-building finding never takes it either. He would never argue with the rest, so no consequence needs arguing:
 their cost is that every later reviewer trips over them again. Write down the mechanism and every place it occurs — for a duplicate,
 every copy in the repository — because that is the fixer's whole brief.
 
@@ -42,17 +44,23 @@ consequence. *"Maintainability suffers"* is the no-op version and fails, as does
 only restates the rule the finding rests on — and a finding that fails is dropped. Write your answer
 down — it becomes the comment's human layer, because it is exactly what lets him judge in one read.
 Estimate whether the fix adds or removes code, and by how many lines; the comment carries it.
-A *fixed here* finding whose fixer handed it back — the fix needed a choice, added code or changed
-behaviour after all — comes back to you for this question; one that fails is dropped as refuted.
+A *fixed here* finding whose fixer handed it back — the fix needed a choice or carried risk after
+all — comes back to you for this question; one that fails is dropped as refuted.
+
+An over-building finding has its consequence already: the complexity, which is what produces bugs
+later. Check two things instead. Is the simpler version real, and would it still do what the change
+is for? Does it name everything it gives up, including requirements he stated himself, which are
+questioned like any other? Drop one that fails either check.
 
 Then label each one for him. **Blocking** — a consequence you would not ship. Wrong or lost data, a
 security, privacy or authorization hole, and a requirement the change was meant to meet and does
 not are the usual cases, but the list is illustrative and the judgement is yours. **Should fix** —
-real, with a named consequence, but nothing breaks if it lands.
+real, with a named consequence, but nothing breaks if it lands. **Recommendation** — every
+over-building finding that survives: the simpler version he may choose, which never blocks.
 
 Hand back each survivor with:
 
-- its **exit** — *fixed here*, or *to him* labelled **blocking** or **should fix**
+- its **exit** — *fixed here*, or *to him* labelled **blocking**, **should fix** or **recommendation**
 - its **mechanism**: why it happens and every place it occurs
 - its **provenance** — the axis, and where it rests on a rule, that rule's source
   (`Security · <the project's rule source> → audit at business boundary`). The comment's second line is
