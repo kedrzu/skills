@@ -377,6 +377,14 @@ plausible guess. What comes back gets recorded in the form above, including when
 ## Finishing
 
 Done when the blocking questions are closed, the risks are named, and the first slice is buildable.
+
+**Before you propose closing, run the `rightsize` skill over the design.** It asks every new mechanism
+what it buys and where that requirement came from, the user's own requirements included, and each
+mechanism with a simpler version goes to them as the two versions. Do not close until they have
+picked one. The pick is recorded as a decision and the other version as its Rejected line. This is
+the gate for "reaching for the more general solution" above: by now the mechanisms exist and can be
+questioned one by one.
+
 **You propose closing; they close.** Then `docs/design/<slug>/` is the deliverable: it goes to whatever
 turns a design into planned work — a planning skill, an issue tracker, the implementer — and is meant to
 be consumed rather than re-derived.
