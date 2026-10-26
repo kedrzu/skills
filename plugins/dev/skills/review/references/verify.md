@@ -36,7 +36,7 @@ is dropped, unless its premise has changed.
 exists, or is a plain code smell — and its fix is obvious and carries no risk he would want to see:
 it leaves what the code does unchanged and touches nothing that matters in infrastructure, however
 large it is. Collapsing three classes into one with the same tested behaviour takes this exit;
-changing one infrastructure parameter may not. Code that guards security, authorization, audit or sensitive data carries risk by default. A bug fix never takes this exit, however small: a change in
+changing one infrastructure parameter may not. Code that guards security, authorization, audit or sensitive data always counts as risk. A bug fix never takes this exit, however small: a change in
 behaviour is his to know about. An over-building finding never takes it either. He would never argue with the rest, so no consequence needs arguing:
 their cost is that every later reviewer trips over them again. Write down the mechanism and every place it occurs — for a duplicate,
 every copy in the repository — because that is the fixer's whole brief.
