@@ -6,7 +6,8 @@ disable-model-invocation: true
 
 # Fix PR comments
 
-An unresolved thread is the owner's consent: he has read it and left it standing, so it gets fixed.
+An unresolved thread is the owner's consent: he has read it and left it standing, so it gets fixed —
+except a `🤔 RECOMMENDATION`, which waits for his reply (step 1).
 A resolved thread is his "no" — it is done, and it does not come back. That is the whole triage, and
 it is why this skill has no plan gate and no critic: judging the findings already happened, once,
 where he was already reading. It acts.
@@ -111,8 +112,8 @@ unactionable without it. Then the brief:
   fix needs a choice between workable ways that the comment does not make, if it reaches code outside
   this change for more than that removal** — whether it becomes a separate task is his call — **or if
   the fix would add a new mechanism**, something the system did not have and other code would rely
-  on. Then come back with both versions, the mechanism and the simpler change to what already exists,
-  and what each costs, for him to pick. His
+  on. Then run the `rightsize` skill over that mechanism and come back with what it reports, the two
+  versions, for him to pick. His
   preference is authoritative; his claim about the code is a claim like any other and you may
   contradict it with evidence. If you do stop, first revert your own edits — `git checkout` over the
   files you touched — and come back with the question and a clean tree. A half-applied change in a

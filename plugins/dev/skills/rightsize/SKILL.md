@@ -54,8 +54,8 @@ List only these entries.
 
 ## How to run it
 
-Run three fresh subagents. Give each one the whole subject and this file, and merge what they
-return. One pass over a large change sees part of it, and a different part each time.
-
-`${CLAUDE_PLUGIN_ROOT}/skills/rightsize/references/cases.md` holds five mechanisms from one real
-feature and what each one turned into once someone asked.
+Run three fresh subagents and merge what they return. Give each one the whole subject, this file and
+`${CLAUDE_PLUGIN_ROOT}/skills/rightsize/references/cases.md`, both by expanded path (a subagent
+cannot resolve the variable). The cases are five mechanisms from one real feature and what each
+turned into once someone asked. One pass over a large change sees part of it, and a different part
+each time.

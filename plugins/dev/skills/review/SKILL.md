@@ -17,7 +17,8 @@ reroutes control flow. The judgement inside each step belongs to the agent runni
 A finding that survives step 3's attempt to refute it leaves by one of two exits. **What he would
 never argue with is fixed here, without him** — a written rule broken, a copy of code that already
 exists, a plain code smell — when the fix carries no risk he would want to see: it changes no
-behaviour and nothing that matters in infrastructure, whatever its size. The agent that wrote the code
+behaviour and nothing that matters in infrastructure, whatever its size, and code that guards
+security, authorization, audit or sensitive data always counts as risk. The agent that wrote the code
 cannot see these in its own work, and their cost is not harm but recurrence: every later reviewer
 trips over the same thing again. **The rest goes to him, inline on the PR** — no report, no verdict,
 no reading guide. An unresolved thread is something waiting on him, so nothing unresolved means
@@ -108,7 +109,8 @@ axes, or a pass on one masks a failure on another.
 
 Hand every finding, all axes together, to a single agent running
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` (pass the expanded path), tell it the
-owner's language, and give it the memory when it exists: `.context/reviews/<bottom>/memory.md`,
+owner's language, the spec and any design folder or plan the change was built from (an
+over-building finding is checked against what he already chose there), and the memory when it exists: `.context/reviews/<bottom>/memory.md`,
 written by step 6 of earlier runs, `<bottom>` being the bottom node's branch from `nodes.json` with
 `/` replaced by `-`, as `generate_diffs.py` names its directory. **Only the verifier gets the
 memory.** A finder that saw it would steer away from ground already covered, and fresh eyes are
@@ -130,7 +132,8 @@ same fixer brief, one scoped `verify` over every fix, then `prune` as a fix run,
 chain. Each fixer gets its finding's mechanism and every place it occurs, and fixes all of them; a
 duplicate of something that already exists is removed across the whole repository, not only in this
 change. A fixer that finds the fix needs a choice or carries risk after all — it changes
-behaviour or something that matters in infrastructure — hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
+behaviour, something that matters in infrastructure, or code that guards security, authorization,
+audit or sensitive data — hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
 delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
 
 Commit them through `git-workflow` → **checkpoint**, one commit per group — in a submodule, a message

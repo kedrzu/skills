@@ -27,13 +27,16 @@ refuted and fixed, and what the owner decided in chat, each with the commit it w
 finding that matches an entry is dropped as already settled — unless the code it rests on changed
 since that commit, or you can say why that verdict was wrong. A verdict is not final because it was
 given once, and it is not reopened because a fresh finder phrased it differently. When you let one
-through, say which of the two reasons applies.
+through, say which of the two reasons applies. For an over-building finding the design's
+`DECISIONS.md` and the plan's Claims count as settled record too: a mechanism he kept there with the
+simpler version in front of him (it stands as that decision's Rejected line, or as a confirmed Claim)
+is dropped, unless its premise has changed.
 
 **3. Can it be fixed without him?** Yes when it breaks a written rule, duplicates code that already
 exists, or is a plain code smell — and its fix is obvious and carries no risk he would want to see:
 it leaves what the code does unchanged and touches nothing that matters in infrastructure, however
 large it is. Collapsing three classes into one with the same tested behaviour takes this exit;
-changing one infrastructure parameter may not. A bug fix never takes it, however small: a change in
+changing one infrastructure parameter may not. Code that guards security, authorization, audit or sensitive data carries risk by default. A bug fix never takes it, however small: a change in
 behaviour is his to know about. An over-building finding never takes it either. He would never argue with the rest, so no consequence needs arguing:
 their cost is that every later reviewer trips over them again. Write down the mechanism and every place it occurs — for a duplicate,
 every copy in the repository — because that is the fixer's whole brief.
