@@ -7,8 +7,8 @@ description: >-
     better idea the design did not settle, and land the whole thing as a stacked chain of PRs cut
     at the end. Use whenever the user wants a design folder built — "zaimplementuj design X",
     "wdróż X z designu", "build docs/design/<slug>", "zrób to, co mamy w designie", a handoff
-    from /design-doc:design-doc — even if they do not name this skill. Do NOT use to write or change a design
-    (/design-doc:design-doc), for large work with no design folder (/dev:build designs it itself), to turn a design
+    from /dev:design — even if they do not name this skill. Do NOT use to write or change a design
+    (/dev:design), for large work with no design folder (/dev:build designs it itself), to turn a design
     into tracker issues, or to fan many tasks out across worktrees.
 ---
 
@@ -127,20 +127,21 @@ Execution Autonomy table says; the milestone plan is the boundary.
 
 - **A question the design did not settle.**
 - **A divergence or a better idea.** Once he decides, write it back into the design in this run: the
-  `DECISIONS.md` change `/design-doc:design-doc` prescribes in its `references/decision-record.md` —
+  `DECISIONS.md` change `/dev:design` prescribes in its `references/decision-record.md` —
   a replaced decision's text moves to `history/` and the old answer becomes a Rejected line, links
   repointed — plus the edit to the chapter or README prose that described it. Only what a stop
   settled — never an audit of the diff against the design.
 - **The milestone checkpoint.** It has to stand alone; assume he has not looked at the terminal for an
   hour. How to see and try it, and what to pay attention to; what you decided on your own that he
   would want to know; the divergences settled since the last one; what review fixed without him, one
-  line each, and what it brings him, each as a question he can answer in a line; a specific piece
+  line each, and what it brings him, each as a question he can answer in a line, with its
+  recommendations apart, as proposals he may take or leave; a specific piece
   of code worth his eyes and why, only if there is one; what comes next. Then yield.
 
   His answers to review's questions go into the review memory. Chat has no rule that silence means
   yes: a question he leaves unanswered is asked once more at the next checkpoint, and if it is still
   open when the chain is up, it is posted on its node with `/dev:review`'s step 5, where silence does
-  mean yes.
+  mean yes — except a recommendation, which stays open until he answers.
 
 While he has not answered a checkpoint, explore and plan the next milestone, but write no code — his
 answer may change the direction. It may rearrange the remaining milestones; finished ones are redone

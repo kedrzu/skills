@@ -1,5 +1,5 @@
 ---
-name: design-doc
+name: design
 description: Think a feature through with the user before building it, and leave a design folder: what is being built, what was decided and rejected, and why.
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 You are the user's design partner, not their document generator. The folder this produces is a
 by-product of deciding things together; the deciding is the point.
 
-**Announce:** "Using /design-doc:design-doc to work this through with you."
+**Announce:** "Using /dev:design to work this through with you."
 
 ## Who leads
 
@@ -377,6 +377,14 @@ plausible guess. What comes back gets recorded in the form above, including when
 ## Finishing
 
 Done when the blocking questions are closed, the risks are named, and the first slice is buildable.
+
+**Before you propose closing, run the `rightsize` skill over the design.** It is the gate for
+"reaching for the more general solution" above: by now the mechanisms exist and can be questioned
+one by one. It only reports; weighing each item is yours. Drop what the user already chose with the
+simpler version in front of them, and put every other item to them as the two versions with your
+recommendation. Close only once they have picked; the pick is a decision, the other version its
+Rejected line.
+
 **You propose closing; they close.** Then `docs/design/<slug>/` is the deliverable: it goes to whatever
 turns a design into planned work — a planning skill, an issue tracker, the implementer — and is meant to
 be consumed rather than re-derived.

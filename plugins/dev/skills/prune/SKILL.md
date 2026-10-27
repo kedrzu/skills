@@ -9,7 +9,7 @@ description: >-
     Runs after implementation and again after a fix run, between the scoped check and the full
     verify. Invoked by the pipeline and by whatever applies review fixes; use it directly when asked to "prune
     this", "shrink the diff", "usuń zbędny kod", or to strip what a change over-built. Do NOT use to
-    hunt bugs (a review), to run checks (the project's verify skill), or for any cleanup whose fix is to write
+    judge whether a mechanism is too big for its problem (rightsize), to hunt bugs (a review), to run checks (the project's verify skill), or for any cleanup whose fix is to write
     more code — an extraction, a rename or an efficiency rewrite is not this phase.
 ---
 

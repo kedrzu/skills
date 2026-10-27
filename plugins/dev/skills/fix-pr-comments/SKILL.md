@@ -6,7 +6,8 @@ disable-model-invocation: true
 
 # Fix PR comments
 
-An unresolved thread is the owner's consent: he has read it and left it standing, so it gets fixed.
+An unresolved thread is the owner's consent: he has read it and left it standing, so it gets fixed —
+except a `🤔 RECOMMENDATION`, which waits for his reply (step 1).
 A resolved thread is his "no" — it is done, and it does not come back. That is the whole triage, and
 it is why this skill has no plan gate and no critic: judging the findings already happened, once,
 where he was already reading. It acts.
@@ -53,7 +54,12 @@ a chain missing a node means skipping every thread on it, invisibly.
 Every thread it returns is unresolved **on GitHub**, which is the only authority on that. A comment
 saying "done" or "fixed" is not resolution — someone may have changed the code and never resolved
 the thread; the fixer will find that out and answer accordingly. **Nothing of his is dropped here**,
-whatever kind of comment it is: unresolved and unanswered is consent, uniformly. The one thing the
+whatever kind of comment it is: unresolved and unanswered is consent, uniformly — except a
+`🤔 RECOMMENDATION`, a proposal to remove something over-built, which he opts into: it is acted on
+only when he has replied (fix it, fix it this way, or let's talk), on the thread or in the direction
+given with the run, and without a reply it is left
+open and untouched, still up for discussion. When he rejects it, answer and resolve it like any
+thread he talked down: the topic is closed. The one thing the
 fetch skips is a lone `## 🤖` answer of ours with nothing under it, which older runs posted as a
 comment of its own: our output, not his input — unless he replies under it, which makes his reply
 the ask.
@@ -104,9 +110,12 @@ unactionable without it. Then the brief:
   not touch is theirs, not yours: note it in your report, finish your own work, and do not
   investigate. The authoritative check runs after everyone is done. This prior matters — without it
   an agent hunts a bug that belongs to someone else and burns the run doing it.
-- **Stop only if the comment is genuinely unclear, if it implies he has misread the code, or if the
-  fix needs a choice between workable ways that the comment does not make, or reaches code outside
-  this change for more than that removal** — whether it becomes a separate task is his call. His
+- **Stop only if the comment is genuinely unclear, if it implies he has misread the code, if the
+  fix needs a choice between workable ways that the comment does not make, if it reaches code outside
+  this change for more than that removal** — whether it becomes a separate task is his call — **or if
+  the fix would add a new mechanism**, something the system did not have and other code would rely
+  on. Then run the `rightsize` skill over that mechanism and come back with what it reports, the two
+  versions, for him to pick. His
   preference is authoritative; his claim about the code is a claim like any other and you may
   contradict it with evidence. If you do stop, first revert your own edits — `git checkout` over the
   files you touched — and come back with the question and a clean tree. A half-applied change in a
@@ -207,7 +216,7 @@ Ask in an ordinary message, never in a dialog that holds the run until he answer
 already fixed are verified, pruned, committed and pushed meanwhile, their answers waiting for that
 one call, and his reply reaches you like any other event.
 One or two sentences: what the comment asks, what the code actually says, and what you need from
-him. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
+him. A stop on a new mechanism instead carries both versions and what the simpler one gives up. His answer starts one more fixer for that thread's group once nothing from steps 3 to 6 is in
 flight — they need a tree nobody else is editing — and on a chain with that group's node checked
 out; it then goes through steps 4 to 6 like the rest, the upward propagation included. **The run
 does not go on to step 8 while any question is open:** final verification and the closing list

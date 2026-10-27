@@ -266,7 +266,7 @@ def generate_diff_set(out_dir, base, head_rev, submodule_paths, empty_tree):
 
 
 def render_nodes_json(chain_base, current_index, rows, stack_number=None):
-    """nodes.json, laid out one node per line — five finder agents and the poster
+    """nodes.json, laid out one node per line — six finder agents and the poster
     read it, and a node is what they read it for."""
     head = {"stacked": stack_number is not None}
     if stack_number is not None:
