@@ -68,8 +68,9 @@ stop to read a document about it, so it needs a mechanical check, not more text.
   rule in prose.
 - **Review standards**: what the reviewing agent should have caught and did not. Judgement calls
   belong where the reviewer reads, not in the implementer's always-loaded context.
-- **Steering files**: always-loaded text that is stale, duplicated, or changes nothing (a no-op the
-  model already does by default). Removing it is a valid fix.
+- **Steering files**: always-loaded text that is stale, duplicated, changes nothing (a no-op the
+  model already does by default), or restates a check that already enforces it, so the two drift
+  apart. Removing it is a valid fix.
 - **Skills**: an instruction that lost, was wrong, or is missing.
 - **Tool economy**: expensive or repeated tool calls a script or a better tool would replace.
 - **Information access**: something the agent could not see (logs, a third-party service, data)
@@ -77,10 +78,14 @@ stop to read a document about it, so it needs a mechanical check, not more text.
 
 ## Name each change's home
 
+The home follows from where the behaviour can be caught, not from where the agent learned it. A
+misstep recognisable in a tool call or a diff goes to a check even when a skill or `CLAUDE.md`
+taught it: a check fires every time, text only when it wins the agent's attention.
+
 | Cause | Home |
 |-|-|
+| Mechanical mistake | a check: a `PreToolUse` hook in a Claude Code plugin, a lint rule, a CI job, whichever the repo makes cheapest |
 | A skill behaved badly | the skill: name the instruction that should have caught this, and whether it is missing, lost or wrong |
-| Mechanical mistake | a check: linter rule, hook, CI job, whichever the repo makes cheapest |
 | Judgement the reviewer missed | the review standards the project's reviewer reads |
 | Navigation | a pointer in `CLAUDE.md`/`AGENTS.md`, or in the doc the agent was already reading |
 | Missing information | access: a tool, a log, a read-only credential |
@@ -93,7 +98,7 @@ finding too.
 
 Before anything reaches the user, have a subagent try to refute each proposed change against the repo:
 does it already exist, does the evidence really show what the finding claims, would something
-narrower do? In one real run this pass dropped 2 of 15 drafted changes as false and narrowed 8, and
+narrower do, could a check enforce what the change puts in text? In one real run this pass dropped 2 of 15 drafted changes as false and narrowed 8, and
 every overstatement pointed the same way: towards building something that already existed.
 
 ## Present the proposals

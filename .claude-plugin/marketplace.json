@@ -71,7 +71,7 @@
       "name": "retro",
       "source": "./plugins/retro",
       "description": "Retrospective on how agents worked in a project: root cause from Claude Code and Codex transcripts and PR reviews, verdicts on the previous retro, and proposed changes to the environment",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "workflow"
     },
     {
@@ -92,7 +92,7 @@
       "name": "skill-improve",
       "source": "./plugins/skill-improve",
       "description": "Revise an existing skill so the agent behaves as intended, without the skill swelling — evidence from real transcripts first, knowledge grows freely, procedure asks",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "workflow"
     },
     {

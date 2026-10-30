@@ -62,7 +62,7 @@ and keep what you read local.
 "What is missing?" is the wrong opening question, and it is the one that grows skills. Ask **which
 instruction should have caught this**. The answer carries its own cure:
 
-- **Nothing covers it** — a real knowledge gap, and text is the remedy. Write it.
+- **Nothing covers it** — a real knowledge gap. Write it, unless a check can catch it (below).
 - **Something covers it and lost** — buried, drowned out by a louder neighbour, or worded so it
   reads as optional. A second copy makes it quieter still; cut or sharpen whatever is drowning it.
   Two shapes lose often: a prohibition ("Do NOT X" keeps X in view, so name the behaviour you want
@@ -76,6 +76,13 @@ The impulse this question guards against: asked to stop running the critic on hi
 comment and just fix it, a revision answered with a two-axis `askOrigin` × `askIntent` taxonomy plus
 a new rule inserted ahead of the existing ones — rather than repairing the rule that already decided
 that case.
+
+Before writing text for either of the first two, ask whether the wrong move is visible in the act
+itself — a command, a file it writes, a shape in the diff. Then a check catches it every time, where
+text catches it only when it wins the agent's attention: a `PreToolUse` hook in a Claude Code plugin
+(the `guardrails` plugin collects them), a lint rule, a CI step — preferably in a mechanism the repo
+already runs. Propose that to him instead; the check's error message is where the *why* goes, and
+the prose rule it replaces can go. Text stays the remedy when spotting the mistake takes judgement.
 
 When he asks for something larger — a new reach, a different artefact — no rule failed, so the
 question becomes **which text is now false**. The passage describing the old scope or output is not
@@ -109,8 +116,8 @@ and the list is what makes that visible.
 
 ## Nothing is also an answer
 
-A one-off slip, a model too small for the job, something belonging in the prompt, in `CLAUDE.md` or
-in a different skill — none of those are changes to this skill. Say so and stop.
+A one-off slip, a model too small for the job, something belonging in the prompt, in `CLAUDE.md`, in
+a different skill or in a check — none of those are changes to this skill. Say so and stop.
 
 Evidence cuts both ways here: finding the real mechanism is not a licence to write a rule about it.
 When the cause turns out to sit in run state, in a prompt, or in another skill, that is where the
