@@ -55,6 +55,36 @@ a script file that calls `node -e`, a `package.json` script) is out of its reach
 a file, a download or a variable pipes into a shell (`cat x.sh | bash`, `curl … | sh`,
 `echo "$CODE" | bash`): only `echo`, `printf` and `cat` with a heredoc are read.
 
+### No install inside a workspace submodule — `hooks/block_submodule_install.py`
+
+**Blocks** a package install run inside a git submodule whose packages are workspaces of the
+superproject: `bun install|i|add|a|remove|rm|update`, `npm install|i|in|ci|add|uninstall|un|remove|rm|r|update|up|link`,
+`pnpm install|i|add|remove|rm|uninstall|un|update|up`, and `yarn` bare or with `install|add|remove|up|upgrade`.
+Not `bun upgrade`, `bun run`, `bun x`, `bunx`. The directory it runs in starts at the hook input's
+`cwd` and follows `cd` / `pushd` earlier in the command line, `~`, relative paths, `env -C`, and the
+manager's own option (`bun --cwd`, `npm --prefix` / `-C`, `pnpm -C` / `--dir`, `yarn --cwd`). The call
+is found behind env-var prefixes, wrappers and `bash -c`, like the guard above.
+
+It asks git (`rev-parse --show-superproject-working-tree`) whether that directory is in a submodule,
+then reads the superproject's `package.json` `workspaces` (array or `{ "packages": [...] }`) and blocks
+only if a pattern points at or into the submodule. No configuration and no hard-coded names.
+
+**Allows** installs from the superproject root, in a plain repo, in a submodule whose packages the
+superproject does not list as workspaces (it keeps its own installs), and any command that is not an
+install.
+
+**Why.** The superproject's install is the only correct one. Installing from inside the submodule
+creates a second `node_modules` there and re-links the submodule's packages to it, shadowing the
+superproject's dependencies: two paths to the same package, phantom TypeScript errors (TS2883), lint
+that works by accident.
+
+**The fix the agent is told:** run the install from the superproject root (`cd <superproject> && bun install`);
+if a stray store already exists, delete the submodule's `node_modules` and reinstall from the superproject.
+
+**Limits.** A directory it cannot work out (`cd -`, `cd $DIR`, `popd`) is allowed, as is anything
+unparseable (with a warning). A `cd` inside a subshell is treated as if it changed the directory for
+the rest of the line.
+
 ## Layout
 
 ```

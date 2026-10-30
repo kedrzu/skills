@@ -42,8 +42,8 @@
     {
       "name": "guardrails",
       "source": "./plugins/guardrails",
-      "description": "Mechanical safety guards for agents: hooks that refuse a dangerous command and tell the agent what to do instead. First guard: no inline node/bun eval (-e, -p), which turns any library that forks with execArgv into a fork bomb",
-      "version": "0.1.0",
+      "description": "Mechanical safety guards for agents: hooks that refuse a dangerous command and tell the agent what to do instead. Guards: no inline node/bun eval (-e, -p), which turns any library that forks with execArgv into a fork bomb; no package install inside a git submodule whose packages are workspaces of the superproject, which shadows its dependencies",
+      "version": "0.2.0",
       "category": "security"
     },
     {
