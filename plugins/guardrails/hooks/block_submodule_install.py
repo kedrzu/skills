@@ -165,7 +165,18 @@ def check_install(manager: str, words: list[str], cwd: str | None) -> Found | No
 def check_text(command: str, state: State, depth: int = 0) -> None:
     if depth > MAX_DEPTH:
         return
+    scope: tuple[int, ...] = ()
+    opened_in: list[str | None] = []  # the cwd each scope in `scope` opened in
     for cmd in parse(command):
+        # A `cd` in a subshell or substitution lasts until it closes, then the cwd it opened in is back.
+        shared = 0
+        while shared < min(len(scope), len(cmd.scope)) and scope[shared] == cmd.scope[shared]:
+            shared += 1
+        if shared < len(scope):
+            state.cwd = opened_in[shared]
+            del opened_in[shared:]
+        opened_in.extend(state.cwd for _ in cmd.scope[shared:])
+        scope = cmd.scope
         check_command(cmd.words, state, depth, cmd.stdin)
 
 

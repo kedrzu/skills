@@ -106,6 +106,14 @@ class SubmoduleInstallTests(unittest.TestCase):
         self.assertAllowed("bun install", self.root / "packages")
         self.assertAllowed("bun --cwd .. install", self.lib)
 
+    def test_a_cd_in_a_subshell_or_substitution_ends_with_it(self):
+        self.assertAllowed("(cd lib && bun run lint); bun install", self.root)
+        self.assertAllowed("X=$(cd lib && pwd); bun install", self.root)
+        self.assertAllowed("echo $(cd lib) ; bun install", self.root)
+        self.assertAllowed("echo `cd lib`; (X=$(cd lib); cd ..); bun install", self.root)
+        self.assertBlocked("(cd lib && bun install)", self.root)
+        self.assertBlocked("cd lib && (cd packages; X=$(cd ..)) && bun install", self.root)
+
     def test_allows_a_submodule_that_is_not_a_workspace(self):
         self.assertAllowed("bun install", self.other)
         self.assertAllowed("cd other && npm install", self.root)

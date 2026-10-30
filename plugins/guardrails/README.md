@@ -82,8 +82,7 @@ that works by accident.
 if a stray store already exists, delete the submodule's `node_modules` and reinstall from the superproject.
 
 **Limits.** A directory it cannot work out (`cd -`, `cd $DIR`, `popd`) is allowed, as is anything
-unparseable (with a warning). A `cd` inside a subshell is treated as if it changed the directory for
-the rest of the line.
+unparseable (with a warning).
 
 ## Layout
 

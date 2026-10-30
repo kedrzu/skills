@@ -7,6 +7,8 @@ own, next to the command that contains them. A heredoc body is plain text, excep
 unquoted delimiter (`<<EOF`, not `<<'EOF'`) bash runs its `$(...)` and backticks, so they are
 returned too; a guard that cares (a shell reading its script from stdin) looks at `Command.stdin`,
 and at `Command.piped_from`: the command on the left of the `|` or `|&` that feeds it.
+`Command.scope` names the subshells (`( … )`) and substitutions the command runs in, outermost
+first, so a guard can drop what a `cd` in one of them did once it closes.
 
 It is not a full shell grammar: keywords, `case` patterns and expansions stay plain words. Input a
 shell would reject (an unterminated quote or substitution) raises `ParseError`, which a guard turns
@@ -16,6 +18,7 @@ into "allow, with a warning". The scan is linear, so it never hangs.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import count
 
 SEPARATORS = ("&&", "||", ";;", "|&", ";", "|", "&")
 REDIRECTS = ("<<<", "<<-", "<<", "&>>", "&>", ">>", ">&", "<&", "<>", ">|", ">", "<")
@@ -32,6 +35,7 @@ class Command:
     words: list[str] = field(default_factory=list)
     stdin: list[str] = field(default_factory=list)
     piped_from: Command | None = field(default=None, repr=False, compare=False)
+    scope: tuple[int, ...] = field(default=(), compare=False)  # ids of the enclosing subshells/substitutions
 
 
 def parse(text: str) -> list[Command]:
@@ -39,9 +43,9 @@ def parse(text: str) -> list[Command]:
     return commands
 
 
-def _substitutions(text: str) -> list[Command]:
+def _substitutions(text: str, scope: tuple[int, ...], ids: count) -> list[Command]:
     """The commands an unquoted heredoc body runs: its `$(...)` and backticks; the rest is text."""
-    parser = _Parser(text, 0, nested=False)
+    parser = _Parser(text, 0, nested=False, scope=scope, ids=ids)
     while parser.i < len(text):
         c, nxt = text[parser.i], text[parser.i + 1:parser.i + 2]
         if c == "\\":
@@ -56,8 +60,10 @@ def _substitutions(text: str) -> list[Command]:
 
 
 class _Parser:
-    def __init__(self, text: str, start: int, nested: bool) -> None:
+    def __init__(self, text: str, start: int, nested: bool, scope: tuple[int, ...] = (),
+                 ids: count | None = None) -> None:
         self.s, self.i, self.nested = text, start, nested
+        self.base, self.scope, self.ids = scope, scope, ids if ids is not None else count(1)
         self.commands: list[Command] = []
         self.current = Command()
         self.word: list[str] | None = None
@@ -66,7 +72,7 @@ class _Parser:
         self.heredocs: list[tuple[str, bool, bool, list[str]]] = []
 
     def run(self) -> tuple[list[Command], int]:
-        s, depth = self.s, 0
+        s = self.s
         while self.i < len(s):
             c, nxt = s[self.i], s[self.i + 1:self.i + 2]
             if c in " \t\r":
@@ -110,14 +116,15 @@ class _Parser:
                 self.i += len(op)
             elif c == "(":
                 self.end_command()
-                depth += 1
+                self.scope += (next(self.ids),)
                 self.i += 1
             elif c == ")":
                 self.end_command()
                 self.i += 1
-                if self.nested and depth == 0:
+                if self.nested and self.scope == self.base:
                     return self.commands, self.i
-                depth = max(0, depth - 1)
+                if self.scope != self.base:
+                    self.scope = self.scope[:-1]
             else:
                 self.add(c)
                 self.i += 1
@@ -151,6 +158,7 @@ class _Parser:
         self.redirect = None
         ended, self.current = self.current, Command()
         if ended.words or ended.stdin:
+            ended.scope = self.scope
             self.commands.append(ended)
         else:  # `a |` then a newline or `(`: the pipe still feeds the next command
             self.current.piped_from = ended.piped_from
@@ -178,7 +186,7 @@ class _Parser:
                 body.append(line)
             stdin.append("\n".join(body))
             if expands:
-                self.commands.extend(_substitutions(stdin[-1]))
+                self.commands.extend(_substitutions(stdin[-1], self.scope, self.ids))
         self.heredocs = []
 
     def ansi_c_quote(self) -> None:
@@ -218,7 +226,7 @@ class _Parser:
         raise ParseError("unterminated double quote")
 
     def substitution(self, start: int) -> None:
-        commands, end = _Parser(self.s, start, nested=True).run()
+        commands, end = _Parser(self.s, start, nested=True, scope=self.inner(), ids=self.ids).run()
         self.commands.extend(commands)
         self.add(self.s[self.i:end])
         self.i = end
@@ -234,9 +242,13 @@ class _Parser:
                 i += 1
         if i >= len(s):
             raise ParseError("unterminated backticks")
-        self.commands.extend(parse("".join(inner)))
+        self.commands.extend(_Parser("".join(inner), 0, nested=False, scope=self.inner(), ids=self.ids).run()[0])
         self.add(s[self.i:i + 1])
         self.i = i + 1
+
+    def inner(self) -> tuple[int, ...]:
+        """The scope of a substitution opened here."""
+        return self.scope + (next(self.ids),)
 
     def parameter(self) -> None:
         s, i, depth = self.s, self.i + 2, 1
