@@ -89,6 +89,7 @@ the rest of the line.
 
 ```
 hooks/hooks.json               # one PreToolUse entry per guard
+hooks/guard.py                 # shared runner: hook input in, exit code out, fail open
 hooks/shellparse.py            # shared shell lexer: simple commands, quotes, $(...), heredocs
 hooks/<guard>.py               # one guard per script
 hooks/test_<guard>.py          # its tests: JSON in on stdin, exit code out
@@ -96,11 +97,13 @@ hooks/test_<guard>.py          # its tests: JSON in on stdin, exit code out
 
 ## Adding a guard
 
-1. Write `hooks/<guard>.py`. Read the hook input as JSON from stdin; to refuse, print the
-   reason on stderr and exit 2; otherwise exit 0. A Bash guard gets its simple commands from
-   `shellparse.parse()` (import it after putting the script's directory on `sys.path`, as
-   `block_inline_eval.py` does — `python3 -I` leaves it off).
-2. Fail open: any exception means exit 0, with a `{"systemMessage": …}` warning on stdout. A
+1. Write `hooks/<guard>.py` with a `check(command, cwd)` that returns the reason to refuse, or
+   `None`, and a `main()` that returns `run_guard(check, <seconds>, "<what it checks>")` from
+   `guard.py`. A Bash guard gets its simple commands from `shellparse.parse()`. Import both after
+   putting the script's directory on `sys.path`, as `block_inline_eval.py` does — `python3 -I`
+   leaves it off.
+2. `run_guard` reads the hook input from stdin, prints a returned reason on stderr and exits 2,
+   and fails open: any exception means exit 0, with a `{"systemMessage": …}` warning on stdout. A
    guard that crashes must not block every command.
 3. Add an entry to `hooks/hooks.json`, run as `python3 -I "${CLAUDE_PLUGIN_ROOT}/hooks/<guard>.py"`
    with a `timeout`.

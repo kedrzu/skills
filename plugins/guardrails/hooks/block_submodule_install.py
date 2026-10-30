@@ -26,7 +26,6 @@ import fnmatch
 import json
 import os
 import shlex
-import signal
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -36,6 +35,7 @@ from block_inline_eval import (  # noqa: E402
     BUN_VALUE_OPTIONS, MAX_DEPTH, PACKAGE_RUNNERS, SHELLS, WRAPPERS, program, shell_script, skip_options,
     strip_prefixes,
 )
+from guard import run_guard  # noqa: E402
 from shellparse import parse  # noqa: E402
 
 INSTALL_COMMANDS: dict[str, set[str]] = {
@@ -235,36 +235,19 @@ def reason(found: Found, submodule: str, superproject: str) -> str:
     )
 
 
-def _timeout(*_: object) -> None:
-    raise TimeoutError("the command took too long to check")
+def check(command: str, cwd: object) -> str | None:
+    start = cwd if isinstance(cwd, str) and cwd else os.getcwd()
+    state = State(os.path.normpath(start), [])
+    check_text(command, state)
+    for found in state.found:
+        hit = workspace_submodule(found.directory)
+        if hit:
+            return reason(found, *hit)
+    return None
 
 
 def main() -> int:
-    try:
-        data = json.load(sys.stdin)
-        command = (data.get("tool_input") or {}).get("command") if isinstance(data, dict) else None
-        cwd = data.get("cwd") if isinstance(data, dict) else None
-    except ValueError:
-        return 0
-    if not isinstance(command, str):
-        return 0
-    if hasattr(signal, "SIGALRM"):
-        signal.signal(signal.SIGALRM, _timeout)
-        signal.alarm(6)
-    try:
-        start = cwd if isinstance(cwd, str) and cwd else os.getcwd()
-        state = State(os.path.normpath(start), [])
-        check_text(command, state)
-        for found in state.found:
-            hit = workspace_submodule(found.directory)
-            if hit:
-                print(reason(found, *hit), file=sys.stderr)
-                return 2
-    except Exception as error:  # fail open: one odd string must not block every command
-        message = f"guardrails: could not check this command for a submodule install ({error}); allowed it."
-        print(json.dumps({"systemMessage": message}))
-        return 0
-    return 0
+    return run_guard(check, 6, "a submodule install")
 
 
 if __name__ == "__main__":

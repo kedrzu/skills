@@ -19,14 +19,13 @@ not sandbox, and it must never block every command because of one odd string.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import shlex
-import signal
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from guard import run_guard  # noqa: E402
 from shellparse import ANSI_ESCAPES, Command, parse  # noqa: E402
 
 MAX_DEPTH = 8
@@ -263,31 +262,13 @@ def reason(found: str) -> str:
     )
 
 
-def _timeout(*_: object) -> None:
-    raise TimeoutError("the command took too long to parse")
+def check(command: str, _cwd: object) -> str | None:
+    found = check_text(command)
+    return reason(found) if found else None
 
 
 def main() -> int:
-    try:
-        data = json.load(sys.stdin)
-        command = (data.get("tool_input") or {}).get("command") if isinstance(data, dict) else None
-    except ValueError:
-        return 0
-    if not isinstance(command, str):
-        return 0
-    if hasattr(signal, "SIGALRM"):
-        signal.signal(signal.SIGALRM, _timeout)
-        signal.alarm(3)
-    try:
-        found = check_text(command)
-    except Exception as error:  # fail open: one odd string must not block every command
-        message = f"guardrails: could not check this command for inline node/bun eval ({error}); allowed it."
-        print(json.dumps({"systemMessage": message}))
-        return 0
-    if found:
-        print(reason(found), file=sys.stderr)
-        return 2
-    return 0
+    return run_guard(check, 3, "inline node/bun eval")
 
 
 if __name__ == "__main__":
