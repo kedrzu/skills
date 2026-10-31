@@ -26,56 +26,15 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from guard import run_guard  # noqa: E402
-from shellparse import ANSI_ESCAPES, Command, parse  # noqa: E402
+from shellparse import BUN_VALUE_OPTIONS, program, skip_options, walk  # noqa: E402
 
-MAX_DEPTH = 8
-ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\[[^]]*\])?\+?=")
-KEYWORDS = {"!", "{", "}", "if", "then", "else", "elif", "fi", "do", "done", "while", "until", "coproc"}
-SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "mksh"}
 NODES = {"node", "nodejs"}
-
-# Wrappers that run the rest of their arguments as a command: options that take a separate value,
-# and how many positional arguments come before the command (`timeout 90 cmd`).
-WRAPPERS: dict[str, tuple[set[str], int]] = {
-    "env": ({"-u", "--unset", "-C", "--chdir", "-P"}, 0),
-    "timeout": ({"-s", "--signal", "-k", "--kill-after"}, 1),
-    "gtimeout": ({"-s", "--signal", "-k", "--kill-after"}, 1),
-    "nice": ({"-n", "--adjustment"}, 0),
-    "time": ({"-f", "--format", "-o", "--output"}, 0),
-    "command": (set(), 0),
-    "builtin": (set(), 0),
-    "exec": ({"-a"}, 0),
-    "nohup": (set(), 0),
-    "caffeinate": ({"-t", "-w"}, 0),
-    "stdbuf": ({"-i", "-o", "-e", "--input", "--output", "--error"}, 0),
-    "xargs": ({"-I", "-J", "-L", "-n", "-P", "-R", "-S", "-s", "-E", "-e", "-d", "-a", "--delimiter",
-               "--arg-file", "--max-args", "--max-procs", "--max-lines", "--max-chars", "--eof"}, 0),
-    "sudo": ({"-u", "--user", "-g", "--group", "-h", "--host", "-p", "--prompt", "-C", "--close-from",
-              "-D", "--chdir", "-r", "--role", "-t", "--type", "-U", "--other-user", "-T", "--command-timeout"}, 0),
-    "doas": ({"-u", "-C"}, 0),
-    "npx": ({"-p", "--package", "-w", "--workspace"}, 0),
-    "bunx": ({"-p", "--package"}, 0),
-}
-# Package managers: the subcommands that run a command, and the options that take a separate value
-# (`pnpm --filter web exec`). pnpm's `-w` is `--workspace-root` and takes none.
-PACKAGE_RUNNERS: dict[str, tuple[set[str], set[str]]] = {
-    "npm": ({"exec", "x"}, {"-w", "--workspace", "-C", "--prefix"}),
-    "pnpm": ({"exec", "dlx"}, {"-F", "--filter", "--filter-prod", "-C", "--dir"}),
-    "yarn": ({"exec", "dlx"}, {"--cwd"}),
-}
-
 NODE_VALUE_OPTIONS = {"-r", "--require", "--import", "--loader", "--experimental-loader", "-C", "--conditions",
                       "--env-file", "--env-file-if-exists", "--input-type", "--inspect-port", "--title",
                       "--redirect-warnings", "--report-dir", "--report-directory", "--report-filename",
                       "--diagnostic-dir", "--icu-data-dir", "--openssl-config", "--disable-warning",
                       "--experimental-config-file", "--watch-path", "--test-reporter",
                       "--test-reporter-destination", "--stack-trace-limit", "--max-old-space-size"}
-BUN_VALUE_OPTIONS = {"-r", "--preload", "--require", "--import", "--cwd", "--env-file", "-c", "--config", "-d",
-                     "--define", "-l", "--loader", "--tsconfig-override", "--conditions", "--port",
-                     "--main-fields", "--extension-order", "--jsx-factory", "--jsx-fragment",
-                     "--jsx-import-source", "--jsx-runtime", "--console-depth", "--install", "-F", "--filter",
-                     "--unhandled-rejections", "--dns-result-order", "--fetch-preconnect",
-                     "--max-http-header-size", "--title"}
 EVAL_LONG = {"--eval", "--print"}
 
 FIX = (
@@ -87,26 +46,6 @@ FIX = (
     "    node \"$TMPDIR/snippet.mjs\"    # or: bun \"$TMPDIR/snippet.ts\"\n"
     "A heredoc to a file like this is fine even for a one-liner."
 )
-
-
-def program(word: str) -> str:
-    name = os.path.basename(word).lower()
-    name = name.removesuffix(".exe")
-    if "@" in name[1:]:
-        name = name[0] + name[1:].split("@", 1)[0]
-    return name
-
-
-def skip_options(args: list[str], with_value: set[str]) -> list[str]:
-    i = 0
-    while i < len(args):
-        arg = args[i]
-        if arg == "--":
-            return args[i + 1:]
-        if not arg.startswith("-") or arg == "-":
-            break
-        i += 2 if arg in with_value else 1
-    return args[i:]
 
 
 def eval_flag(arg: str) -> bool:
@@ -128,28 +67,6 @@ def find_eval(words: list[str], value_options: set[str]) -> int | None:
     return None
 
 
-def shell_script(args: list[str]) -> tuple[str, str | None]:
-    """How a shell gets its script: ("c", text), ("file", None) or ("stdin", None)."""
-    i, inline = 0, False
-    while i < len(args):
-        arg = args[i]
-        if arg in ("--", "-"):
-            i += 1
-            break
-        if arg.startswith("--"):
-            i += 2 if arg in ("--rcfile", "--init-file") else 1
-            continue
-        if len(arg) > 1 and arg[0] in "-+":
-            inline = inline or (arg[0] == "-" and "c" in arg[1:])
-            i += 2 if arg[-1] in "oO" else 1
-            continue
-        break
-    rest = args[i:]
-    if inline:
-        return "c", rest[0] if rest else None
-    return ("file", None) if rest else ("stdin", None)
-
-
 def snippet(words: list[str], flag: int) -> str:
     shown = words[:flag + 2]
     if len(shown) > flag + 1 and len(shown[-1]) > 60:
@@ -157,99 +74,20 @@ def snippet(words: list[str], flag: int) -> str:
     return shlex.join(shown).replace("\n", " ")
 
 
-def strip_prefixes(words: list[str]) -> list[str]:
-    while words and (words[0] in KEYWORDS or ASSIGNMENT.match(words[0])):
-        words = words[1:]
-    return words
-
-
-def unescape(text: str) -> str:
-    return re.sub(r"\\(.)", lambda m: ANSI_ESCAPES.get(m.group(1), m.group(0)), text, flags=re.S)
-
-
-def piped_text(feeder: Command | None) -> list[str]:
-    """What the left side of a pipe writes, when it is `echo`, `printf` or `cat` fed by a heredoc.
-
-    Backslash escapes are decoded (as `printf` and zsh's `echo` do), and `printf` prints its format and
-    then each argument on a line of its own instead of filling in `%s`: enough to see a command in it.
-    """
-    words = strip_prefixes(feeder.words) if feeder else []
-    if not words:
-        return []
-    name, args = program(words[0]), words[1:]
-    if name == "cat":
-        return feeder.stdin if all(a.startswith("-") for a in args) else []
-    if name == "echo":
-        while args and re.fullmatch(r"-[neE]+", args[0]):
-            args = args[1:]
-        return [unescape(" ".join(args))]
-    if name == "printf":
-        args = skip_options(args, {"-v"})
-        return ["\n".join([unescape(args[0]), *args[1:]])] if args else []
-    return []
-
-
-def check_command(words: list[str], stdin: list[str], depth: int, fed: Command | None) -> str | None:
-    while True:
-        words = strip_prefixes(words)
-        if not words:
-            return None
-        name, args = program(words[0]), words[1:]
-        if name in NODES or name == "bun":
-            flag = find_eval(words, NODE_VALUE_OPTIONS if name in NODES else BUN_VALUE_OPTIONS)
+def inline_eval(words: list[str], _cwd: object) -> str | None:
+    """The visitor: the `node` / `bun` call with its eval flag, as a snippet, or None."""
+    name = program(words[0])
+    if name not in NODES and name != "bun":
+        return None
+    flag = find_eval(words, NODE_VALUE_OPTIONS if name in NODES else BUN_VALUE_OPTIONS)
+    if flag is not None:
+        return snippet(words, flag)
+    if name == "bun":
+        rest = skip_options(words[1:], BUN_VALUE_OPTIONS)
+        if rest[:1] == ["run"]:
+            flag = find_eval(rest, BUN_VALUE_OPTIONS)
             if flag is not None:
-                return snippet(words, flag)
-            if name == "bun":
-                rest = skip_options(args, BUN_VALUE_OPTIONS)
-                if rest[:1] == ["x"]:
-                    words = skip_options(rest[1:], WRAPPERS["bunx"][0])
-                    continue
-                if rest[:1] == ["run"]:
-                    flag = find_eval(rest, BUN_VALUE_OPTIONS)
-                    if flag is not None:
-                        return snippet([words[0], *rest], flag + 1)
-            return None
-        if name == "command" and args[:1] and re.fullmatch(r"-[pvV]*[vV][pvV]*", args[0]):
-            return None
-        if name == "env" and any(a in ("-S", "--split-string") or a.startswith("--split-string=") for a in args):
-            split = [a.removeprefix("--split-string=") for a in args if a not in ("-S", "--split-string")]
-            return check_text(" ".join(["env", *split]), depth + 1)
-        if name in ("npx", "bunx") and any(a in ("-c", "--call") for a in args):
-            call = args[args.index("-c" if "-c" in args else "--call") + 1:][:1]
-            return check_text(call[0], depth + 1) if call else None
-        if name in WRAPPERS:
-            with_value, positional = WRAPPERS[name]
-            words = skip_options(args, with_value)[positional:]
-            continue
-        if name in PACKAGE_RUNNERS:
-            subcommands, with_value = PACKAGE_RUNNERS[name]
-            rest = skip_options(args, with_value)
-            if not rest or rest[0] not in subcommands:
-                return None
-            words = skip_options(rest[1:], with_value | {"-p", "--package"})
-            continue
-        if name == "eval":
-            return check_text(" ".join(args), depth + 1)
-        if name in SHELLS:
-            how, text = shell_script(args)
-            if how == "c":
-                return check_text(text, depth + 1) if text is not None else None
-            if how == "stdin":
-                for body in [*stdin, *piped_text(fed)]:
-                    found = check_text(body, depth + 1)
-                    if found:
-                        return found
-            return None
-        return None
-
-
-def check_text(command: str, depth: int = 0) -> str | None:
-    if depth > MAX_DEPTH:
-        return None
-    for cmd in parse(command):
-        found = check_command(cmd.words, cmd.stdin, depth, cmd.piped_from)
-        if found:
-            return found
+                return snippet([words[0], *rest], flag + 1)
     return None
 
 
@@ -263,7 +101,7 @@ def reason(found: str) -> str:
 
 
 def check(command: str, _cwd: object) -> str | None:
-    found = check_text(command)
+    found = walk(command, inline_eval)
     return reason(found) if found else None
 
 

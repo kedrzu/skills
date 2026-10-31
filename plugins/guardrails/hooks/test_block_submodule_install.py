@@ -78,7 +78,7 @@ class SubmoduleInstallTests(unittest.TestCase):
         self.assertBlocked("FOO=1 timeout 60 bun install", self.lib)
 
     def test_blocks_other_package_managers(self):
-        for command in ["npm install", "npm ci", "pnpm add x", "yarn", "yarn add x"]:
+        for command in ["npm install", "npm ci", "bun ci", "pnpm add x", "yarn", "yarn add x"]:
             with self.subTest(command=command):
                 self.assertBlocked(command, self.lib)
 
@@ -95,6 +95,11 @@ class SubmoduleInstallTests(unittest.TestCase):
         self.assertBlocked("bash -c 'cd lib && bun i'", self.root)
         self.assertBlocked("cd lib && bash -c 'bun i'", self.root)
         self.assertBlocked("echo hi; cd lib; bun install", self.root)
+
+    def test_blocks_an_install_a_nested_command_runs(self):
+        self.assertBlocked('cd lib && echo "bun install" | bash', self.root)
+        self.assertBlocked('cd lib && env -S "bun install"', self.root)
+        self.assertBlocked('cd lib && bunx -c "bun install"', self.root)
 
     def test_blocks_a_directory_that_does_not_exist_yet(self):
         self.assertBlocked("cd lib/packages/new && bun install", self.root)

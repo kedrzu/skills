@@ -58,12 +58,12 @@ a file, a download or a variable pipes into a shell (`cat x.sh | bash`, `curl �
 ### No install inside a workspace submodule — `hooks/block_submodule_install.py`
 
 **Blocks** a package install run inside a git submodule whose packages are workspaces of the
-superproject: `bun install|i|add|a|remove|rm|update`, `npm install|i|in|ci|add|uninstall|un|remove|rm|r|update|up|link`,
+superproject: `bun install|i|ci|add|a|remove|rm|update`, `npm install|i|in|ci|add|uninstall|un|remove|rm|r|update|up|link`,
 `pnpm install|i|add|remove|rm|uninstall|un|update|up`, and `yarn` bare or with `install|add|remove|up|upgrade`.
 Not `bun upgrade`, `bun run`, `bun x`, `bunx`. The directory it runs in starts at the hook input's
 `cwd` and follows `cd` / `pushd` earlier in the command line, `~`, relative paths, `env -C`, and the
 manager's own option (`bun --cwd`, `npm --prefix` / `-C`, `pnpm -C` / `--dir`, `yarn --cwd`). The call
-is found behind env-var prefixes, wrappers and `bash -c`, like the guard above.
+is found everywhere the guard above finds its call: both walk the command line with `shellparse.walk()`.
 
 It asks git (`rev-parse --show-superproject-working-tree`) whether that directory is in a submodule,
 then reads the superproject's `package.json` `workspaces` (array or `{ "packages": [...] }`) and blocks
@@ -89,7 +89,7 @@ unparseable (with a warning).
 ```
 hooks/hooks.json               # one PreToolUse entry per guard
 hooks/guard.py                 # shared runner: hook input in, exit code out, fail open
-hooks/shellparse.py            # shared shell lexer: simple commands, quotes, $(...), heredocs
+hooks/shellparse.py            # shared shell lexer and walker: every command a line runs, with its cwd
 hooks/<guard>.py               # one guard per script
 hooks/test_<guard>.py          # its tests: JSON in on stdin, exit code out
 ```
@@ -98,7 +98,8 @@ hooks/test_<guard>.py          # its tests: JSON in on stdin, exit code out
 
 1. Write `hooks/<guard>.py` with a `check(command, cwd)` that returns the reason to refuse, or
    `None`, and a `main()` that returns `run_guard(check, <seconds>, "<what it checks>")` from
-   `guard.py`. A Bash guard gets its simple commands from `shellparse.parse()`. Import both after
+   `guard.py`. A Bash guard is a visitor passed to `shellparse.walk()`, which calls it on every
+   command the line would run (through wrappers, package runners and nested shells) with its cwd. Import both after
    putting the script's directory on `sys.path`, as `block_inline_eval.py` does — `python3 -I`
    leaves it off.
 2. `run_guard` reads the hook input from stdin, prints a returned reason on stderr and exits 2,
