@@ -80,20 +80,11 @@ To move a version, per package or batch:
 
 ## Library mode — product vs shared workspaces
 
-A workspace is **shared** when it lives inside a git submodule of this repository
-(`git config --file .gitmodules --get-regexp path`) or its manifest is not `"private": true`
-(published). Everything else is a **product** workspace.
-
-- **Product** — exact pins, as before: minor releases have broken apps, and the lockfile guarantees
-  nothing moves by itself.
-- **Shared** — external dependencies are ranges (`^`) whose lower bound is the minimum the library is
-  verified with; framework singletons are `peerDependencies`, repeated with the same range in
-  `devDependencies`. Do not raise a lower bound just because a newer version exists: the lockfile
-  update within range is enough. A range that moves to a new major is a breaking change of the
-  library, published through the submodule first.
-
-Read `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/library-mode.md` before editing a
-shared workspace's manifest — it holds the rules, the reasons and a lockfile duplicate-copy gotcha.
+A workspace is **shared** when it lives inside a git submodule of this repository or its manifest is
+not `"private": true`; everything else is a **product** workspace and keeps exact pins. Before editing
+a shared workspace's manifest, read
+`${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/library-mode.md` — it holds the rules, the
+reasons and a lockfile duplicate-copy gotcha.
 
 ## Preflight — the root constraints (after Phase 1, before Phase 2)
 
