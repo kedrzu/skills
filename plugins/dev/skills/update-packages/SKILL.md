@@ -200,9 +200,9 @@ Cases the version list does not show:
   drifting versions of one package, two trees install, and type errors flood code that did not
   change (TS2883 "inferred type cannot be named … not portable", "two different types with this
   name"). They are an install artefact, not source bugs: align the versions, then collapse the trees
-  as the General Rules say (typically a clean reinstall), and re-verify. The same thing happens after
-  a branch switch or merge that moved a submodule pointer when install ran before the submodule
-  update.
+  as the General Rules say (typically pruning `node_modules` and installing again from the kept
+  lockfile), and re-verify. The same thing happens after a branch switch or merge that moved a
+  submodule pointer when install ran before the submodule update.
 - **Versions outside the package manager** — a container image tag or tool version pinned in a
   config file is not in `bun outdated`. Update those the General Rules list, each with its own
   procedure: edit the tag, recreate what runs it, full verify; green → commit, red → revert, recreate
