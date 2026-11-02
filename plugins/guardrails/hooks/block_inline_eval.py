@@ -74,7 +74,7 @@ def snippet(words: list[str], flag: int) -> str:
     return shlex.join(shown).replace("\n", " ")
 
 
-def inline_eval(words: list[str], _cwd: object) -> str | None:
+def inline_eval(words: list[str], _cwd: object, _cmd: object) -> str | None:
     """The visitor: the `node` / `bun` call with its eval flag, as a snippet, or None."""
     name = program(words[0])
     if name not in NODES and name != "bun":

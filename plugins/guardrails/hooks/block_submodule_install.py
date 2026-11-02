@@ -143,7 +143,7 @@ def reason(found: Found, submodule: str, superproject: str) -> str:
     )
 
 
-def submodule_install(words: list[str], cwd: str | None) -> str | None:
+def submodule_install(words: list[str], cwd: str | None, _cmd: object) -> str | None:
     """The visitor: the reason to refuse `words` when it installs inside a workspace submodule, or None."""
     manager = program(words[0])
     found = check_install(manager, words, cwd) if manager in INSTALL_COMMANDS else None

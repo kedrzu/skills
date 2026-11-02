@@ -84,6 +84,46 @@ if a stray store already exists, delete the submodule's `node_modules` and reins
 **Limits.** A directory it cannot work out (`cd -`, `cd $DIR`, `popd`) is allowed, as is anything
 unparseable (with a warning).
 
+### No secret values in the transcript — `hooks/block_secret_leaks.py`
+
+Whatever a command prints stays in the session transcript for good — stored, synced, re-read — so
+a printed value is a leaked value and has to be rotated. The `secrets` commands of
+[`@nzyme/secrets`](https://github.com/kedrzu/nzyme) never print one; the leaks come from around
+them. This guard turns the rules of nzyme's `secrets` skill ("A value never enters the transcript")
+into a check. `secrets` is matched as a subcommand of any CLI — `bun nzyme secrets`, `bunx nzyme
+secrets`, `<product-cli> secrets` — and every call is found the way the guards above find theirs
+(`shellparse.walk()`).
+
+**Blocks:**
+
+| What | Examples | Why |
+| --- | --- | --- |
+| an environment dump run by `secrets run` or `bws run` | `secrets run -- env`, `printenv`, `set`, `export -p`, `declare -p`/`-x`, also behind `bash -c`, `timeout`, a pipe | `run` fills the child's environment with every mapped secret |
+| another process's environment, anywhere | `cat /proc/<pid>/environ` (also as `< file`), `ps eww`, `ps -E` | a dev server started with `secrets run` in the background holds every secret there |
+| a keychain password, for any service | `security find-generic-password`/`find-internet-password` with `-w` or `-g`, `security dump-keychain -d`, `secret-tool lookup`/`search` | `nzyme-secrets` keeps tokens and cached values there, readable by any process of the user without a prompt |
+| the store credential printed | `echo $BWS_ACCESS_TOKEN`, `printf`, `cat <<< "$BWS_ACCESS_TOKEN"`, `printenv BWS_ACCESS_TOKEN`, `env \| grep BWS` (or `TOKEN`, `ACCESS`) | it unlocks every secret its machine account can read |
+| values fetched from Bitwarden | `bws secret get`/`list`/`create`/`edit`, the old `bws get secret` | they print values (`create` also takes one as an argument) |
+
+The keychain is blocked for every service, not only `nzyme-secrets`: any password printed is a
+leak, the hook cannot tell which service holds what, and an agent has no task that needs to see one.
+
+**Allows**: `secrets list`, `set NAME --prompt=…`, `login`, `import`, `refresh`; `secrets run --`
+any command that is not an environment dump (`bun run dev`, `env FOO=1 cmd`, `set -e`); `env`,
+`printenv PATH` and `env | grep NODE` outside `secrets run`, since the agent's own environment holds
+no mapped secret; `security find-generic-password` without `-w`/`-g` (attributes only); passing the
+credential to a tool (`bws --access-token "$BWS_ACCESS_TOKEN" project list`), `${#BWS_ACCESS_TOKEN}`;
+`bws project list`, `bws secret delete`; text that only mentions any of these.
+
+**The fix the agent is told:** `secrets list` to check presence, `secrets run -- <the real command>`
+to use a value, `secrets set NAME --prompt="…"` to add one; to check a value is right, run what uses it.
+
+**Limits.** A script file is out of reach: one that calls `Bun.secrets.get`, dumps
+`process.env` or prints its config looks like any other `bun x.ts` on the command line, so that is
+left to the skill's prose. So is a value in the agent's own output (an argument, a file, a log
+field), a credential other than `BWS_ACCESS_TOKEN`, and a shell under `secrets run` that reads
+its script from a heredoc (`secrets run -- bash <<EOF`). Unparseable commands are allowed with a
+warning, as above.
+
 ## Layout
 
 ```
@@ -99,7 +139,8 @@ hooks/test_<guard>.py          # its tests: JSON in on stdin, exit code out
 1. Write `hooks/<guard>.py` with a `check(command, cwd)` that returns the reason to refuse, or
    `None`, and a `main()` that returns `run_guard(check, <seconds>, "<what it checks>")` from
    `guard.py`. A Bash guard is a visitor passed to `shellparse.walk()`, which calls it on every
-   command the line would run (through wrappers, package runners and nested shells) with its cwd. Import both after
+   command the line would run (through wrappers, package runners and nested shells) with its cwd
+   and the parsed `Command` (stdin, redirects, the command piped into it). Import both after
    putting the script's directory on `sys.path`, as `block_inline_eval.py` does — `python3 -I`
    leaves it off.
 2. `run_guard` reads the hook input from stdin, prints a returned reason on stderr and exits 2,
