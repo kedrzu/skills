@@ -22,6 +22,7 @@ from 13 commits and a `bun outdated`.
 git diff <base>...HEAD -- '**/package.json' <files holding pinned image/tool versions>   # every from→to that landed
 git -C <submodule> diff <base>...HEAD -- '**/package.json'   # the same per submodule the run touched
 git diff <base>...HEAD -- docs/package_update.md docs/dependency-health.md   # the notebook delta
+git -C <submodule> diff <base>...HEAD -- docs/                # the same per submodule's notebook
 bun outdated -r                                               # what is STILL outdated = the skipped list
 ```
 
@@ -70,6 +71,9 @@ lockfile-only one, and the reviewer has to learn that from the description, not 
 
 Distinguish the two cases explicitly: **tried and reverted** (with the error) versus **not attempted**
 (the recorded blocker still holds). They mean different things to whoever picks this up next week.
+A blocker recorded in another repository's notebook is a not-attempted row that names where: "held
+for a consumer — `docs/package_update.md` → `vitest 5.x`" in a submodule's run, "blocked in `<submodule>`
+— its `rollup 4.62.3+` entry" in a consumer's.
 Cluster packages blocked by one cause into a single row rather than repeating the reason.
 
 `bun outdated -r` prints one row **per workspace**, so the same package appears many times — dedupe
@@ -77,7 +81,8 @@ by package name before counting, or the skipped list triples.
 
 ## Runbook changes
 
-What this run changed in `docs/package_update.md`, one line per entry — added, removed, or rewritten.
+What this run changed in `docs/package_update.md` — and in each submodule's notebook, named by
+path — one line per entry: added, removed, or rewritten.
 The entry headings are the whole delta, so read them straight off the diff:
 
 ```bash

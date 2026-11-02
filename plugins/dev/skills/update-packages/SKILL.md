@@ -27,13 +27,21 @@ Announce when you start: "Updating packages — verifying baseline first, then b
   `docs/dependency-health.md` (the dependency-health log). Read both at the start, update them at
   the end. Missing on a first run → create them from
   `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/notebook-template.md`.
+  - **One notebook per repository.** The root repository and every git submodule that declares
+    dependencies keeps its own pair in its own `docs/`, because each is updated on its own too — a
+    submodule's run never sees its consumer's notebook. At the start read the root's and every
+    submodule's (paths from `git config --file .gitmodules --get-regexp path`); a constraint in a
+    submodule's notebook binds this run exactly like the root's. Which notebook an entry goes in,
+    how a submodule records a block caused by a consumer without naming it, and who may lift such a
+    block: `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/cross-repo-notebooks.md`.
   - **General Rules** are persistent constraints — couplings ("update only together with Y", "must
     match the version X bundles"), override reasons, and the project's special procedures: a
     container image tag versioned like a dependency, how to collapse duplicate dependency trees,
     which bumps need a rebuild before e2e. Follow them before touching a named package; never remove
     one unless its constraint is gone.
   - **Known Issues** are version-specific failures. Never retry a known-broken update; remove the
-    entry only when a newer version resolves it.
+    entry only when a newer version resolves it. A `blocked-by-consumer` entry is never retried
+    from inside the repository that records it — only a consumer can prove it fixed.
 - **Language** — the chat summary is in the owner's language (the project's `CLAUDE.md` /
   `CLAUDE.local.md`); everything committed, the PR and the tracker comment are English.
 
@@ -238,7 +246,10 @@ commands.
 
 Update `docs/package_update.md` in the format of the template: a constraint that persists across
 versions goes in **General Rules**; a version-specific failure in **Known Issues**, deleted once a
-newer version fixes it.
+newer version fixes it. Each entry goes in the notebook of the repository it belongs to, and a block
+that crosses a repository boundary is recorded on both sides (`references/cross-repo-notebooks.md`);
+a submodule's notebook change is committed in the submodule, through **checkpoint** like its
+manifests.
 
 Then write the run report — ONCE, at the end, after `git-workflow` **publish** has taken the PR out of
 draft — and send the same report everywhere **publish** puts the PR description and the tracker
@@ -258,4 +269,5 @@ attempted is a skip too. Commands, section order and a worked example:
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/dependency-review.md` — signals of an abandoned dependency. Read for the monthly full review.
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/run-report.md` — the report's sources, sections and example. Read when writing it.
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/notebook-template.md` — skeletons of both notebook files. Read when either is missing or you add an entry.
+- `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/cross-repo-notebooks.md` — which repository's notebook an entry goes in, consumer-caused blocks, and lifting them. Read at the start of a run in a repository with submodules, in a repository that is itself consumed as a submodule, and whenever you record a block.
 - `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md` — what `verify` and `git-workflow` provide.
