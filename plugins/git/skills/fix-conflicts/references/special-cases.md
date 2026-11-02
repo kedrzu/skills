@@ -38,24 +38,56 @@ project's own submodule flow when it documents one.
 
 ## Generated files (lockfiles, codegen output)
 
-Never hand-merge a file a tool generates — a lockfile (`package-lock.json`, `yarn.lock`,
-`pnpm-lock.yaml`, `Cargo.lock`, `poetry.lock`, `go.sum`, …) or checked-in codegen output.
-Clear the conflict with EITHER side (the pick is irrelevant because you regenerate; don't agonize over
-ours-vs-theirs here, especially mid-rebase where they're swapped):
+Never hand-merge a file a tool generates. For checked-in codegen output, clear the conflict with
+either side, `git add` it, and after the whole operation completes (Phase 4) re-run the generator.
+If something added on one side is missing afterwards, the **source** merge dropped it — fix that
+conflict and regenerate. The generated file is derived; its source is the truth.
 
-```bash
-git checkout --theirs <file>   # or --ours; either works, the generator rewrites it next
-git add <file>
-```
+### Lockfiles (`bun.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `poetry.lock`, `go.sum`, …)
 
-After the whole operation completes (Phase 4), regenerate it from its merged sources with the
-project's own command (the package manager's install, the codegen script), then confirm the merge
-kept every change from both sides:
+The pick of side is NOT irrelevant: the installer keeps every version still satisfying the manifest
+from the lockfile you start from, and resolves everything else fresh to the latest in range — a
+version nobody tested. Where the project pins versions, the lockfile is what guarantees nothing
+moved. So start from the side whose versions are already verified, and surface what is new.
 
-```bash
-git diff --name-only           # the generated file should be the only churn; source diffs must be intentional
-```
+1. **Save both sides** before clearing the conflict, from the index:
 
-If something added on one side is missing after regeneration, the merge of the **source** dropped it
-(for a lockfile: a manifest such as `package.json` or `Cargo.toml`) — go back and merge that source
-conflict correctly, then regenerate again. The generated file is derived; its source is the truth.
+   ```bash
+   S=$(mktemp -d)
+   git show :2:<lock> > $S/stage2.lock   # merge: current branch. rebase/cherry-pick: the branch you replay ONTO
+   git show :3:<lock> > $S/stage3.lock   # merge: the incoming branch. rebase/cherry-pick: the commit being replayed
+   ```
+
+2. **Clear it with the target side** — the branch being integrated into (main / upstream), whose
+   lockfile was already verified there:
+
+   - merge into the target (you are on main): `git checkout --ours <lock>`
+   - merge of the target into your branch: `git checkout --theirs <lock>`
+   - rebase onto the target: `git checkout --ours <lock>` (`--ours` is the upstream mid-rebase —
+     the opposite of the usual swap intuition)
+   - cherry-pick onto the target: `git checkout --ours <lock>`
+
+   Then `git add <lock>`.
+
+3. **Manifest conflict on the same dependency's version** (`package.json`, `Cargo.toml`, …): take the
+   higher version, unless a commit on either side (`git log -S'<version>' -- <manifest>`) says the
+   version is deliberately held back or reverted (a known-broken release) — then escalate.
+
+4. **During a rebase**, regenerate at each replayed commit that conflicts on the lockfile and
+   `git add` it before `--continue`; otherwise every later commit re-conflicts.
+
+5. **After the operation completes**, regenerate with the project's install command, then list every
+   `name@version` in the result that appears in NEITHER saved lockfile — those were resolved fresh:
+
+   ```bash
+   # the regex depends on the lockfile format; this one matches bun.lock entries ("name@1.2.3")
+   pairs() { grep -oE '"(@[^/"]+/)?[^"@/ ]+@[0-9][^" ]*"' "$1" | tr -d '"' | sort -u; }
+   pairs <lock> > $S/result.txt
+   sort -u <(pairs $S/stage2.lock) <(pairs $S/stage3.lock) > $S/saved.txt
+   comm -23 $S/result.txt $S/saved.txt
+   ```
+
+   Report the list in the resolution summary; Phase 5 verifies it. If a fresh version belongs to a
+   package one side had locked at another version, re-pin to that side's version (the manifest's
+   exact version, or the project's override mechanism), regenerate, and re-run the comparison, rather
+   than accepting the fresh one.

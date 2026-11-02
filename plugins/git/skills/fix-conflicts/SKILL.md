@@ -164,10 +164,13 @@ A **rebase replays commits one at a time**, so new conflicts can appear on the n
 
 ## Phase 5: Verify
 
-The resolution is untested code until the checks pass. Run the project's full verification — its
-`verify` skill when it has one, otherwise the checks its `CLAUDE.md` / `AGENTS.md` / README / CI
-config prescribe (typecheck, lint, tests, build). Fix every failure before Phase 6. Regenerate any
-generated file you cleared in Phase 3 before verifying.
+The resolution is untested code until the checks pass. Regenerate any generated file you cleared in
+Phase 3 first. Then verify at the level the project's `verify` skill assigns to the resolved hunks
+plus this branch's own diff — the target side was already verified on its branch, so what is at risk
+is where the two meet (and any freshly resolved lockfile versions, see the special-cases
+reference). When that calls for the full protocol, run it once. Without a `verify` skill, run the
+checks the project's `CLAUDE.md` / `AGENTS.md` / README / CI config prescribe (typecheck, lint,
+tests, build). Fix every failure before Phase 6.
 
 If a failure looks caused by a wrong resolution (a symbol that should exist is missing, a behavior
 that should be there is gone), **go back to Phase 3** for that file before patching the symptom — a
