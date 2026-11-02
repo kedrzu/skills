@@ -32,12 +32,13 @@ newer version fixes it. One `###` per package and attempted version.
 
 - **Problem**: <what breaks>
 - **Error**: <brief error or symptom>
-- **Status**: skip | needs-migration | regression-bug | incompatible | blocked-by-<dep>
-- **Notes**: <how to reproduce / what to check>
+- **Status**: skip | needs-migration | regression-bug | incompatible | blocked-by-<dep> | blocked-by-<submodule-path> | blocked-by-consumer
+- **Notes**: <how to reproduce / what to check; for a block across repositories, where the other side records it>
 ```
 
 A constraint that persists across versions (two packages must always match) goes in **General
-Rules**, not Known Issues.
+Rules**, not Known Issues. Which repository's notebook an entry belongs in, and the wording of the
+two cross-repository statuses: `cross-repo-notebooks.md`.
 
 ## `docs/dependency-health.md`
 

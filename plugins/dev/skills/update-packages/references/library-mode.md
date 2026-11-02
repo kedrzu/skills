@@ -43,6 +43,9 @@ come with it.
 - **When the product needs a version outside a submodule's range**, the range change is a separate
   commit and PR in the submodule, published first through `git-workflow` **checkpoint**; then the
   product moves.
+- **A `blocked-by-consumer` entry in the library's notebook constrains its ranges**, not its own
+  lockfile: keep the bound or the major it names, even when the library's own checks are green
+  (`cross-repo-notebooks.md`).
 
 ## Gotcha: a new peer/dev entry can create a nested copy
 
