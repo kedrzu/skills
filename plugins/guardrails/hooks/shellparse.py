@@ -1,12 +1,13 @@
 """A small, forgiving shell lexer and command walker shared by the Bash guards of this plugin.
 
 `parse(text)` splits a command line into the simple commands it would run, the way a guard needs
-them: each `Command` holds its words with quotes removed, plus what it gets on stdin from a heredoc
-or a here-string. Commands inside `$(...)`, backticks and `<(...)` are returned as commands of their
-own, next to the command that contains them. A heredoc body is plain text, except that under an
-unquoted delimiter (`<<EOF`, not `<<'EOF'`) bash runs its `$(...)` and backticks, so they are
-returned too; a guard that cares (a shell reading its script from stdin) looks at `Command.stdin`,
-and at `Command.piped_from`: the command on the left of the `|` or `|&` that feeds it.
+them: each `Command` holds its words with quotes removed, what it gets on stdin from a heredoc or a
+here-string, and the targets of its other redirects (`< file`, `> out`) in `Command.redirects`.
+Commands inside `$(...)`, backticks and `<(...)` are returned as commands of their own, next to the
+command that contains them. A heredoc body is plain text, except that under an unquoted delimiter
+(`<<EOF`, not `<<'EOF'`) bash runs its `$(...)` and backticks, so they are returned too; a guard
+that cares (a shell reading its script from stdin) looks at `Command.stdin`, and at
+`Command.piped_from`: the command on the left of the `|` or `|&` that feeds it.
 `Command.scope` names the subshells (`( … )`) and substitutions the command runs in, outermost
 first, so a guard can drop what a `cd` in one of them did once it closes.
 
@@ -15,8 +16,8 @@ shell would reject (an unterminated quote or substitution) raises `ParseError`, 
 into "allow, with a warning". The scan is linear, so it never hangs.
 
 `walk(text, visit, cwd)` is how a guard uses it: it calls `visit` on every command the line would
-run, down through wrappers, package runners and nested shells, with the directory it runs in. A
-guard is a visitor that answers what to refuse.
+run, down through wrappers, package runners and nested shells, with the directory it runs in and the
+parsed `Command` it came from. A guard is a visitor that answers what to refuse.
 """
 
 from __future__ import annotations
@@ -41,6 +42,7 @@ class ParseError(ValueError):
 class Command:
     words: list[str] = field(default_factory=list)
     stdin: list[str] = field(default_factory=list)
+    redirects: list[str] = field(default_factory=list)  # targets of the other redirects: `< file`, `> out`
     piped_from: Command | None = field(default=None, repr=False, compare=False)
     scope: tuple[int, ...] = field(default=(), compare=False)  # ids of the enclosing subshells/substitutions
 
@@ -159,6 +161,8 @@ class _Parser:
             self.heredocs.append((word, op == "<<-", expands, self.current.stdin))
         elif op == "<<<":
             self.current.stdin.append(word)
+        else:
+            self.current.redirects.append(word)
 
     def end_command(self) -> None:
         self.end_word()
@@ -310,11 +314,11 @@ BUN_VALUE_OPTIONS = {"-r", "--preload", "--require", "--import", "--cwd", "--env
                      "--max-http-header-size", "--title"}
 
 T = TypeVar("T")
-Visitor = Callable[[list[str], "str | None"], "T | None"]
+Visitor = Callable[[list[str], "str | None", Command], "T | None"]
 
 
 def walk(command: str, visit: Visitor[T], cwd: str | None = None, depth: int = 0) -> T | None:
-    """Call `visit(words, cwd)` on every command `command` runs, and return the first non-None answer.
+    """Call `visit(words, cwd, cmd)` on every command `command` runs, and return the first non-None answer.
 
     `words` is the command with env-var prefixes and keywords stripped, offered at every layer: a
     wrapper (`timeout 90 bun i`), then what it runs (`bun i`). The walk goes on into what a wrapper,
@@ -322,7 +326,8 @@ def walk(command: str, visit: Visitor[T], cwd: str | None = None, depth: int = 0
     nested shell run — its `-c` string, or the script it reads on stdin from a heredoc, a here-string
     or a pipe from `echo`, `printf` or `cat <<EOF`. `cwd` is where the command runs: it follows `cd` /
     `pushd` / `popd` until the subshell or substitution holding them closes, and `env -C`; None once
-    it is unknown (`cd $X`, `popd`).
+    it is unknown (`cd $X`, `popd`). `cmd` is the parsed command the words came from: its stdin,
+    redirects and the command piped into it.
     """
     if depth > MAX_DEPTH:
         return None
@@ -351,7 +356,7 @@ def _walk_command(cmd: Command, visit: Visitor[T], cwd: str | None, depth: int) 
         words = strip_prefixes(words)
         if not words:
             return None, cwd
-        found = visit(words, here)
+        found = visit(words, here, cmd)
         if found is not None:
             return found, cwd
         name, args = program(words[0]), words[1:]
