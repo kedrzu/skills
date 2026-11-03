@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect a secret from the user and hand it to programs - without the agent ever seeing it.
+"""Collect a secret from the user and store it - without the agent ever seeing it.
 
 The agent runs this through its own shell. The value is read INSIDE this process (a native
 masked dialog, or a no-echo terminal read) and leaves it only as a verdict line: which file was
@@ -9,16 +9,12 @@ and never exported to the agent's shell, so it appears in no transcript and in n
 The agent must not call `osascript ... with hidden answer` (or zenity, or Get-Credential) itself:
 those return the typed value on stdout, which is exactly the leak this script exists to prevent.
 
-    secret.py set KEY [--file PATH] [--hint TEXT]   ask the user, write KEY=value
-    secret.py has KEY [--file PATH]                 is it set, and where - never the value
-    secret.py run KEY[,KEY...] [--file PATH] -- cmd args...
-                                                    run cmd with the keys in its environment
+    secret.py set KEY --file PATH [--hint TEXT]   ask the user, write KEY=value
 
-Storage is a KEY=value file, mode 0600 in a 0700 directory. Default:
-${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env. A consumer whose own code reads a specific file
-passes it with --file. On Windows chmod is a no-op; the user-profile ACL protects the file.
+Storage is a KEY=value file, mode 0600 in a 0700 directory. On Windows chmod is a no-op; the
+user-profile ACL protects the file.
 
-Exit: 0 ok · 1 write failed / key missing · 2 bad arguments
+Exit: 0 ok · 1 write failed · 2 bad arguments
       3 no way to prompt from here - the printed command has to be run by a human
       4 nothing was entered (cancelled or timed out)
 
@@ -65,11 +61,6 @@ if ($null -eq $c) { exit 4 }
 """
 
 
-def default_file() -> Path:
-    config = os.environ.get("CLAUDE_CONFIG_DIR", "").strip() or str(Path.home() / ".claude")
-    return Path(config).expanduser() / "secrets" / ".env"
-
-
 def result_file(key: str) -> Path:
     return Path(tempfile.gettempdir()) / f"secret-{key}.result"
 
@@ -82,22 +73,6 @@ def verdict(key: str, line: str) -> None:
         result_file(key).write_text(line + "\n", encoding="utf-8")
     except OSError:
         pass
-
-
-def read_env_file(path: Path) -> dict[str, str]:
-    """Parse a simple KEY=value file. Data, not shell - nothing is executed."""
-    values: dict[str, str] = {}
-    if not path.is_file():
-        return values
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line.startswith("export "):
-            line = line[len("export "):].lstrip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        values[key.strip()] = value.strip().strip('"').strip("'")
-    return values
 
 
 # --------------------------------------------------------------------------
@@ -257,43 +232,6 @@ The verdict will then be in {result_file(key)}""", file=sys.stderr)
     return 0
 
 
-def cmd_has(args: argparse.Namespace) -> int:
-    if os.environ.get(args.key, "").strip():
-        print(f"{args.key} set (environment)")
-        return 0
-    if read_env_file(args.file).get(args.key, "").strip():
-        print(f"{args.key} set ({args.file})")
-        return 0
-    print(f"{args.key} missing (not in the environment, not in {args.file})")
-    return 1
-
-
-def cmd_run(args: argparse.Namespace) -> int:
-    command = args.command
-    if not command:
-        print("run: nothing to run - put the command after --", file=sys.stderr)
-        return 2
-    stored = read_env_file(args.file)
-    env = dict(os.environ)
-    missing = []
-    for key in filter(None, (k.strip() for k in args.keys.split(","))):
-        # The real environment wins over the file, as everywhere else.
-        value = env.get(key, "").strip() or stored.get(key, "").strip()
-        if value:
-            env[key] = value
-        else:
-            missing.append(key)
-    if missing:
-        print(f"run: not set: {', '.join(missing)} - collect with `secret.py set` first",
-              file=sys.stderr)
-        return 1
-    try:
-        return subprocess.run(command, env=env).returncode
-    except OSError as exc:
-        print(f"run: {command[0]}: {exc.strerror or exc}", file=sys.stderr)
-        return 2
-
-
 def key_arg(text: str) -> str:
     if not KEY_RE.match(text):
         raise argparse.ArgumentTypeError(f"not a valid variable name: {text!r}")
@@ -304,40 +242,15 @@ def file_arg(text: str) -> Path:
     return Path(text).expanduser()
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Collect and use secrets without exposing them.")
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Collect a secret without exposing it.")
     sub = parser.add_subparsers(dest="command_name", required=True)
-
     p_set = sub.add_parser("set", help="ask the user for KEY in a masked prompt and store it")
     p_set.add_argument("key", type=key_arg)
-    p_set.add_argument("--file", type=file_arg, default=default_file())
+    p_set.add_argument("--file", type=file_arg, required=True)
     p_set.add_argument("--hint", help="where the value comes from - shown in the prompt")
     p_set.set_defaults(func=cmd_set)
-
-    p_has = sub.add_parser("has", help="is KEY set - never prints the value")
-    p_has.add_argument("key", type=key_arg)
-    p_has.add_argument("--file", type=file_arg, default=default_file())
-    p_has.set_defaults(func=cmd_has)
-
-    p_run = sub.add_parser("run", help="run a command with KEY[,KEY...] in its environment")
-    p_run.add_argument("keys")
-    p_run.add_argument("--file", type=file_arg, default=default_file())
-    p_run.set_defaults(func=cmd_run)
-    return parser
-
-
-def main(argv: list[str] | None = None) -> int:
-    argv = list(sys.argv[1:] if argv is None else argv)
-    # Everything after the first `--` is the command for `run`, untouched by argparse.
-    command: list[str] = []
-    if "--" in argv:
-        split = argv.index("--")
-        argv, command = argv[:split], argv[split + 1:]
-    parser = build_parser()
     args = parser.parse_args(argv)
-    if command and args.command_name != "run":
-        parser.error("only `run` takes a command after --")
-    args.command = command
     return args.func(args)
 
 

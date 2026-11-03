@@ -58,10 +58,9 @@ with no manifest and no marketplace entry.
   "tell the user to run `/x`". For a model-invoked one, write one trigger per distinct case, and
   leave out what the body already says.
 - **A skill that needs a secret never asks for it in chat or as an argument** — the
-  value would stay in the session transcript. It collects it with `secret.py set` from
-  the `secrets` plugin (a masked dialog the agent cannot read), lets its own scripts read
-  the stored file, and declares `"secrets"` in `dependencies`. `telegram`'s setup is the
-  worked example.
+  value would stay in the session transcript. It collects it through a masked dialog the
+  agent cannot read and lets its own scripts read the stored file. `telegram`'s setup and
+  its `secret.py` are the worked example.
 
 ## Workspace and pull requests
 

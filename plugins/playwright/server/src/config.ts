@@ -46,7 +46,7 @@ export function expandHome(p: string): string {
   return p;
 }
 
-// The `secrets` plugin's shared store: ${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env.
+// The default credentials file: ${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env.
 export function defaultCredentialsFile(env: Env = process.env): string {
   const configDir = env.CLAUDE_CONFIG_DIR?.trim() || path.join(os.homedir(), ".claude");
   return path.join(expandHome(configDir), "secrets", ".env");
@@ -138,8 +138,7 @@ function requiredString(obj: Record<string, unknown>, key: string, prefix: strin
   return undefined;
 }
 
-// Parses KEY=value lines the way the `secrets` plugin's secret.py reads them, so a value it
-// stored is read back identically. Data, not shell: nothing is expanded.
+// Parses KEY=value lines. Data, not shell: nothing is expanded.
 export function parseEnvFile(text: string): Record<string, string> {
   const values: Record<string, string> = {};
   for (const raw of text.split(/\r?\n/)) {
@@ -163,27 +162,24 @@ function stripQuotes(value: string): string {
 export function readCredentials(source: CredentialsSource, env: Env = process.env): Credentials {
   const keys = [source.userKey, source.passwordKey];
   const notInEnv = keys.filter((k) => !env[k]);
-  const fromFile = notInEnv.length ? readCredentialsFile(source, notInEnv, env) : {};
+  const fromFile = notInEnv.length ? readCredentialsFile(source, notInEnv) : {};
   const username = env[source.userKey] || fromFile[source.userKey];
   const password = env[source.passwordKey] || fromFile[source.passwordKey];
   if (!username || !password) {
     const missing = keys.filter((k) => !env[k] && !fromFile[k]);
     throw new ConfigError(
       `VPN credentials ${missing.join(" / ")} are set neither in the environment nor in ${source.file}. ` +
-        storeHint(source, missing, env)
+        storeHint(source, missing)
     );
   }
   return { username, password };
 }
 
-// How to supply missing keys. `secret.py set` is named only for the secrets plugin's own store;
-// a project that points `credentials.file` elsewhere may not have that plugin enabled at all.
-function storeHint(source: CredentialsSource, missing: string[], env: Env): string {
-  if (source.file === defaultCredentialsFile(env)) return "Store them with the secrets plugin (secret.py set).";
+function storeHint(source: CredentialsSource, missing: string[]): string {
   return `Add ${missing.map((k) => `${k}=…`).join(" and ")} to ${source.file}.`;
 }
 
-function readCredentialsFile(source: CredentialsSource, missing: string[], env: Env): Record<string, string> {
+function readCredentialsFile(source: CredentialsSource, missing: string[]): Record<string, string> {
   const { file } = source;
   try {
     return parseEnvFile(fs.readFileSync(file, "utf-8"));
@@ -191,7 +187,7 @@ function readCredentialsFile(source: CredentialsSource, missing: string[], env: 
     const reason = e instanceof Error && "code" in e && e.code === "ENOENT" ? "does not exist" : "cannot be read";
     throw new ConfigError(
       `VPN credentials ${missing.join(" / ")} are not in the environment and ${file} ${reason}. ` +
-        `${storeHint(source, missing, env)} Or point geo.credentials.file at the right file.`
+        `${storeHint(source, missing)} Or point geo.credentials.file at the right file.`
     );
   }
 }

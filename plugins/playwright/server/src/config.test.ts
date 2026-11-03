@@ -93,7 +93,7 @@ describe("credentials", () => {
     return { file, userKey: "PIA_USER", passwordKey: "PIA_PASS" };
   }
 
-  it("reads KEY=value lines the way the secrets plugin stores them", () => {
+  it("reads KEY=value lines", () => {
     expect(parseEnvFile(`# comment\nexport A=1\nB="two words"\nC='x'\nD=a=b\nnot a line\n`)).toEqual({ A: "1", B: "two words", C: "x", D: "a=b" });
   });
 
@@ -127,19 +127,11 @@ describe("credentials", () => {
     expect(errors[0]).toContain("PIA_USER");
     expect(errors[0]).toContain(file);
     expect(errors[1]).toContain("does not exist");
-    // A project-chosen file: the remedy is to edit that file, not to reach for a plugin it may not have.
     expect(errors[0]).toContain(`PIA_USER=… to ${file}`);
     expect(errors[1]).toContain(`PIA_USER=… to ${path.join(tmp, "missing.env")}`);
     for (const message of errors) {
       expect(message).not.toContain(PASSWORD);
       expect(message).not.toContain("PIA_PASS");
-      expect(message).not.toContain("secret.py");
     }
-  });
-
-  it("points at secret.py set only for the secrets plugin's own store", () => {
-    const env = { CLAUDE_CONFIG_DIR: path.join(tmp, "claude-config") };
-    const shared = path.join(env.CLAUDE_CONFIG_DIR, "secrets", ".env");
-    expect(() => readCredentials(source(shared), env)).toThrow("secret.py set");
   });
 });

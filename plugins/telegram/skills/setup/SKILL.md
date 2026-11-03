@@ -39,16 +39,24 @@ names.
 
 ## Token
 
-The token never goes through the chat: it is collected by the `secrets` skill
-(plugin `secrets`, a declared dependency of this one), whose `secret.py` asks
-the user in a masked dialog you cannot read. Load that skill for the command
-and its exit codes, then store the token where `$CORE` reads it:
+The token never goes through the chat: the bundled `secret.py` asks the user in
+a masked dialog you cannot read and stores the token where `$CORE` reads it. Say
+the dialog is coming before you run this, because it pops up outside the terminal:
 
 ```bash
-python3 "$SECRET" set TELEGRAM_BOT_TOKEN \
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/secret.py" set TELEGRAM_BOT_TOKEN \
   --file "${TELEGRAM_STATE_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/channels/telegram}/.env" \
   --hint "Bot token from @BotFather (/newbot, or /token for an existing bot), e.g. 123456789:AAH..."
 ```
+
+- **Exit 0**: it prints `OK`, the file and the character count, never the value.
+- **Exit 4**: nothing was entered (cancelled, or 5 minutes passed). Nothing was written.
+- **Exit 3**: no way to prompt from here (ssh, a cloud session). It printed a command: give it
+  to the user to run in their own terminal, then read the verdict from the result file it names.
+
+Do not call `osascript … with hidden answer`, `zenity --password` or `Get-Credential` yourself:
+they return the typed value on stdout, which is your transcript. And do not `cat` or `grep` the
+`.env` file.
 
 Then `python3 "$CORE" check` validates it against `getMe`. Report the bot's
 `@username` back, because the user needs it for pairing. A 401 there means a

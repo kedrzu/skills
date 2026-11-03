@@ -56,7 +56,7 @@ Texas while the service saw Kansas), so confirm the location with the service it
 - **Credentials** are named by key in the config, never stored in it. They come from an
   environment variable of that name, else from a `KEY=value` file: `credentials.file` (relative
   paths resolve from the project, `~` works), by default
-  `${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env`, the store of the `secrets` plugin. They are read
+  `${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env`. They are read
   only when a region is requested and passed to the container as gluetun's secret files, a
   read-only mount of a temporary directory deleted once the tunnel is up: never on a command line
   nor in the container's environment, which `docker inspect` shows.

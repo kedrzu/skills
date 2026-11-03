@@ -14,7 +14,7 @@ pick a name and a username ending in `bot`. You get a token like
 `123456789:AAHfiqksKZ8...` — copy all of it, including the leading digits.
 
 **2. Store it.** In Claude Code, run `/telegram:setup`. A masked dialog asks
-for the token (the `secrets` plugin's `secret.py`), so it never passes through
+for the token (the bundled `secret.py`), so it never passes through
 the chat or the agent. Do not paste it into the conversation: anything typed
 there stays in the session transcript.
 
@@ -69,8 +69,8 @@ python3 "$CORE" send --stdin
 python3 "$CORE" pair --save
 ```
 
-The token is written by `secret.py set TELEGRAM_BOT_TOKEN --file <state dir>/.env`
-from the `secrets` plugin, never passed to this CLI.
+The token is written by the setup skill's `secret.py set TELEGRAM_BOT_TOKEN --file <state dir>/.env`,
+never passed to this CLI.
 
 Exit codes: `0` fine, `1` channel not usable (see the printed report), `2` error
 (JSON on stderr).
@@ -78,8 +78,7 @@ Exit codes: `0` fine, `1` channel not usable (see the printed report), `2` error
 ## Requirements
 
 `python3` only — no packages, no install step, nothing fetched at session
-start. The `secrets` plugin, installed alongside as a dependency, collects the
-token. The MCP protocol layer is ~150 lines of hand-rolled JSON-RPC, which two
+start. The MCP protocol layer is ~150 lines of hand-rolled JSON-RPC, which two
 tools do not outgrow.
 
 ## Failure modes

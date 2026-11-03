@@ -17,7 +17,7 @@ convention of the official telegram plugin so both can share a single bot:
     chat id:  $TELEGRAM_CHAT_ID   -> STATE_DIR/notify.json
                                   -> STATE_DIR/access.json  (allowFrom[0])
 
-The token is written by secret.py from the `secrets` plugin, which asks for it in
+The token is written by the setup skill's secret.py, which asks for it in
 a masked dialog, so it never passes through the agent or this module's argv.
 
 There is deliberately no way to pass a chat id in: this client can only ever
