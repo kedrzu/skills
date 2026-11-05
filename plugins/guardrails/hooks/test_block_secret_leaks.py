@@ -41,6 +41,22 @@ class BlockedTests(unittest.TestCase):
             "bws run --project-id 1f0c -- printenv", "nzyme secrets run -- nzyme secrets run -- env",
         ], "every mapped secret")
 
+    def test_environment_dumps_under_secrets_run_behind_any_cli_options(self):
+        self.assertBlocked([
+            "bun run --cwd x nzyme secrets run -- env", "bun run --cwd x --silent nzyme secrets run -- printenv",
+            "bun --cwd x run nzyme secrets run -- env", "bun run --cwd secrets nzyme secrets run -- env",
+            "pnpm --filter web --silent run nzyme secrets run -- env", "npm run nzyme -- secrets run -- env",
+        ], "every mapped secret")
+
+    def test_bws_run_gives_its_command_to_a_shell(self):
+        self.assertBlocked([
+            "bws run -- 'env | sort'", "bws run 'env | sort'", "bws run -- 'printenv; echo done'",
+            "bws run -- 'cd x && env'", "bws run -- env '|' sort", "bws run -- echo 'a; env'",
+            "bws run --shell bash --project-id 1f0c -- 'env | sort'", "bws -o json run --no-inherit-env -- 'set'",
+            "bunx bws run -- 'export -p | sort'", "bws run <<< 'env | sort'", "bws run <<'EOF'\nenv\nEOF",
+            "echo env | bws run", "bws run -- 'bash -c env'",
+        ], "every mapped secret")
+
     def test_other_processes_environment(self):
         self.assertBlocked([
             "cat /proc/1234/environ", "cat /proc/self/environ", "cat /proc/*/environ",
@@ -110,7 +126,23 @@ class AllowedTests(unittest.TestCase):
             "nzyme secrets run -- env FOO=1 bun run dev", "nzyme secrets run -- env -u DEBUG bun run dev",
             "nzyme secrets run -- set -e", "nzyme secrets run -- bash -c 'bun run migrate && bun run dev'",
             "nzyme secrets run -- curl -H \"Authorization: Bearer $STRIPE_KEY\" https://api.stripe.com/v1/x",
-            "bws run -- bun run dev", "nzyme secrets run -- export FOO=1",
+            "bws run -- bun run dev", "nzyme secrets run -- export FOO=1", "bws run -- some-command",
+            "bun run --cwd x nzyme secrets run -- bun test", "bun run --cwd x --silent nzyme secrets list",
+            "bws run -- 'bun test | tee out.log'", "bws run -- 'set -e; bun test'", "bws run -- 'env FOO=1 bun test'",
+            "bws run <<< 'bun test'", "echo 'bun test' | bws run",
+        ])
+
+    def test_secrets_run_starts_no_shell(self):
+        # It spawns its words as they are, so these look for a program named `env | sort`, or pass `|` to `env`.
+        self.assertAllowed([
+            "nzyme secrets run -- 'env | sort'", "nzyme secrets run -- env '|' sort",
+            "nzyme secrets run -- echo 'a; env'", "nzyme secrets run -- bun test 'env'",
+        ])
+
+    def test_text_that_mentions_secrets_run(self):
+        self.assertAllowed([
+            "echo secrets run -- env", "echo never use bun run nzyme secrets run -- env","rg secrets run -- env",
+            "grep -n -e x secrets run -- env",
         ])
 
     def test_environment_outside_secrets_run(self):

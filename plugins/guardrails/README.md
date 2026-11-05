@@ -98,7 +98,7 @@ secrets`, `<product-cli> secrets` — and every call is found the way the guards
 
 | What | Examples | Why |
 | --- | --- | --- |
-| an environment dump run by `secrets run` or `bws run` | `secrets run -- env`, `printenv`, `set`, `export -p`, `declare -p`/`-x`, also behind `bash -c`, `timeout`, a pipe | `run` fills the child's environment with every mapped secret |
+| an environment dump run by `secrets run` or `bws run` | `secrets run -- env`, `printenv`, `set`, `export -p`, `declare -p`/`-x`, also behind `bash -c`, `timeout`, a pipe, and in the shell text `bws run` takes (`bws run -- 'env \| sort'`, `echo env \| bws run`) | `run` fills the child's environment with every mapped secret |
 | another process's environment, anywhere | `cat /proc/<pid>/environ` (also as `< file`), `ps eww`, `ps -E` | a dev server started with `secrets run` in the background holds every secret there |
 | a keychain password, for any service | `security find-generic-password`/`find-internet-password` with `-w` or `-g`, `security dump-keychain -d`, `secret-tool lookup`/`search` | `nzyme-secrets` keeps tokens and cached values there, readable by any process of the user without a prompt |
 | the store credential printed | `echo $BWS_ACCESS_TOKEN`, `printf`, `cat <<< "$BWS_ACCESS_TOKEN"`, `printenv BWS_ACCESS_TOKEN`, `env \| grep BWS` (or `TOKEN`, `ACCESS`) | it unlocks every secret its machine account can read |

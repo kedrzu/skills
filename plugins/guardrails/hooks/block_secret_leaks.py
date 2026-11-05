@@ -32,7 +32,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from guard import run_guard  # noqa: E402
-from shellparse import Command, program, skip_options, strip_prefixes, walk  # noqa: E402
+from shellparse import Command, piped_text, program, skip_options, strip_prefixes, walk  # noqa: E402
 
 CREDENTIALS = ("BWS_ACCESS_TOKEN",)
 REFERENCE = re.compile(r"\$\{?(" + "|".join(CREDENTIALS) + r")\b")
@@ -78,17 +78,28 @@ def shown(words: list[str]) -> str:
     return text if len(text) <= 80 else text[:79] + "…"
 
 
-def run_target(words: list[str]) -> list[str] | None:
-    """The command `secrets run -- <cmd>` or `bws run -- <cmd>` starts, or None for anything else."""
+def run_scripts(words: list[str], cmd: Command) -> list[str]:
+    """What `secrets run -- <cmd>` or `bws run -- <cmd>` starts, as shell text; empty for anything else.
+
+    `secrets run` spawns its words as they are. `bws run` joins them with spaces and gives that to
+    `sh -c`, so a quoted `'env | sort'` is a pipeline there; with no words it runs its stdin.
+    """
     name, args = program(words[0]), words[1:]
     if name == "bws":
         rest = skip_options(args, BWS_VALUE_OPTIONS)
-        return skip_options(rest[1:], BWS_RUN_VALUE_OPTIONS) if rest[:1] == ["run"] else None
-    # `nzyme secrets`, `bun nzyme secrets`, `bun ./cli.ts secrets`, `bun --cwd x cli secrets`
-    if "secrets" not in args[:4]:
-        return None
-    rest = skip_options(args[args.index("secrets") + 1:], set())
-    return skip_options(rest[1:], set()) if rest[:1] == ["run"] else None
+        if rest[:1] != ["run"]:
+            return []
+        target = skip_options(rest[1:], BWS_RUN_VALUE_OPTIONS)
+        return [" ".join(target)] if target else [*cmd.stdin, *piped_text(cmd.piped_from)]
+    if name in PRINTERS or name in FILTERS:  # their words are text
+        return []
+    # Anywhere, as what comes before it depends on the CLI: `nzyme secrets`, `bun run --cwd x nzyme secrets`
+    for i, arg in enumerate(args):
+        rest = skip_options(args[i + 1:], set()) if arg == "secrets" else []
+        if rest[:1] == ["run"]:
+            target = skip_options(rest[1:], set())
+            return [shlex.join(target)] if target else []
+    return []
 
 
 def dumps_env(words: list[str]) -> bool:
@@ -182,9 +193,10 @@ def leak(words: list[str], cmd: Command, under_run: bool) -> tuple[str, str] | N
         return "credential", shown(words)
     if fetches_from_store(words):
         return "store", shown(words)
-    target = run_target(words)
-    if target:
-        return walk(shlex.join(target), lambda w, _cwd, c: leak(w, c, under_run=True))
+    for script in run_scripts(words, cmd):
+        found = walk(script, lambda w, _cwd, c: leak(w, c, under_run=True))
+        if found:
+            return found
     return None
 
 
