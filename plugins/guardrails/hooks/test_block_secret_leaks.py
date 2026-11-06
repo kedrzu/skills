@@ -65,6 +65,13 @@ class BlockedTests(unittest.TestCase):
             "ps auxe", "ps -E -p 1234", "ps -wwE", "ps axeww | grep bun",
         ], "another process's environment")
 
+    def test_ps_with_e_in_any_bsd_style_argument(self):
+        # procps reads `e` anywhere as "show the environment", also after another option's value.
+        self.assertBlocked([
+            "ps aux e", "ps ax e", "ps a e", "ps -A e", "ps -p 1234 e", "ps p 1234 e", "ps -u root e",
+            "ps -o pid e", "ps -A -o pid,command e", "ps axo pid,command e", "ps --sort pid e", "ps aux ww e",
+        ], "another process's environment")
+
     def test_keychain_reads(self):
         self.assertBlocked([
             "security find-generic-password -s nzyme-secrets -w",
@@ -171,6 +178,12 @@ class AllowedTests(unittest.TestCase):
             "echo 'never run env under secrets run'", "git commit -m 'Block nzyme secrets run -- env'",
             "grep -rn 'find-generic-password -w' docs", "cat > notes.md <<'EOF'\nsecrets run -- env\nEOF",
             "rg BWS_ACCESS_TOKEN packages",
+        ])
+
+    def test_ps_with_e_as_an_options_value(self):
+        self.assertAllowed([
+            "ps -u e", "ps -U e", "ps -g e", "ps -G e", "ps -t e", "ps -C e", "ps -fu e", "ps U e", "ps o e",
+            "ps t e", "ps --user e", "ps --sort e", "ps aux | grep e", "ps -ef", "ps -e", "ps -o pid,user -u e",
         ])
 
 

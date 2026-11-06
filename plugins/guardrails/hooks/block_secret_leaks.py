@@ -9,7 +9,7 @@ come from around them. Blocked (exit 2, the reason goes back to the agent):
   mapped secret: `env` with no command, `printenv`, `set`, `export` / `export -p`, `declare -p` /
   `-x`, `typeset` alike;
 - another process's environment, which holds the secrets of a dev server started with `secrets run`:
-  `/proc/<pid>/environ` read by any command, `ps` with `e` (BSD style) or `-E` (macOS);
+  `/proc/<pid>/environ` read by any command, `ps` with `e` in any BSD-style argument or `-E` (macOS);
 - a password read out of the OS keychain, for any service: `security find-generic-password` /
   `find-internet-password` with `-w` or `-g`, `security dump-keychain -d`, `secret-tool lookup` /
   `search`;
@@ -46,6 +46,11 @@ BWS_VALUE_OPTIONS = {"-o", "--output", "-c", "--color", "-t", "--access-token", 
                      "--profile", "--server-url"}
 BWS_RUN_VALUE_OPTIONS = {"--project-id", "--shell"}
 BWS_FETCH = {"get", "list", "create", "edit"}
+# `ps` options whose value is the next word: dashed (procps and macOS), BSD-style dashless, long.
+PS_VALUE_LETTERS = set("oOpqtuUgGCskNM")
+PS_BSD_VALUE_LETTERS = set("oOpqtUk")
+PS_LONG_VALUE_OPTIONS = {"--format", "--sort", "--pid", "--ppid", "--quick-pid", "--user", "--User", "--group",
+                         "--Group", "--tty", "--sid", "--cols", "--columns", "--rows", "--width"}
 SECURITY_VALUE_OPTIONS = {"-a", "-c", "-C", "-d", "-D", "-G", "-j", "-l", "-p", "-P", "-r", "-s", "-t"}
 
 WHY = (
@@ -167,8 +172,16 @@ def reads_process_env(words: list[str], cmd: Command) -> bool:
     name, args = program(words[0]), words[1:]
     if name != "ps":
         return False
-    bsd = bool(args) and re.fullmatch(r"[A-Za-z]+", args[0]) is not None and "e" in args[0]
-    return bsd or any(re.fullmatch(r"-[A-Za-z]+", a) and "E" in a for a in args)
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if re.fullmatch(r"[A-Za-z]+", arg) and "e" in arg or re.fullmatch(r"-[A-Za-z]+", arg) and "E" in arg:
+            return True
+        # `ps -u e`, `ps U e`, `ps --sort e`: the next word is the option's value, not a flag
+        letters = PS_VALUE_LETTERS if arg.startswith("-") else PS_BSD_VALUE_LETTERS
+        takes_value = arg in PS_LONG_VALUE_OPTIONS or re.fullmatch(r"-?[A-Za-z]+", arg) and arg[-1] in letters
+        i += 2 if takes_value else 1
+    return False
 
 
 def fetches_from_store(words: list[str]) -> bool:
