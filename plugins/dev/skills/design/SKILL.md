@@ -336,7 +336,7 @@ Take it seriously when they do: seeing concrete screens is how they find out whe
 understand the design and whether it matches what they intended. It also costs them hours, while
 rewriting the code behind it costs you minutes — so if you want to move an assumption underneath a path
 they are currently designing, say so plainly and let them decide. `references/ui-spec.md` covers what
-goes in the spec and how to review what comes back.
+goes in the spec, the prompt for the design agent (inline, never a file) and how to review what comes back.
 
 ## Coming back to it
 
@@ -402,4 +402,4 @@ Technical terms stay English everywhere.
 |`references/decision-record.md`|Writing or changing a decision, or creating `DECISIONS.md` and `history/`.|
 |`references/compress-design.md`|Picking up a folder whose `DECISIONS.md` still keeps superseded entries, stubs or narration.|
 |`references/failure-sweep.md`|Testing a model that has taken shape against the cases reality will throw at it.|
-|`references/ui-spec.md`|They ask for a UI spec, or come back with a mockup to review.|
+|`references/ui-spec.md`|They ask for a UI spec or a prompt for the design agent, or come back with a mockup to review.|

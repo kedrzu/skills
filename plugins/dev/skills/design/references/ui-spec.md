@@ -21,6 +21,16 @@ again.
 
 Self-contained: assume the design agent has never seen the design folder.
 
+## The prompt for the design agent
+
+When they ask for a prompt for the design agent, **give it inline in your reply**, as one fenced block
+they can copy — never as a file in the repository. A prompt is a one-off message to another agent, not a
+record: committed, it goes stale the moment it is used and sits in the folder as a document nobody keeps.
+
+It points at the briefs and the design's rules rather than repeating them: which `ui/<path>.md` to read,
+which screens to draw or change, and anything the round needs that no file says. If a brief doesn't exist
+yet or is behind, write the brief first, then the prompt.
+
 ## What goes in it
 
 - **Purpose** — what this path is for, and where the user is arriving from.
