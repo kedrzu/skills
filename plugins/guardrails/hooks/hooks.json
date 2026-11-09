@@ -21,6 +21,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/warn_outside_repo_root.py\"",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

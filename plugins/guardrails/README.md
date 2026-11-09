@@ -1,6 +1,6 @@
 # Guardrails
 
-Mechanical safety guards for agents. An instruction in a prompt is a request the agent may
+Mechanical safety guards for agents, and one session-start warning. An instruction in a prompt is a request the agent may
 forget; a guard here is a `PreToolUse` hook that refuses the action outright and returns an
 error the agent can act on (exit code 2, the reason on stderr, which Claude Code feeds back
 to the model). Each guard says what was blocked, why, and what to do instead.
@@ -124,10 +124,27 @@ field), a credential other than `BWS_ACCESS_TOKEN`, and a shell under `secrets r
 its script from a heredoc (`secrets run -- bash <<EOF`). Unparseable commands are allowed with a
 warning, as above.
 
+### Warn when a session starts below the repo root — `hooks/warn_outside_repo_root.py`
+
+A `SessionStart` hook, not a guard: nothing is refused. When the session's directory is below the
+top level of its git repository, it tells the user (`systemMessage`) and the agent
+(`additionalContext`) to restart from the root.
+
+**Why.** Started in a subdirectory, Claude Code still finds the project's own skills, but plugins
+linked under `.claude/skills/` do not load, and a skill that inlines a document with
+`` !`cat docs/…` `` resolves the path from the session's directory and fails to load. Nothing in the
+session says so, and a rule in `CLAUDE.md` cannot help: the agent reads it only after starting.
+
+**Install it at user scope** (`claude plugin install guardrails@kedrzu-skills`) for this warning: a
+plugin linked into the project is one of the things that does not load from a subdirectory.
+
+**Silent** at a repository's top level (a worktree's or a submodule's own included), outside any
+repository, and on any error.
+
 ## Layout
 
 ```
-hooks/hooks.json               # one PreToolUse entry per guard
+hooks/hooks.json               # one PreToolUse entry per guard, plus the SessionStart warning
 hooks/guard.py                 # shared runner: hook input in, exit code out, fail open
 hooks/shellparse.py            # shared shell lexer and walker: every command a line runs, with its cwd
 hooks/<guard>.py               # one guard per script
