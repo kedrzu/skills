@@ -10,6 +10,7 @@ description: >-
     otherwise wants to understand a PR rather than judge it — any language counts. Read-only: it
     posts nothing. Do NOT use to find bugs and post findings (/dev:review) or to act on PR comments
     (/dev:fix-pr-comments).
+disable-model-invocation: true
 ---
 
 # Explain PR

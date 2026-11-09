@@ -1,6 +1,7 @@
 ---
 name: whatsapp
 description: Read the user's WhatsApp chats and attachments on this Mac, straight from the WhatsApp desktop app's local database — list chats, read a conversation, search messages, find and copy the files someone sent. Use when the user says "sprawdź moją rozmowę z X na WhatsAppie", "co mi pisał X", "znajdź na WhatsAppie…", "co było na grupie Y", "wyciągnij plik / PDF / zdjęcie, które X przysłał", "check my WhatsApp chat with…", or otherwise asks about something said or sent on WhatsApp. Read-only — it cannot send messages.
+disable-model-invocation: true
 ---
 
 # WhatsApp — reading local chats
