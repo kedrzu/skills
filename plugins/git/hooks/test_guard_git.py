@@ -32,10 +32,12 @@ class StashTests(unittest.TestCase):
 
     def test_allowed(self):
         for command in ['git stash push -m "agent/fix/123-456"', "git stash push -u --message=x", "git stash -m x",
-                        'git stash save "named"', "git stash list --format='%H %gs'", "git stash show -p stash@{1}",
-                        "git stash apply 3f2a9c1", "git stash pop stash@{2}", "git stash drop abc123",
+                        'git stash save "named"', "git stash list --format='%gd %H %gs'", "git stash show -p stash@{1}",
+                        "git stash apply 3f2a9c1", "git stash pop stash@{2}", "git stash apply abc123", "git stash drop stash@{1}",
                         "git status", "echo 'git stash pop'", "grep -n 'git stash' README.md",
-                        "cat > notes.md <<'EOF'\ngit stash pop\nEOF"]:
+                        "cat > notes.md <<'EOF'\ngit stash pop\nEOF",
+                        "ref=$(git stash list --format='%gd %H' | awk -v s=3f2a9c1 '$2==s{print $1}'); "
+                        "[ -n \"$ref\" ] && git stash drop \"$ref\""]:
             self.assertEqual(run(command)[0], 0, command)
 
 
