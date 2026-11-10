@@ -186,7 +186,9 @@ standing bare is useful information — dressing it up in a blockquote destroys 
 ## What the folder holds
 
 Everything lives in `docs/design/<slug>/`, committed, so the diff is the review surface. Two readers use
-it, and they want opposite things.
+it, and they want opposite things. Being committed, it needs a branch: before the first write, when
+the project's `git-workflow` → **start** requires a task and the work is not on one, tell them which
+task you are opening and run **start**.
 
 **`README.md` is theirs, and it is a story.** Read cold, in one sitting, by **someone who has never
 heard of this project** — a new engineer, or the user three months from now. Not by someone who was in

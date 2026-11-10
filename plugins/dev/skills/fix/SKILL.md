@@ -20,6 +20,10 @@ Verifying and landing the fix go through the project's `verify` and `git-workflo
 (`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`). If either is missing, say so
 before you start — `/dev:setup` writes `verify`, `/git:setup` writes `git-workflow` — rather than diagnosing a bug you cannot then land.
 
+The bug is the scope, so the task comes first: when `git-workflow` → **start** requires every change
+to sit on a task and the work is not on one, tell the user which task you are opening and run
+**start** before the first edit — diagnosis already edits (logging, the red-first test).
+
 ## When NOT to use — route by structure, first match wins
 
 Check these in order against the work in front of you:
