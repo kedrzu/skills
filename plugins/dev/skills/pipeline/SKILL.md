@@ -50,6 +50,17 @@ which obligations (privacy, compliance, …) are non-negotiable, where ADRs go, 
 
 Phases run in order for the entry point's level. Spec and Plan each end in an approval gate that loops (present FULL artifact → classify reply → revise → re-present) until the user's reply matches the approval whitelist. Feedback is never approval — run the gate exactly as written in `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`.
 
+## The task the work sits on
+
+Read `git-workflow` → **start** before writing the spec (`/dev:feature`, `/dev:build`) or the plan
+(`/dev:task`). When it requires every change to sit on a task and the work is not on one, the
+artifact ends with a `## Task` section naming the task you will open, in the terms **start** uses
+(its title and where it lives). Already on one → the section names it. Approving the artifact
+approves the task: run **start** right after the approval, before the next phase, and say which task
+was opened. Not earlier — the scope the task is named after is settled in the discussion that leads
+to the gate. `/dev:fix` and `/dev:design` have no such gate before their first edit, so they run
+**start** at the moment their skill names.
+
 ## Planning is a conversation, not a document handover
 
 The artifact must never be the medium through which the user learns what was decided. By the time you present it, it should hold no news, and the gate is then a minute's skim rather than a 400-line read hunting for the decisions taken without him.
@@ -74,7 +85,7 @@ What this conserves is not the number of questions. Questions during planning ar
    - Codebase-answerable → update the spec with the answer and the code reference.
    - Genuinely ambiguous → explore first, then batch the remaining genuine questions into one upfront round, following `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/socratic-protocol.md` (codebase-first gate, 4-part question format, background exploration while waiting).
 5. **Triage finder output** — apply what the spec is missing. A gap is a correction: fix it silently. Only a genuine fork — two readings of what he asked for, with materially different consequences — goes to him, and it goes when it arises, not batched into the gate.
-6. **Approval gate** — present the FULL spec and ask for explicit approval. Answering ambiguity questions is NOT approval, and any reply that is not a whitelist phrase is feedback (revise → re-present → re-ask). Classify and loop exactly as written in `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`. Only a whitelist match moves to Phase 2.
+6. **Approval gate** — present the FULL spec and ask for explicit approval. Answering ambiguity questions is NOT approval, and any reply that is not a whitelist phrase is feedback (revise → re-present → re-ask). Classify and loop exactly as written in `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`. Only a whitelist match moves on — to **start** if the spec names a task to open ("The task the work sits on"), then Phase 2.
 
 ### Spec Format
 
@@ -120,7 +131,7 @@ Specs are durable artifacts — they must still make sense if the codebase is re
 6. **Dispatch plan reviewer subagent** using `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/plan-reviewer-prompt.md` — it reports only what would make the implementation wrong or fail, and it can attack the claims the plan declared.
 7. **Resolve ambiguities** — same as Phase 1: codebase-first, then batch the remaining genuine questions into one upfront round per `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/socratic-protocol.md`.
 8. **Apply the reviewer's findings to the plan** — corrections silently, so the user sees the plan once and already corrected; a finding that is a fork ("this cannot work without changing the schema") goes to him now, in a sentence or two.
-9. **Approval gate** — present the FULL plan and ask for explicit approval. Ambiguity answers and feedback are NOT approval; loop exactly as written in `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`. Only a whitelist match moves on.
+9. **Approval gate** — present the FULL plan and ask for explicit approval. Ambiguity answers and feedback are NOT approval; loop exactly as written in `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`. Only a whitelist match moves on — to **start** if the plan names a task to open ("The task the work sits on").
 10. **After approval: create the task list** (TaskCreate) — one tracked task per plan task, so execution progress is visible.
 11. **Create ADRs** if genuine architectural decisions were made → `docs/decisions/<title-slug>.md`, or wherever the project's `CLAUDE.md` keeps them (format below). **No number** — parallel agents in separate worktrees each take the next free one and all take the same one. The slug cannot collide.
 

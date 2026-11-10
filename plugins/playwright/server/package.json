@@ -1,6 +1,6 @@
 {
   "name": "@kedrzu/playwright-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Playwright MCP for agents with a per-session browser profile (persistent or fresh) and optional VPN regions through gluetun containers",
   "type": "module",
   "license": "MIT",

@@ -620,9 +620,10 @@ esac
       { mode: 0o755 }
     );
     const server = await start("main-fake-docker", { geo, env: { PATH: `${bin}${path.delimiter}${pathWithoutDocker()}` } });
-    const log = () => fs.readFileSync(calls, "utf-8");
-    // start() navigated already: the sweep was not in the way.
-    expect(log()).toContain("ps -a --filter label=kedrzu.playwright-mcp.owner --format");
+    const log = () => (fs.existsSync(calls) ? fs.readFileSync(calls, "utf-8") : "");
+    // start() navigated already: the sweep was not in the way. It runs in the background, so its
+    // `ps` may be spawned just after start() returns.
+    expect(await waitFor(() => log().includes("ps -a --filter label=kedrzu.playwright-mcp.owner --format"), 5_000)).toBe(true);
     expect(log()).not.toContain("sweep finished");
 
     process.kill(server.pid, "SIGTERM");
