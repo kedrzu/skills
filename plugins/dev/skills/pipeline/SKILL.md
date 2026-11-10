@@ -58,8 +58,8 @@ artifact ends with a `## Task` section naming the task you will open, in the ter
 (its title and where it lives). Already on one → the section names it. Approving the artifact
 approves the task: run **start** right after the approval, before the next phase, and say which task
 was opened. Not earlier — the scope the task is named after is settled in the discussion that leads
-to the gate. `/dev:fix` and `/dev:design` have no such gate before their first edit, so they run
-**start** at the moment their skill names.
+to the gate. The entry points with no such gate before their first edit run **start** sooner:
+`/dev:deliver` and `/dev:fix` when they begin, `/dev:design` before its first write.
 
 ## Planning is a conversation, not a document handover
 

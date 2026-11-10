@@ -37,10 +37,7 @@ unsupported) and says so in its final confirmation.
 - **start** — put the work on a branch for its task and, if the project does so, open a draft PR
   and link the tracker issue. It also says whether every change must sit on a task, how to tell
   that the work is not on one yet, and how a task is opened — the pipeline knows nothing of the
-  tracker. When it runs is the pipeline's: `/dev:deliver` when it begins; `/dev:task`,
-  `/dev:feature` and `/dev:build` right after the spec or plan is approved; `/dev:fix` when it
-  begins; `/dev:design` before its first write (pipeline `SKILL.md` → "The task the work sits on").
-  Already on the task → it re-syncs, nothing is created.
+  tracker. When it runs is the pipeline's: `SKILL.md` → "The task the work sits on".
 - **checkpoint** — commit with a real message in the project's convention (prefix, language,
   format) and push; includes anything that must be published separately first (submodules, other
   repositories) and how to confirm the push landed. Besides committing everything, it says how to:
