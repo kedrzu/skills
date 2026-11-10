@@ -24,6 +24,10 @@ import sys
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")"}
 PREFIXES = {"sudo", "command", "time", "nohup", "exec", "env"}
 GIT_OPTS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
+# Another worktree's push shifts every stash@{n}, so the index is looked up by sha in the same command as the drop,
+# and nothing is dropped once the sha is gone.
+DROP_BY_SHA = ("`ref=$(git stash list --format='%gd %H' | awk -v s=<sha> '$2==s{print $1}'); "
+               "[ -n \"$ref\" ] && git stash drop \"$ref\"` — never a `stash@{n}` read earlier")
 
 
 def segments(command: str) -> list[list[str]]:
@@ -88,19 +92,19 @@ def check_stash(args: list[str]) -> str | None:
                     "`git stash push -u -m \"<branch>/<purpose>/$(date +%s)-$RANDOM\"`. Never restore it by "
                     "position. List with `git stash list --format='%gd %H %gs'` (`%gs` reads "
                     "`On <branch>: <message>`), find the entry whose message part is exactly yours, and "
-                    "restore it with `git stash apply <sha>` (`pop` and `drop` reject a bare sha). Then "
-                    "`git stash drop stash@{n}` for the `%gd` whose `%H` is that sha.")
+                    "restore it with `git stash apply <sha>` (`pop` and `drop` reject a bare sha). Then drop it with "
+                    + DROP_BY_SHA + ".")
     if sub in ("pop", "apply", "drop") and not any(not a.startswith("-") for a in rest):
         return (f"`git stash {sub}` without a ref takes the top of a stack shared by every worktree of this "
                 "clone, which may be another agent's work. List the entries with "
                 "`git stash list --format='%gd %H %gs'` (`%gs` reads `On <branch>: <message>`) and find the "
                 "one whose message part is exactly yours. Restore it with `git stash apply <sha>` (`pop` and "
-                "`drop` reject a bare sha), then `git stash drop stash@{n}` for the `%gd` whose `%H` is that "
-                "sha. If no entry or more than one carries your exact message, stop rather than pick one.")
+                "`drop` reject a bare sha), then drop it with " + DROP_BY_SHA + ". If no entry or more than one "
+                "carries your exact message, stop rather than pick one.")
     if sub == "clear":
         return ("`git stash clear` deletes the stashes of every worktree of this clone, not just yours. "
-                "Drop your own entry: find its `%gd` with `git stash list --format='%gd %H %gs'` (`%gs` reads "
-                "`On <branch>: <message>`), then `git stash drop stash@{n}`.")
+                "Drop your own entry: find its `%H` with `git stash list --format='%gd %H %gs'` (`%gs` reads "
+                "`On <branch>: <message>`), then " + DROP_BY_SHA + ".")
     return None
 
 
