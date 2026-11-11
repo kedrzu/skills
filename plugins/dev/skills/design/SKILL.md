@@ -247,7 +247,6 @@ docs/design/<slug>/
   DECISIONS.md   the decisions in force: claim, why, evidence, what was rejected
   history/       DECISIONS.md (retired decisions under their original IDs), JOURNAL.md, and dated
                  notes of reviews and redesigns
-  ui/<path>.md   UI specs, per `references/ui-spec.md`
   <dir>/         anything that is neither prose nor record — policy drafts, schemas, fixtures — in a
                  subfolder the chapter that uses it links to
 ```
@@ -329,17 +328,6 @@ the model, not a backlog to work through. Go back and re-model rather than bolti
 special case — and note that adding an entity often makes an awkward case *disappear from view* without
 resolving it, which is how this kind of analysis quietly turns into over-modelling.
 
-## UI
-
-The user designs the UI themselves, with a separate design agent — whichever one they use. They ask when
-they want a spec; you don't propose the step and you don't gate it.
-
-Take it seriously when they do: seeing concrete screens is how they find out whether they actually
-understand the design and whether it matches what they intended. It also costs them hours, while
-rewriting the code behind it costs you minutes — so if you want to move an assumption underneath a path
-they are currently designing, say so plainly and let them decide. `references/ui-spec.md` covers what
-goes in the spec and how to review what comes back.
-
 ## Coming back to it
 
 You may be the fresh agent — different model, clean context, none of the accumulated bias. That is the
@@ -404,4 +392,3 @@ Technical terms stay English everywhere.
 |`references/decision-record.md`|Writing or changing a decision, or creating `DECISIONS.md` and `history/`.|
 |`references/compress-design.md`|Picking up a folder whose `DECISIONS.md` still keeps superseded entries, stubs or narration.|
 |`references/failure-sweep.md`|Testing a model that has taken shape against the cases reality will throw at it.|
-|`references/ui-spec.md`|They ask for a UI spec, or come back with a mockup to review.|
