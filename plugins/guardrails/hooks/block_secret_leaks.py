@@ -9,7 +9,7 @@ come from around them. Blocked (exit 2, the reason goes back to the agent):
   mapped secret: `env` with no command, `printenv`, `set`, `export` / `export -p`, `declare -p` /
   `-x`, `typeset` alike;
 - another process's environment, which holds the secrets of a dev server started with `secrets run`:
-  `/proc/<pid>/environ` read by any command, `ps` with `e` (BSD style) or `-E` (macOS);
+  `/proc/<pid>/environ` read by any command, `ps` with `e` in any BSD-style argument or `-E` (macOS);
 - a password read out of the OS keychain, for any service: `security find-generic-password` /
   `find-internet-password` with `-w` or `-g`, `security dump-keychain -d`, `secret-tool lookup` /
   `search`;
@@ -32,7 +32,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from guard import run_guard  # noqa: E402
-from shellparse import Command, program, skip_options, strip_prefixes, walk  # noqa: E402
+from shellparse import Command, piped_text, program, skip_options, strip_prefixes, walk  # noqa: E402
 
 CREDENTIALS = ("BWS_ACCESS_TOKEN",)
 REFERENCE = re.compile(r"\$\{?(" + "|".join(CREDENTIALS) + r")\b")
@@ -46,6 +46,11 @@ BWS_VALUE_OPTIONS = {"-o", "--output", "-c", "--color", "-t", "--access-token", 
                      "--profile", "--server-url"}
 BWS_RUN_VALUE_OPTIONS = {"--project-id", "--shell"}
 BWS_FETCH = {"get", "list", "create", "edit"}
+# `ps` options whose value is the next word: dashed (procps and macOS), BSD-style dashless, long.
+PS_VALUE_LETTERS = set("oOpqtuUgGCskNM")
+PS_BSD_VALUE_LETTERS = set("oOpqtUk")
+PS_LONG_VALUE_OPTIONS = {"--format", "--sort", "--pid", "--ppid", "--quick-pid", "--user", "--User", "--group",
+                         "--Group", "--tty", "--sid", "--cols", "--columns", "--rows", "--width"}
 SECURITY_VALUE_OPTIONS = {"-a", "-c", "-C", "-d", "-D", "-G", "-j", "-l", "-p", "-P", "-r", "-s", "-t"}
 
 WHY = (
@@ -78,17 +83,28 @@ def shown(words: list[str]) -> str:
     return text if len(text) <= 80 else text[:79] + "…"
 
 
-def run_target(words: list[str]) -> list[str] | None:
-    """The command `secrets run -- <cmd>` or `bws run -- <cmd>` starts, or None for anything else."""
+def run_scripts(words: list[str], cmd: Command) -> list[str]:
+    """What `secrets run -- <cmd>` or `bws run -- <cmd>` starts, as shell text; empty for anything else.
+
+    `secrets run` spawns its words as they are. `bws run` joins them with spaces and gives that to
+    `sh -c`, so a quoted `'env | sort'` is a pipeline there; with no words it runs its stdin.
+    """
     name, args = program(words[0]), words[1:]
     if name == "bws":
         rest = skip_options(args, BWS_VALUE_OPTIONS)
-        return skip_options(rest[1:], BWS_RUN_VALUE_OPTIONS) if rest[:1] == ["run"] else None
-    # `nzyme secrets`, `bun nzyme secrets`, `bun ./cli.ts secrets`, `bun --cwd x cli secrets`
-    if "secrets" not in args[:4]:
-        return None
-    rest = skip_options(args[args.index("secrets") + 1:], set())
-    return skip_options(rest[1:], set()) if rest[:1] == ["run"] else None
+        if rest[:1] != ["run"]:
+            return []
+        target = skip_options(rest[1:], BWS_RUN_VALUE_OPTIONS)
+        return [" ".join(target)] if target else [*cmd.stdin, *piped_text(cmd.piped_from)]
+    if name in PRINTERS or name in FILTERS:  # their words are text
+        return []
+    # Anywhere, as what comes before it depends on the CLI: `nzyme secrets`, `bun run --cwd x nzyme secrets`
+    for i, arg in enumerate(args):
+        rest = skip_options(args[i + 1:], set()) if arg == "secrets" else []
+        if rest[:1] == ["run"]:
+            target = skip_options(rest[1:], set())
+            return [shlex.join(target)] if target else []
+    return []
 
 
 def dumps_env(words: list[str]) -> bool:
@@ -156,8 +172,16 @@ def reads_process_env(words: list[str], cmd: Command) -> bool:
     name, args = program(words[0]), words[1:]
     if name != "ps":
         return False
-    bsd = bool(args) and re.fullmatch(r"[A-Za-z]+", args[0]) is not None and "e" in args[0]
-    return bsd or any(re.fullmatch(r"-[A-Za-z]+", a) and "E" in a for a in args)
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if re.fullmatch(r"[A-Za-z]+", arg) and "e" in arg or re.fullmatch(r"-[A-Za-z]+", arg) and "E" in arg:
+            return True
+        # `ps -u e`, `ps U e`, `ps --sort e`: the next word is the option's value, not a flag
+        letters = PS_VALUE_LETTERS if arg.startswith("-") else PS_BSD_VALUE_LETTERS
+        takes_value = arg in PS_LONG_VALUE_OPTIONS or re.fullmatch(r"-?[A-Za-z]+", arg) and arg[-1] in letters
+        i += 2 if takes_value else 1
+    return False
 
 
 def fetches_from_store(words: list[str]) -> bool:
@@ -182,9 +206,10 @@ def leak(words: list[str], cmd: Command, under_run: bool) -> tuple[str, str] | N
         return "credential", shown(words)
     if fetches_from_store(words):
         return "store", shown(words)
-    target = run_target(words)
-    if target:
-        return walk(shlex.join(target), lambda w, _cwd, c: leak(w, c, under_run=True))
+    for script in run_scripts(words, cmd):
+        found = walk(script, lambda w, _cwd, c: leak(w, c, under_run=True))
+        if found:
+            return found
     return None
 
 
