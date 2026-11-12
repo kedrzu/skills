@@ -21,8 +21,8 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, a hook that blocks unnamed stashes, unref'd pops, plain force-pushes and, where a project opts in, pushes to its protected branches, and /git:setup, which writes the project's git-workflow skill and .claude/git.json",
-      "version": "0.5.0",
+      "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, a hook that blocks unnamed stashes, pops by no ref or by position, plain force-pushes and, where a project opts in, pushes to its protected branches, and /git:setup, which writes the project's git-workflow skill and .claude/git.json",
+      "version": "0.6.0",
       "category": "development"
     },
     {

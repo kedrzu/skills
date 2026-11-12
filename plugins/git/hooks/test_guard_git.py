@@ -25,7 +25,9 @@ class StashTests(unittest.TestCase):
         for command in ["git stash", "git stash -u", "git stash push", "git stash push -u -- src",
                         "git stash pop", "git stash apply --index", "git stash drop", "git stash clear",
                         "cd sub && git stash pop", "git -C ../other stash pop", "echo x; git stash",
-                        "make test\ngit stash pop", "FOO=1 git stash"]:
+                        "make test\ngit stash pop", "FOO=1 git stash",
+                        "git stash pop stash@{2}", "git stash pop --index stash@{0}", "git stash apply stash@{1}",
+                        "git stash drop stash@{1}", "git stash drop 0", "git stash apply 'stash@{3}'"]:
             code, err = run(command)
             self.assertEqual(code, 2, command)
             self.assertIn("Blocked by the git plugin's guard", err)
@@ -33,7 +35,7 @@ class StashTests(unittest.TestCase):
     def test_allowed(self):
         for command in ['git stash push -m "agent/fix/123-456"', "git stash push -u --message=x", "git stash -m x",
                         'git stash save "named"', "git stash list --format='%gd %H %gs'", "git stash show -p stash@{1}",
-                        "git stash apply 3f2a9c1", "git stash pop stash@{2}", "git stash apply abc123", "git stash drop stash@{1}",
+                        "git stash apply 3f2a9c1", "git stash apply --index 3f2a9c1", "git stash apply abc123",
                         "git status", "echo 'git stash pop'", "grep -n 'git stash' README.md",
                         "cat > notes.md <<'EOF'\ngit stash pop\nEOF",
                         "ref=$(git stash list --format='%gd %H' | awk -v s=3f2a9c1 '$2==s{print $1}'); "

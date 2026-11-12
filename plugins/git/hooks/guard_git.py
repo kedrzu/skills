@@ -21,6 +21,8 @@ import shlex
 import subprocess
 import sys
 
+# A literal stash position: `stash@{2}`, or the bare index `2` that `git stash` reads the same way.
+POSITIONAL_REF = re.compile(r"^(?:stash@\{\d+\}|\d+)$")
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")"}
 PREFIXES = {"sudo", "command", "time", "nohup", "exec", "env"}
 GIT_OPTS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
@@ -101,6 +103,12 @@ def check_stash(args: list[str]) -> str | None:
                 "one whose message part is exactly yours. Restore it with `git stash apply <sha>` (`pop` and "
                 "`drop` reject a bare sha), then drop it with " + DROP_BY_SHA + ". If no entry or more than one "
                 "carries your exact message, stop rather than pick one.")
+    positional = [a for a in rest if not a.startswith("-") and POSITIONAL_REF.match(a)]
+    if sub in ("pop", "apply", "drop") and positional:
+        return (f"`git stash {sub} {positional[0]}` names an entry by its position, and another worktree's "
+                "push shifts every position of this shared stack, so a position read earlier may now point at "
+                "another agent's work. Restore your entry with `git stash apply <sha>` (`pop` and `drop` reject a "
+                "bare sha), then drop it with " + DROP_BY_SHA + ".")
     if sub == "clear":
         return ("`git stash clear` deletes the stashes of every worktree of this clone, not just yours. "
                 "Drop your own entry: find its `%H` with `git stash list --format='%gd %H %gs'` (`%gs` reads "
