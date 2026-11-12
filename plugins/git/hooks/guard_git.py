@@ -4,6 +4,7 @@
 Blocked (exit 2, the reason goes back to the agent):
 - `git stash` / `git stash push` without a message, and `git stash pop|apply|drop` without a ref:
   the stash stack is shared by every worktree of a clone, so the top entry may be another agent's.
+- `git stash pop|apply|drop stash@{n}` (or a bare `n`): another worktree's push shifts every position.
 - `git stash clear`: it deletes every worktree's stashes.
 - `git push --force` / `-f` / a `+refspec` / `--mirror`: `--force-with-lease` is the safe form.
 - a push to a branch listed in `protectedBranches` of the repository's `.claude/git.json`, unless the remote
@@ -30,6 +31,7 @@ GIT_OPTS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "-
 # and nothing is dropped once the sha is gone.
 DROP_BY_SHA = ("`ref=$(git stash list --format='%gd %H' | awk -v s=<sha> '$2==s{print $1}'); "
                "[ -n \"$ref\" ] && git stash drop \"$ref\"` — never a `stash@{n}` read earlier")
+RESTORE_BY_SHA = "`git stash apply <sha>` (`pop` and `drop` reject a bare sha)"
 
 
 def segments(command: str) -> list[list[str]]:
@@ -94,21 +96,20 @@ def check_stash(args: list[str]) -> str | None:
                     "`git stash push -u -m \"<branch>/<purpose>/$(date +%s)-$RANDOM\"`. Never restore it by "
                     "position. List with `git stash list --format='%gd %H %gs'` (`%gs` reads "
                     "`On <branch>: <message>`), find the entry whose message part is exactly yours, and "
-                    "restore it with `git stash apply <sha>` (`pop` and `drop` reject a bare sha). Then drop it with "
-                    + DROP_BY_SHA + ".")
+                    "restore it with " + RESTORE_BY_SHA + ". Then drop it with " + DROP_BY_SHA + ".")
     if sub in ("pop", "apply", "drop") and not any(not a.startswith("-") for a in rest):
         return (f"`git stash {sub}` without a ref takes the top of a stack shared by every worktree of this "
                 "clone, which may be another agent's work. List the entries with "
                 "`git stash list --format='%gd %H %gs'` (`%gs` reads `On <branch>: <message>`) and find the "
-                "one whose message part is exactly yours. Restore it with `git stash apply <sha>` (`pop` and "
-                "`drop` reject a bare sha), then drop it with " + DROP_BY_SHA + ". If no entry or more than one "
+                "one whose message part is exactly yours. Restore it with " + RESTORE_BY_SHA + ", then drop it "
+                "with " + DROP_BY_SHA + ". If no entry or more than one "
                 "carries your exact message, stop rather than pick one.")
     positional = [a for a in rest if not a.startswith("-") and POSITIONAL_REF.match(a)]
     if sub in ("pop", "apply", "drop") and positional:
         return (f"`git stash {sub} {positional[0]}` names an entry by its position, and another worktree's "
                 "push shifts every position of this shared stack, so a position read earlier may now point at "
-                "another agent's work. Restore your entry with `git stash apply <sha>` (`pop` and `drop` reject a "
-                "bare sha), then drop it with " + DROP_BY_SHA + ".")
+                "another agent's work. Restore your entry with " + RESTORE_BY_SHA + ", then drop it with "
+                + DROP_BY_SHA + ".")
     if sub == "clear":
         return ("`git stash clear` deletes the stashes of every worktree of this clone, not just yours. "
                 "Drop your own entry: find its `%H` with `git stash list --format='%gd %H %gs'` (`%gs` reads "
