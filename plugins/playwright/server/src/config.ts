@@ -3,7 +3,7 @@
 // a typo never falls back to defaults silently.
 //
 // The file holds no secret. VPN credentials are named by key and read only when a region
-// is requested (readCredentials), from the environment or a KEY=value file.
+// is requested (readCredentials), from the environment, a KEY=value file or a command's output.
 
 import * as fs from "fs";
 import * as os from "os";
@@ -16,12 +16,15 @@ export type ProfileMode = (typeof PROFILE_MODES)[number];
 
 export type Env = Record<string, string | undefined>;
 
-// Where the VPN login comes from. `file` is absolute once loaded.
-export interface CredentialsSource {
-  file: string;
-  userKey: string;
-  passwordKey: string;
-}
+// Where the VPN login comes from: a KEY=value file (absolute once loaded) or a command run in
+// `cwd` (the project) whose stdout holds KEY=value lines. Never both.
+export type CredentialsSource = { userKey: string; passwordKey: string } & (
+  | { file: string; command?: undefined; cwd?: undefined }
+  | { command: string[]; cwd: string; file?: undefined }
+);
+
+// A wrapper such as a secret store's `run` may hit the network.
+export const CREDENTIALS_COMMAND_TIMEOUT_MS = 60_000;
 
 export interface GeoConfig {
   provider: string; // gluetun's VPN_SERVICE_PROVIDER
@@ -109,16 +112,24 @@ function parseGeo(raw: unknown, projectDir: string, env: Env, errors: string[]):
     errors.push("geo.credentials: expected an object with 'userKey' and 'passwordKey'");
     return undefined;
   }
-  rejectUnknown(creds, ["file", "userKey", "passwordKey"], "geo.credentials.", errors);
+  rejectUnknown(creds, ["file", "command", "userKey", "passwordKey"], "geo.credentials.", errors);
   const userKey = requiredString(creds, "userKey", "geo.credentials.", errors);
   const passwordKey = requiredString(creds, "passwordKey", "geo.credentials.", errors);
   let file = defaultCredentialsFile(env);
-  if (creds.file !== undefined) {
+  let command: string[] | undefined;
+  if (creds.file !== undefined && creds.command !== undefined) {
+    errors.push("geo.credentials: 'file' and 'command' are mutually exclusive, give at most one");
+  } else if (creds.command !== undefined) {
+    const argv = creds.command;
+    if (Array.isArray(argv) && argv.length > 0 && argv.every((a) => typeof a === "string") && argv[0].trim()) command = argv;
+    else errors.push("geo.credentials.command: expected a non-empty array of strings (an argv, not a shell string)");
+  } else if (creds.file !== undefined) {
     if (typeof creds.file === "string" && creds.file.trim()) file = path.resolve(projectDir, expandHome(creds.file));
     else errors.push("geo.credentials.file: expected a non-empty path");
   }
   if (provider === undefined || userKey === undefined || passwordKey === undefined) return undefined;
-  return { provider, credentials: { file, userKey, passwordKey } };
+  const where = command ? { command, cwd: projectDir } : { file };
+  return { provider, credentials: { ...where, userKey, passwordKey } };
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -157,19 +168,19 @@ function stripQuotes(value: string): string {
   return value.replace(/^"+|"+$/g, "").replace(/^'+|'+$/g, "");
 }
 
-// The VPN login. A non-empty environment variable named like the key wins over the file;
-// the file is read only when a key is missing from the environment. Errors name keys and
-// the file, never a value.
+// The VPN login. A non-empty environment variable named like the key wins over the file or
+// command; that is run or read only when a key is missing from the environment. Errors name
+// keys and the file or command, never a value.
 export function readCredentials(source: CredentialsSource, env: Env = process.env): Credentials {
   const keys = [source.userKey, source.passwordKey];
   const notInEnv = keys.filter((k) => !env[k]);
-  const fromFile = notInEnv.length ? readCredentialsFile(source, notInEnv, env) : {};
+  const fromFile = notInEnv.length ? readStored(source, notInEnv, env) : {};
   const username = env[source.userKey] || fromFile[source.userKey];
   const password = env[source.passwordKey] || fromFile[source.passwordKey];
   if (!username || !password) {
     const missing = keys.filter((k) => !env[k] && !fromFile[k]);
     throw new ConfigError(
-      `VPN credentials ${missing.join(" / ")} are set neither in the environment nor in ${source.file}. ` +
+      `VPN credentials ${missing.join(" / ")} are set neither in the environment nor in ${describeSource(source)}. ` +
         storeHint(source, missing, env)
     );
   }
@@ -179,12 +190,49 @@ export function readCredentials(source: CredentialsSource, env: Env = process.en
 // How to supply missing keys. `secret.py set` is named only for the secrets plugin's own store;
 // a project that points `credentials.file` elsewhere may not have that plugin enabled at all.
 function storeHint(source: CredentialsSource, missing: string[], env: Env): string {
+  if (source.command) return `Make the command print ${missing.map((k) => `${k}=…`).join(" and ")}.`;
   if (source.file === defaultCredentialsFile(env)) return "Store them with the secrets plugin (secret.py set).";
   return `Add ${missing.map((k) => `${k}=…`).join(" and ")} to ${source.file}.`;
 }
 
-function readCredentialsFile(source: CredentialsSource, missing: string[], env: Env): Record<string, string> {
-  const { file } = source;
+function describeSource(source: CredentialsSource): string {
+  return source.command ? `the output of geo.credentials.command (${source.command[0]})` : source.file;
+}
+
+function readStored(source: CredentialsSource, missing: string[], env: Env): Record<string, string> {
+  return source.command ? readCredentialsCommand(source, source.command, source.cwd, env) : readCredentialsFile(source.file, source, missing, env);
+}
+
+// Runs the command and keeps only the two credential keys from its stdout: a wrapper may print
+// log lines first. The message carries the exit code and argv[0], never stdout (it holds the
+// values) nor stderr (a wrapper may echo what it read).
+function readCredentialsCommand(source: CredentialsSource, argv: string[], cwd: string, env: Env): Record<string, string> {
+  const name = argv[0];
+  const fail = (reason: string): never => {
+    throw new ConfigError(`geo.credentials.command (${name}) ${reason}. Run it by hand in ${cwd} to see why.`);
+  };
+  let result: Bun.SyncSubprocess<"pipe", "ignore">;
+  try {
+    result = Bun.spawnSync(argv, {
+      cwd,
+      env: Object.fromEntries(Object.entries(env).filter((e): e is [string, string] => e[1] !== undefined)),
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "ignore",
+      timeout: CREDENTIALS_COMMAND_TIMEOUT_MS,
+    });
+  } catch {
+    return fail("could not be started");
+  }
+  if (result.exitedDueToTimeout) return fail(`did not finish within ${CREDENTIALS_COMMAND_TIMEOUT_MS / 1000}s`);
+  if (result.exitCode !== 0) return fail(`failed with exit code ${result.exitCode ?? `signal ${result.signalCode}`}`);
+  const all = parseEnvFile(result.stdout.toString());
+  const wanted: Record<string, string> = {};
+  for (const key of [source.userKey, source.passwordKey]) if (all[key]) wanted[key] = all[key];
+  return wanted;
+}
+
+function readCredentialsFile(file: string, source: CredentialsSource, missing: string[], env: Env): Record<string, string> {
   try {
     return parseEnvFile(fs.readFileSync(file, "utf-8"));
   } catch (e) {

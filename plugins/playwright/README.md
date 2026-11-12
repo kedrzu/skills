@@ -56,8 +56,24 @@ Texas while the service saw Kansas), so confirm the location with the service it
 - **Credentials** are named by key in the config, never stored in it. They come from an
   environment variable of that name, else from a `KEY=value` file: `credentials.file` (relative
   paths resolve from the project, `~` works), by default
-  `${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env`, the store of the `secrets` plugin. They are read
-  only when a region is requested and passed to the container as gluetun's secret files, a
+  `${CLAUDE_CONFIG_DIR:-~/.claude}/secrets/.env`, the store of the `secrets` plugin. Instead of a
+  file, `credentials.command` (an argv array, never a shell string; give `file` or `command`, not
+  both) is run with the project as its working directory and its stdout read as `KEY=value` lines.
+  It suits a project whose secrets live in a store and are exposed to a child process, e.g.:
+
+  ```json
+  "credentials": {
+    "command": ["bun", "healed", "secrets", "run", "--", "sh", "-c", "printf 'PIA_USER=%s\\nPIA_PASSWORD=%s\\n' \"$PIA_USER\" \"$PIA_PASSWORD\""],
+    "userKey": "PIA_USER",
+    "passwordKey": "PIA_PASSWORD"
+  }
+  ```
+
+  Only the `userKey` and `passwordKey` lines are taken and every other line is ignored, because a
+  wrapper may print log lines before the output. A command that exits non-zero or runs past 60
+  seconds fails the call with its exit code and `argv[0]` only: neither its stdout nor its stderr
+  is quoted, as they may hold the values. The command runs only when a key is missing from the
+  environment. Credentials are read only when a region is requested and passed to the container as gluetun's secret files, a
   read-only mount of a temporary directory deleted once the tunnel is up: never on a command line
   nor in the container's environment, which `docker inspect` shows.
 - **First use is slow.** The image is pulled once, and gluetun's built-in server list goes stale,
