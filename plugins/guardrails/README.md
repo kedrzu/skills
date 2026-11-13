@@ -98,7 +98,7 @@ secrets`, `<product-cli> secrets` — and every call is found the way the guards
 
 | What | Examples | Why |
 | --- | --- | --- |
-| an environment dump run by `secrets run` or `bws run` | `secrets run -- env`, `printenv`, `set`, `export -p`, `declare -p`/`-x`, also behind `bash -c`, `timeout`, a pipe | `run` fills the child's environment with every mapped secret |
+| an environment dump run by `secrets run` or `bws run` | `secrets run KEY -- env`, `printenv`, `set`, `export -p`, `declare -p`/`-x`, also behind `bash -c`, `timeout`, a pipe | `run` fills the child's environment with secrets |
 | another process's environment, anywhere | `cat /proc/<pid>/environ` (also as `< file`), `ps eww`, `ps -E` | a dev server started with `secrets run` in the background holds every secret there |
 | a keychain password, for any service | `security find-generic-password`/`find-internet-password` with `-w` or `-g`, `security dump-keychain -d`, `secret-tool lookup`/`search` | `nzyme-secrets` keeps tokens and cached values there, readable by any process of the user without a prompt |
 | the store credential printed | `echo $BWS_ACCESS_TOKEN`, `printf`, `cat <<< "$BWS_ACCESS_TOKEN"`, `printenv BWS_ACCESS_TOKEN`, `env \| grep BWS` (or `TOKEN`, `ACCESS`) | it unlocks every secret its machine account can read |
@@ -107,14 +107,14 @@ secrets`, `<product-cli> secrets` — and every call is found the way the guards
 The keychain is blocked for every service, not only `nzyme-secrets`: any password printed is a
 leak, the hook cannot tell which service holds what, and an agent has no task that needs to see one.
 
-**Allows**: `secrets list`, `set NAME --prompt=…`, `login`, `import`, `refresh`; `secrets run --`
+**Allows**: `secrets list`, `set NAME --prompt=…`, `login`, `import`, `refresh`; `secrets run <KEY>... --`
 any command that is not an environment dump (`bun run dev`, `env FOO=1 cmd`, `set -e`); `env`,
 `printenv PATH` and `env | grep NODE` outside `secrets run`, since the agent's own environment holds
 no mapped secret; `security find-generic-password` without `-w`/`-g` (attributes only); passing the
 credential to a tool (`bws --access-token "$BWS_ACCESS_TOKEN" project list`), `${#BWS_ACCESS_TOKEN}`;
 `bws project list`, `bws secret delete`; text that only mentions any of these.
 
-**The fix the agent is told:** `secrets list` to check presence, `secrets run -- <the real command>`
+**The fix the agent is told:** `secrets list` to check presence, `secrets run <KEY>... -- <the real command>`
 to use a value, `secrets set NAME --prompt="…"` to add one; to check a value is right, run what uses it.
 
 **Limits.** A script file is out of reach: one that calls `Bun.secrets.get`, dumps
