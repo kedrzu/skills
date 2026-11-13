@@ -143,3 +143,62 @@ describe("credentials", () => {
     expect(() => readCredentials(source(shared), env)).toThrow("secret.py set");
   });
 });
+
+describe("credentials from a command", () => {
+  const sh = (script: string): CredentialsSource => ({
+    command: ["sh", "-c", script],
+    cwd: tmp,
+    userKey: "PIA_USER",
+    passwordKey: "PIA_PASSWORD",
+  });
+  const geo = (credentials: unknown) => ({ geo: { provider: "pia", credentials } });
+  const keys = { userKey: "PIA_USER", passwordKey: "PIA_PASSWORD" };
+
+  it("accepts a command and resolves it against the project", () => {
+    const dir = project("cmd-ok", geo({ command: ["sh", "-c", "true"], ...keys }));
+    expect(loadProjectConfig(dir, {}).geo?.credentials).toEqual({ command: ["sh", "-c", "true"], cwd: dir, ...keys });
+  });
+
+  it("rejects file together with command, and a command that is not a non-empty string array", () => {
+    expect(loadError(project("cmd-both", geo({ file: "x.env", command: ["true"], ...keys })))).toContain("mutually exclusive");
+    for (const bad of ["bun run x", [], [""], ["a", 1], {}]) {
+      expect(loadError(project("cmd-bad", geo({ command: bad, ...keys })))).toContain("geo.credentials.command: expected a non-empty array of strings");
+    }
+  });
+
+  it("takes only the two keys and ignores noise lines", () => {
+    const script = "echo noise; echo OTHER=x; echo PIA_USER=u; echo 'log: PIA_USER is set'; echo PIA_PASSWORD=p";
+    expect(readCredentials(sh(script), {})).toEqual({ username: "u", password: "p" });
+  });
+
+  it("runs in the project directory", () => {
+    expect(readCredentials(sh("echo PIA_USER=$(basename \"$PWD\"); echo PIA_PASSWORD=p"), {}).username).toBe(path.basename(tmp));
+  });
+
+  it("lets the environment win and skips the command when both keys are set", () => {
+    expect(readCredentials(sh("echo PIA_USER=u; echo PIA_PASSWORD=p"), { PIA_USER: "env-u" })).toEqual({ username: "env-u", password: "p" });
+    expect(readCredentials(sh("exit 1"), { PIA_USER: "a", PIA_PASSWORD: "b" })).toEqual({ username: "a", password: "b" });
+  });
+
+  it("reports a failing command without stdout content", () => {
+    let message = "";
+    try {
+      readCredentials(sh("echo PIA_USER=leaky-user; echo PIA_PASSWORD=leaky-pass; echo leaky-err >&2; exit 3"), {});
+    } catch (e) {
+      expect(e).toBeInstanceOf(ConfigError);
+      message = e instanceof Error ? e.message : String(e);
+    }
+    expect(message).toContain("exit code 3");
+    expect(message).toContain("(sh)");
+    expect(message).not.toContain("leaky");
+  });
+
+  it("names the missing key when the command prints only one", () => {
+    expect(() => readCredentials(sh("echo PIA_USER=u"), {})).toThrow("PIA_PASSWORD");
+  });
+
+  it("reports a command that cannot be started", () => {
+    const missing: CredentialsSource = { command: ["definitely-not-a-command-xyz"], cwd: tmp, ...keys };
+    expect(() => readCredentials(missing, {})).toThrow("could not be started");
+  });
+});

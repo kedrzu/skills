@@ -5,8 +5,8 @@ Whatever a command prints stays in the session transcript for good, so a printed
 value and has to be rotated. The `secrets` commands of `@nzyme/secrets` never print values; the leaks
 come from around them. Blocked (exit 2, the reason goes back to the agent):
 
-- an environment dump run by `secrets run -- <cmd>` or `bws run -- <cmd>`, which fill it with every
-  mapped secret: `env` with no command, `printenv`, `set`, `export` / `export -p`, `declare -p` /
+- an environment dump run by `secrets run <KEY>... -- <cmd>` or `bws run -- <cmd>`, which fill it
+  with secrets: `env` with no command, `printenv`, `set`, `export` / `export -p`, `declare -p` /
   `-x`, `typeset` alike;
 - another process's environment, which holds the secrets of a dev server started with `secrets run`:
   `/proc/<pid>/environ` read by any command, `ps` with `e` (BSD style) or `-E` (macOS);
@@ -55,15 +55,15 @@ WHY = (
 INSTEAD = (
     "Instead:\n"
     "    secrets list                          # is each secret set? (names and statuses, no values)\n"
-    "    secrets run -- <the real command>     # run the app or test that uses them\n"
+    "    secrets run <KEY>... -- <the real command>  # run the app or test that uses them\n"
     "    secrets set NAME --prompt=\"<hint>\"    # ask the user for a value in a masked dialog\n"
     "(prefixed the way this repo runs its CLI: `bun nzyme secrets …` or the product's own CLI). To check a "
     "value is right, run what uses it."
 )
 WHAT = {
-    "env": "prints the environment that `secrets run` filled with every mapped secret",
+    "env": "prints the environment that `secrets run` filled with secrets",
     "process": "prints another process's environment, where a dev server started with `secrets run` holds "
-               "every mapped secret",
+               "its secrets",
     "keychain": "prints a password from the OS keychain. `@nzyme/secrets` keeps its store tokens and cached "
                 "values there (service `nzyme-secrets`), next to every other saved password, so any service "
                 "is refused",
@@ -79,7 +79,7 @@ def shown(words: list[str]) -> str:
 
 
 def run_target(words: list[str]) -> list[str] | None:
-    """The command `secrets run -- <cmd>` or `bws run -- <cmd>` starts, or None for anything else."""
+    """The command `secrets run <KEY>... -- <cmd>` or `bws run -- <cmd>` starts, or None for anything else."""
     name, args = program(words[0]), words[1:]
     if name == "bws":
         rest = skip_options(args, BWS_VALUE_OPTIONS)
@@ -88,7 +88,11 @@ def run_target(words: list[str]) -> list[str] | None:
     if "secrets" not in args[:4]:
         return None
     rest = skip_options(args[args.index("secrets") + 1:], set())
-    return skip_options(rest[1:], set()) if rest[:1] == ["run"] else None
+    if rest[:1] != ["run"]:
+        return None
+    # `secrets run <KEY>... -- <cmd>`: the keys come first, so the first `--` starts the command.
+    rest = rest[1:]
+    return rest[rest.index("--") + 1:] if "--" in rest else skip_options(rest, set())
 
 
 def dumps_env(words: list[str]) -> bool:

@@ -38,8 +38,9 @@ class BlockedTests(unittest.TestCase):
             "nzyme secrets run -- sh -c 'cd x && printenv'", "nzyme secrets run -- timeout 5 env",
             "cd app && bun nzyme secrets run -- env | sort", "timeout 30 bun nzyme secrets run -- printenv",
             "bash -c 'nzyme secrets run -- env'", "nzyme secrets run env", "bws run -- env",
+            "nzyme secrets run API_KEY -- env", "bun healed secrets run PIA_USER PIA_PASSWORD -- printenv",
             "bws run --project-id 1f0c -- printenv", "nzyme secrets run -- nzyme secrets run -- env",
-        ], "every mapped secret")
+        ], "filled with secrets")
 
     def test_other_processes_environment(self):
         self.assertBlocked([
@@ -84,7 +85,7 @@ class BlockedTests(unittest.TestCase):
         self.assertIn("transcript", err)
         self.assertIn("rotated", err)
         self.assertIn("secrets list", err)
-        self.assertIn("secrets run -- <the real command>", err)
+        self.assertIn("secrets run <KEY>... -- <the real command>", err)
         self.assertIn('secrets set NAME --prompt="<hint>"', err)
 
 
@@ -107,6 +108,7 @@ class AllowedTests(unittest.TestCase):
     def test_secrets_run_with_a_real_command(self):
         self.assertAllowed([
             "bun nzyme secrets run -- bun run dev", "nzyme secrets run -- bun test", "app secrets run -- bun x.ts",
+            "nzyme secrets run API_KEY DB_PASSWORD -- bun run dev",
             "nzyme secrets run -- env FOO=1 bun run dev", "nzyme secrets run -- env -u DEBUG bun run dev",
             "nzyme secrets run -- set -e", "nzyme secrets run -- bash -c 'bun run migrate && bun run dev'",
             "nzyme secrets run -- curl -H \"Authorization: Bearer $STRIPE_KEY\" https://api.stripe.com/v1/x",
