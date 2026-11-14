@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Configure a project for the dev pipeline: write, or check against the contract, its `verify` skill and the owner's language.
+description: Configure a project for the dev pipeline: write, or check against the contract, its `verify` skill and the languages it writes in.
 disable-model-invocation: true
 ---
 
@@ -10,15 +10,19 @@ Arguments passed: `$ARGUMENTS`
 
 The definition of done is `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`. Read it
 first: every step below is measured against it, and nothing beyond it is this skill's business —
-except one setting that belongs to the person rather than the project, **the owner's language**.
+except the languages the pipeline writes in, which are a choice made per project, not a default.
 
 The contract's other half, `git-workflow`, is written by `/git:setup` from the `git` plugin, together
 with the hook configuration that has to agree with it. This skill only checks that it exists.
 
-`/dev:review`, `/dev:fix-pr-comments` and the pipeline write PR comments, plans and chat in the
-language named for human-facing text in his personal `CLAUDE.local.md` at the project root, else
-in the project's `CLAUDE.md` — falling back to the language he writes in. That fallback works for you
-and fails for every subagent, which sees only its brief; a named rule is what reaches them.
+The pipeline writes for two audiences, and a project may want them in different languages: **the
+owner's language** for the conversation with him — chat, plans, specs that stay local — and **the PR
+language** for what it posts to GitHub — PR descriptions, review comments, thread replies, tracker
+comments — which teammates and other agents read too. One project keeps both in Polish, the next
+posts in English. `/dev:review` defines how both are read: from the language rule in his
+`CLAUDE.local.md` at the project root, else in the project's `CLAUDE.md`, falling back to the
+language he writes in. That fallback works for you and fails for every subagent, which sees only its
+brief; a named rule is what reaches them.
 
 ## 1. Take stock
 
@@ -26,14 +30,15 @@ Look for `.claude/skills/verify/SKILL.md` and map what it says against the contr
 scoped mode and a full one. Look for `.claude/skills/git-workflow/SKILL.md` too; missing, or missing
 one of start, checkpoint, publish, stack and land → the report tells the user to run `/git:setup`.
 
-Check the owner's language the same way: a rule in `CLAUDE.local.md` or the project's
-`CLAUDE.md` naming the language for human-facing text covers it, whatever its wording.
+Check the languages the same way: a rule in `CLAUDE.local.md` or the project's `CLAUDE.md` covers
+them when it names the language of the conversation and of what is posted to GitHub, whatever its
+wording.
 
 Read the project's `CLAUDE.md` and its other skills too. The knowledge often already exists under
 another name — a test-running script, a CI checklist. One owner per fact: point at it rather than
 copy it.
 
-**Everything covered → report it, one line each for `verify`, `git-workflow` and the language, and
+**Everything covered → report it, one line each for `verify`, `git-workflow` and the languages, and
 stop without writing anything.** That is the idempotent case, and re-running this skill on a
 configured project must end there.
 
@@ -52,8 +57,9 @@ prevent.
 ## 3. Ask what the repository cannot tell you
 
 One round, genuine gaps only, each with the answer you would recommend: which steps the full
-verification must include when CI does not say; and, with no language rule found, which language he
-wants — recommend the one he is writing to you in.
+verification must include when CI does not say; and, for each of the two languages no rule names,
+which one he wants for this project. Recommend the one he is writing to you in for the conversation,
+and for the PR language the one the repository's PRs and issues are already written in.
 
 ## 4. Write
 
@@ -63,9 +69,9 @@ wants — recommend the one he is writing to you in.
 - An existing skill with partial coverage gets the missing section added; what is already there
   stays.
 - Never write a command you neither saw nor ran.
-- The language goes into `CLAUDE.local.md` at the project root as one line, e.g.
-  `- Human-facing text (PR comments, plans, specs, chat replies): Polish.` — never into the
-  project's `CLAUDE.md`: it is his preference, and a teammate's may differ. Make sure git ignores
+- The languages go into `CLAUDE.local.md` at the project root as one line naming both, e.g.
+  `- Chat, plans and specs: Polish. PR descriptions, PR and issue comments, reviews: English.` —
+  never into the project's `CLAUDE.md`: it is his preference, and a teammate's may differ. Make sure git ignores
   it (`git check-ignore CLAUDE.local.md`). Being uncommitted, it is absent from every fresh
   worktree: if the project works in worktrees, its worktree setup has to copy it from the main
   checkout — say so in the report when it does not.

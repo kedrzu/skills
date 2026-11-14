@@ -15,8 +15,8 @@ no verdict comment, no guide comment.
 The top layer is his, the collapsed block is the fixing agent's, and he should be able to act on the
 comment — fix it, or resolve it and move on — without ever opening the block.
 
-**The human layer is in the owner's language (as `review/SKILL.md` defines it); the `<details>`
-block is English.** The top layer exists only for him to read, and that is its whole function; the
+**The human layer is in the PR language (as `review/SKILL.md` defines it); the `<details>`
+block is English.** The top layer exists for him to read, and that is its whole function; the
 block is read by an agent, so it stays English. Technical terms stay English in both.
 
 ```markdown
