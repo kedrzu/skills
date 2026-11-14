@@ -25,10 +25,9 @@ read and answer the threads through the GitHub API. Verifying, committing, pushi
 a chain go through the project's `verify` and `git-workflow` skills — what each must provide, and
 that a missing one stops the run, is `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
-**His language** is the owner's language as `/dev:review` defines it: the language named for
-human-facing text in his personal `CLAUDE.local.md` at the project root, else in the project's
-`CLAUDE.md` — or, without such a rule, the language he writes to you in. Name it in every brief whose output he
-reads.
+**His language** is the owner's language and **the PR language** the PR language, both as
+`/dev:review` defines them: what you tell him in chat is in the first, what you post on the PR in the
+second. Name them in every brief whose output he reads.
 
 ## 1. Fetch the threads
 
@@ -203,8 +202,8 @@ Publishing ours would publish his.
 
 `header` is `Fixed` when the code changed and `Acknowledged` when it did not — a finding that no
 longer held, a request the code already satisfied, an answer to a question he asked. Say which in
-the message; an answer claiming a fix that did not happen is worse than none. Write it in his
-language: he is the one who reads it.
+the message; an answer claiming a fix that did not happen is worse than none. Write it in the PR
+language: it stays on the PR.
 
 If `prune` removed part of what a fixer added, the answer says so. If it removed something the
 thread actually needed, restore that first — the answer has to be true of the code now on the PR.

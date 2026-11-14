@@ -68,7 +68,7 @@ Hand back each survivor with:
 - its **provenance** — the axis, and where it rests on a rule, that rule's source
   (`Security · <the project's rule source> → audit at business boundary`). The comment's second line is
   built from this, and without it the owner cannot check a conformance claim in seconds
-- for *to him*: the **consequence** from question 4, in the owner's language, and the **delta**
+- for *to him*: the **consequence** from question 4, in the PR language, and the **delta**
 - the **node** it came from, carried through unchanged
 
 And hand back **every finding you refuted as one line in the owner's language** (the orchestrator
