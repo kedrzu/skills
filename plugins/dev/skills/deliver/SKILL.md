@@ -4,9 +4,9 @@ description: >-
     Build a closed design from `docs/design/<slug>/` in one run on one tracker issue: agree a
     high-level overview of the work, implement it milestone by milestone — each milestone
     something the user can see and try, not read — stop to bring back every gap, divergence or
-    better idea the design did not settle, and land the whole thing as a stacked chain of PRs cut
-    at the end. Use whenever the user wants a design folder built — "zaimplementuj design X",
-    "wdróż X z designu", "build docs/design/<slug>", "zrób to, co mamy w designie", a handoff
+    better idea the design did not settle, and land the whole thing as one PR (a stacked chain only
+    where the project's `git-workflow` uses stacks). Use whenever the user wants a design folder
+    built — "zaimplementuj design X", "wdróż X z designu", "build docs/design/<slug>", "zrób to, co mamy w designie", a handoff
     from /dev:design — even if they do not name this skill. Do NOT use to write or change a design
     (/dev:design), for large work with no design folder (/dev:build designs it itself), to turn a design
     into tracker issues, or to fan many tasks out across worktrees.
@@ -140,7 +140,8 @@ Execution Autonomy table says; the milestone plan is the boundary.
 
   His answers to review's questions go into the review memory. Chat has no rule that silence means
   yes: a question he leaves unanswered is asked once more at the next checkpoint, and if it is still
-  open when the chain is up, it is posted on its node with `/dev:review`'s step 5, where silence does
+  open when the work is ready for review, it is posted on the PR (on its node, in a chain) with
+  `/dev:review`'s step 5, where silence does
   mean yes — except a recommendation, which stays open until he answers.
 
 While he has not answered a checkpoint, explore and plan the next milestone, but write no code — his
@@ -149,84 +150,35 @@ only if he asks.
 
 ## Git during the run
 
-One branch — the one `git-workflow` → **start** opened. Every commit carries its milestone's
-marker, `M2: <what changed>` after whatever prefix `git-workflow` → **checkpoint** asks for, which is
-how you find where the run stands.
+One branch — the one `git-workflow` → **start** opened, with its draft PR. Every commit carries its
+milestone's marker, `M2: <what changed>` after whatever prefix `git-workflow` → **checkpoint** asks
+for, which is how you find where the run stands.
 
-**A mechanical change gets a commit of its own** — a rename, a move, a deletion, a regenerated file —
-never mixed with logic. The chain is cut along commits at the end, and what one commit mixes cannot
-be separated there.
+**Earlier milestones are never frozen.** Nothing is read as code until the run is done, so nothing
+below the current milestone is settled. When milestone 4 shows milestone 1 got something wrong, fix
+it where it belongs; bending new code around an old mistake to avoid touching it is the failure this
+exists to prevent.
 
-**Earlier milestones are never frozen.** Nothing is read as code until the final chain exists, so
-nothing below the current milestone is settled. When milestone 4 shows milestone 1 got something
-wrong, fix it where it belongs and commit the fix as `git commit --fixup=<a commit of M1>`: the squash
-at the end moves it into the commit it fixes, and the chain reads only the final version. Bending new
-code around an old mistake to avoid touching it is the failure this exists to prevent.
-
-Merging the main line in mid-run is fine; the squash at the end linearises the merges it makes.
-Whatever `git-workflow` → **stack** pins to the bottom node — a submodule pointer, typically — is
-published as **checkpoint** says, and its move is a fixup to a commit that will sit in the bottom
-node.
+The run lands as **one PR** unless the project's `git-workflow` has a **stack** section that does
+not call stacks unsupported. Check it at the start, not at the end: a run that will be cut into a
+chain shapes its commits for the cut from the first one, so read
+`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/stacked-prs.md` § "A `/dev:deliver` run" then —
+and only then.
 
 ## Landing
 
 1. **Full verify** — the project's `verify` skill, on the tip.
-
-2. **Squash the fixups.** Checked 2026-09-24 in a scratch repo (`main` stands for the project's main line):
-
-   ```bash
-   git fetch origin main
-   PRE=$(git rev-parse HEAD)
-   GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash "$(git merge-base origin/main HEAD)"
-   git diff --stat "$PRE" HEAD   # must print nothing
-   ```
-
-   It runs without interaction, and merges from `main` drop out as the history is replayed onto the
-   base. A fixup that touches lines a later milestone also changed conflicts **twice** — at its target
-   and again at that later milestone; resolve each to what that milestone should contain
-   (the project's conflict-resolution skill, if it has one). The empty diff is the proof: the tip is byte-identical to the verified one,
-   so the verify still holds. Anything printed means a resolution went wrong — fix it before cutting.
-
-3. **Cut the chain** into at most 5 nodes, by how each is read — mechanical apart from refactor
-   apart from new logic (`stacked-prs.md`, "Where to cut"). Not by milestone: a milestone is what he
-   tried during the run and says nothing about how its code reads. Put the commits in node order
-   first; moving one past another that touches the same lines conflicts, so resolve each to what that
-   commit should contain, and the empty diff again proves the tip is the verified one:
-
-   ```bash
-   PRE=$(git rev-parse HEAD)
-   GIT_SEQUENCE_EDITOR='<script writing the todo: every commit, grouped by node>' \
-     git rebase -i "$(git merge-base origin/main HEAD)"
-   git diff --stat "$PRE" HEAD                       # must print nothing
-   ```
-
-   The bottom node is the branch you already have; each node above forks from the pushed tip of the
-   one below (`git-workflow` → **stack** adds each node):
-
-   ```bash
-   git branch <task>-full HEAD                       # the whole run, kept
-   git reset --hard <last commit of node 1>
-   git push --force-with-lease
-   # git-workflow → stack: add a node titled "<node 2 title>"
-   git merge --ff-only <last commit of node 2, from <task>-full>
-   # git-workflow → checkpoint: push
-   # …the top node fast-forwards to <task>-full itself; delete that branch once the chain is up
-   ```
-
-   The rewritten bottom node goes out through `git push --force-with-lease` — the one force-push in this pipeline, and never through a project push command that does not force. It is safe only because the branch is
-   this run's own and nobody else commits to it, and the lease refuses if the remote holds anything
-   you have not seen. The nodes above fast-forward, so they push normally. CI builds
-   every node; nothing is verified per node (`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/stacked-prs.md`).
-
-4. **Finalize** per `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/post-pipeline.md` — ready for review once,
-   a changeset per node, one tracker comment for the whole chain — and report the shape as
-   `stacked-prs.md` describes, bottom-up, with PR numbers.
+2. **A chain**, where the project uses stacks: squash the fixups and cut it as
+   `stacked-prs.md` § "A `/dev:deliver` run" says. One PR: nothing to do here — the branch is
+   already the PR, and its history stays as it is.
+3. **Finalize** per `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/post-pipeline.md`.
 
 ## Coming back after a break
 
 A run spans days and sessions. Recover state from what is on disk, not from memory: the overview and
 the current milestone's plan in `.context/plans/`, `git log --oneline` (the markers show which
-milestone is where), the design folder (what was written back), and the chain as `git-workflow` shows it.
+milestone is where), the design folder (what was written back), and the PR — or the chain — as
+`git-workflow` shows it.
 
 ## References
 
@@ -235,5 +187,5 @@ milestone is where), the design folder (what was written back), and the chain as
 |`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/SKILL.md`|Always — Phase 3, Phase 3.5, Execution Autonomy, the Plan Format|
 |`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`|Presenting the overview|
 |`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/escalation-protocol.md`|Any stop other than a checkpoint|
-|`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/stacked-prs.md`|Cutting and landing the chain; editing a node after the cut|
+|`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/stacked-prs.md`|Only where `git-workflow` has a **stack** section: at the start, cutting the chain, editing a node after the cut|
 |`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/post-pipeline.md`|Finalizing|
