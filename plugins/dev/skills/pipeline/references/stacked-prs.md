@@ -23,10 +23,9 @@ is green.
 **A change with no good seam is one PR, and that stays the common case.** Do not manufacture a split.
 
 `/dev:deliver` cuts at the end too, but along history rather than paths: a node is a group of
-commits, so a file several nodes touch is no obstacle. The recipe — squash the fixups, reorder the
-commits into nodes, then reset and fast-forward node by node — lives in the `deliver` skill
-§ Landing. Everything from "One tracker issue" down applies to its chain unchanged; the path recipe
-below does not.
+commits, so a file several nodes touch is no obstacle. Its recipe is "A `/dev:deliver` run" below;
+everything else from "One tracker issue" down applies to its chain unchanged, the path recipe does
+not.
 
 ## Where to cut — by how each node is read
 
@@ -130,6 +129,75 @@ Each node forks from a complete, pushed parent. Once the whole chain is up, mark
 review **once** (`post-pipeline.md` Step 1b), because a node left in draft reads as unfinished
 work. The PR-changeset step of `post-pipeline.md` runs **per node**, since each has its own PR, and
 the tracker comment is written **once for the whole chain**.
+
+## A `/dev:deliver` run
+
+A run that will be cut is read from here from its start, because the cut goes along commits and a
+commit is shaped when it is made.
+
+**During the run:**
+
+- **A mechanical change gets a commit of its own** — a rename, a move, a deletion, a regenerated
+  file — never mixed with logic. What one commit mixes cannot be separated at the cut.
+- **A fix to an earlier milestone is a fixup**: `git commit --fixup=<a commit of that milestone>`.
+  The squash below moves it into the commit it fixes, so the chain reads only the final version.
+- Merging the main line in mid-run is fine; the squash linearises the merges it makes. Whatever
+  `git-workflow` → stack pins to the bottom node — a submodule pointer, typically — is published as
+  **checkpoint** says, and its move is a fixup to a commit that will sit in the bottom node.
+
+**At landing**, after the full verify:
+
+1. **Squash the fixups.** Checked 2026-09-24 in a scratch repo (`main` stands for the project's
+   main line):
+
+   ```bash
+   git fetch origin main
+   PRE=$(git rev-parse HEAD)
+   GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash "$(git merge-base origin/main HEAD)"
+   git diff --stat "$PRE" HEAD   # must print nothing
+   ```
+
+   It runs without interaction, and merges from `main` drop out as the history is replayed onto the
+   base. A fixup that touches lines a later milestone also changed conflicts **twice** — at its
+   target and again at that later milestone; resolve each to what that milestone should contain
+   (the project's conflict-resolution skill, if it has one). The empty diff is the proof: the tip
+   is byte-identical to the verified one, so the verify still holds. Anything printed means a
+   resolution went wrong — fix it before cutting.
+
+2. **Cut the chain** into at most 5 nodes, by how each is read — "Where to cut" above. Not by
+   milestone: a milestone is what he tried during the run and says nothing about how its code
+   reads. Put the commits in node order first; moving one past another that touches the same lines
+   conflicts, so resolve each to what that commit should contain, and the empty diff again proves
+   the tip is the verified one:
+
+   ```bash
+   PRE=$(git rev-parse HEAD)
+   GIT_SEQUENCE_EDITOR='<script writing the todo: every commit, grouped by node>' \
+     git rebase -i "$(git merge-base origin/main HEAD)"
+   git diff --stat "$PRE" HEAD                       # must print nothing
+   ```
+
+   The bottom node is the branch you already have; each node above forks from the pushed tip of
+   the one below (`git-workflow` → stack adds each node):
+
+   ```bash
+   git branch <task>-full HEAD                       # the whole run, kept
+   git reset --hard <last commit of node 1>
+   git push --force-with-lease
+   # git-workflow → stack: add a node titled "<node 2 title>"
+   git merge --ff-only <last commit of node 2, from <task>-full>
+   # git-workflow → checkpoint: push
+   # …the top node fast-forwards to <task>-full itself; delete that branch once the chain is up
+   ```
+
+   The rewritten bottom node goes out through `git push --force-with-lease` — the one force-push in
+   this pipeline, and never through a project push command that does not force. It is safe only
+   because the branch is this run's own and nobody else commits to it, and the lease refuses if the
+   remote holds anything you have not seen. The nodes above fast-forward, so they push normally.
+   CI builds every node; nothing is verified per node.
+
+3. **Finalize** as for any chain — ready for review once, a changeset per node, one tracker comment
+   for the whole chain — and report the shape (below), bottom-up, with PR numbers.
 
 ## Report the shape
 
