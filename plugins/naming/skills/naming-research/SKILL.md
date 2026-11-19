@@ -98,12 +98,11 @@ record — it does not mean the domain can be bought at the normal price: regist
 and reserved names that look free from outside. Only a registrar settles that.
 
 For finalists, open Porkbun's search (`https://porkbun.com/checkout/search?q=<domain>`) with
-browser automation (`mcp__plugin_playwright_playwright__*`) and record `free` with the price,
-`premium` with the price, or `taken`. The browser comes from the `playwright` plugin, which this
-plugin depends on; call `browser_session({ profile: "persistent" })` only if a site needs the user
-signed in, otherwise keep the project default. If the tools are missing anyway (plugin disabled, `bun` not on PATH), say so,
-point to `claude plugin enable playwright@kedrzu-skills` or installing bun, and present
-finalists as `likely-free — not confirmed at a registrar`.
+the browser and record `free` with the price, `premium` with the price, or `taken`. The browser is
+the `flaneur` skill (`flaneur:flaneur`, from the `flaneur` plugin this plugin depends on): load it
+and follow it to start the browser and drive it with `agent-browser`. If it is missing anyway
+(plugin disabled, no Node or Chrome), say so, point to `claude plugin enable flaneur@kedrzu-skills`,
+and present finalists as `likely-free — not confirmed at a registrar`.
 
 ## Searching the web
 
