@@ -9,7 +9,7 @@
 `start` reuses a running browser, so every agent on the machine shares it, each in a tab of its
 own (agent-browser --pin-tab). It never prints the endpoint: whoever has it drives the browser and
 its logged-in sessions. The VPN login comes from FLANEUR_VPN_USER / FLANEUR_VPN_PASSWORD in the
-environment, else from the secrets plugin's file.
+environment only: the project's own secret store puts it there for this one command.
 """
 
 from __future__ import annotations
@@ -32,10 +32,6 @@ def state_root() -> Path:
     if override:
         return Path(override)
     return Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")) / "browser" / "flaneur"
-
-
-def secrets_file() -> Path:
-    return Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")) / "secrets" / ".env"
 
 
 def key_for(region: str | None) -> str:
@@ -71,15 +67,6 @@ class Instance:
             f.unlink(missing_ok=True)
 
 
-def vpn_env(env: dict[str, str]) -> dict[str, str] | None:
-    """Fill the VPN login from the secrets file where the environment lacks it; None if missing."""
-    missing = [k for k in VPN_KEYS if not env.get(k)]
-    if missing and secrets_file().exists():
-        for line in secrets_file().read_text().splitlines():
-            name, sep, value = line.partition("=")
-            if sep and name.strip() in missing:
-                env[name.strip()] = value.strip().strip("'\"")
-    return env if all(env.get(k) for k in VPN_KEYS) else None
 
 
 def tail(path: Path, lines: int = 30) -> str:
@@ -125,12 +112,10 @@ def start(args: argparse.Namespace) -> int:
         if not args.vpn_provider:
             print("--vpn needs --vpn-provider (gluetun's provider name, e.g. \"private internet access\")", file=sys.stderr)
             return 2
-        filled = vpn_env(env)
-        if filled is None:
-            print("The VPN login is missing: set FLANEUR_VPN_USER and FLANEUR_VPN_PASSWORD with the secrets "
-                  "skill (secret.py set), never in chat.", file=sys.stderr)
+        if not all(env.get(k) for k in VPN_KEYS):
+            print("The VPN login is missing: run flaneur-ctl with FLANEUR_VPN_USER and FLANEUR_VPN_PASSWORD in its "
+                  "environment, from the project's secret store - never ask for them in chat.", file=sys.stderr)
             return 3
-        env = filled
         # A second Chrome cannot open the default profile while it is in use, so a region gets its own.
         cmd += ["--vpn", args.vpn, "--vpn-provider", args.vpn_provider, "--user-data-dir", str(inst.dir / "profile")]
 

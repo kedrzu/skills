@@ -15,7 +15,7 @@
       "name": "browser",
       "source": "./plugins/browser",
       "description": "The one browser skill: agent-browser on its own headless Chromium for your own app (localhost, Storybook, previews), and the flaneur stealth Chrome for real websites that block bots — no MCP server, nothing in context but the skill's description",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "productivity"
     },
     {

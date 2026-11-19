@@ -32,7 +32,6 @@ class FlaneurCtlTest(unittest.TestCase):
             **{k: v for k, v in os.environ.items() if not k.startswith("FLANEUR_VPN_")},
             "FLANEUR_CTL_DIR": str(self.tmp / "state"),
             "FLANEUR_CTL_COMMAND": str(fake),
-            "CLAUDE_CONFIG_DIR": str(self.tmp / "claude"),
             "FAKE_LOG": str(self.log),
         }
 
@@ -71,12 +70,10 @@ class FlaneurCtlTest(unittest.TestCase):
         self.assertEqual(result.returncode, 3)
         self.assertFalse(self.log.exists())
 
-    def test_vpn_login_comes_from_the_secrets_file_and_the_region_gets_its_own_browser(self):
-        secrets = self.tmp / "claude" / "secrets"
-        secrets.mkdir(parents=True)
-        (secrets / ".env").write_text("FLANEUR_VPN_USER=alice\nFLANEUR_VPN_PASSWORD='pw'\n")
+    def test_vpn_login_comes_from_the_environment_and_the_region_gets_its_own_browser(self):
         self.assertEqual(self.ctl("start").returncode, 0)
-        vpn = self.ctl("start", "--vpn", "US Texas", "--vpn-provider", "pia")
+        vpn = self.ctl("start", "--vpn", "US Texas", "--vpn-provider", "pia",
+                       FLANEUR_VPN_USER="alice", FLANEUR_VPN_PASSWORD="pw")
         self.assertEqual(vpn.returncode, 0, vpn.stderr)
         calls = self.log.read_text()
         self.assertIn("--vpn US Texas --vpn-provider pia --user-data-dir", calls)
