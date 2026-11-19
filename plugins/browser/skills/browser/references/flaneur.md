@@ -41,10 +41,11 @@ agent-browser --session "$S" --cdp "$(flaneur-ctl endpoint --vpn 'US Texas')" --
 
 - Needs Docker running. Only the browser goes through the tunnel (a gluetun container); the rest
   of the machine stays on its network.
-- **The login** is `FLANEUR_VPN_USER` / `FLANEUR_VPN_PASSWORD`, taken from the environment, else
-  from the `secrets` plugin's file. When `start` exits with code 3 the login is missing: collect
-  both with the `secrets` skill (`secret.py set FLANEUR_VPN_USER --hint …`), never in chat. Ask the
-  user for the provider name, never for the password.
+- **The login** is `FLANEUR_VPN_USER` / `FLANEUR_VPN_PASSWORD`, read from `flaneur-ctl`'s environment
+  only. Put it there for the one command from wherever the project keeps secrets, e.g.
+  `<store> run PIA_USER PIA_PASSWORD -- sh -c 'FLANEUR_VPN_USER="$PIA_USER" FLANEUR_VPN_PASSWORD="$PIA_PASSWORD" flaneur-ctl start --vpn …'`.
+  Exit code 3 means it is missing: ask the user where the login lives (or to store it), never for
+  the password itself, and never put it on a command line in clear.
 - The log shows the address the tunnel got and where ipinfo places it; confirm the location on the
   site itself, its own geolocation may differ.
 - An unknown region fails with the list of valid ones. Never fall back to browsing without the
