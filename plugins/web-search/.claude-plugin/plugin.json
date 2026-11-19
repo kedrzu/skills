@@ -11,6 +11,6 @@
     "verification"
   ],
   "dependencies": [
-    "flaneur"
+    "browser"
   ]
 }

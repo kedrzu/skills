@@ -13,6 +13,6 @@
   ],
   "dependencies": [
     "web-search",
-    "flaneur"
+    "browser"
   ]
 }

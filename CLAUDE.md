@@ -164,14 +164,14 @@ of every project that installs the plugin. When a server already exists as someo
 else's plugin, depend on it instead of copying its config — see below. Either way the
 user is asked to trust the server on first use, so installation is never silent.
 
-**Browser automation comes from the `flaneur` plugin, and every skill that drives a browser
-depends on it.** It lives in its own repository, [kedrzu/flaneur](https://github.com/kedrzu/flaneur),
-and this marketplace lists it with a `git-subdir` source, so a bare `"flaneur"` in `dependencies`
-resolves here. It is a skill, not an MCP server: `flaneur:flaneur` starts a stealth Chrome
-(`npx flaneur`) and drives it with `agent-browser` over CDP, at a human pace. A skill that needs
-the browser tells the agent to load `flaneur:flaneur` and follow it, and does not repeat its
-commands. The dependency is installed *and enabled* transitively, and disabling it is then
-refused. Playwright MCP is not used in skills here: page scripts can see it, and sites block it.
+**Browser automation comes from this marketplace's `browser` plugin, and every skill that drives a
+browser depends on it.** It is a skill, not an MCP server, so it costs a session one description
+instead of dozens of tool schemas: `browser:browser` drives the `agent-browser` CLI, either on its
+own headless Chromium for a project's own app or over CDP into the
+[flaneur](https://github.com/kedrzu/flaneur) stealth Chrome for real websites. A skill that needs
+the browser says which of the two it wants, tells the agent to load `browser:browser`, and does not
+repeat its commands. The dependency is installed *and enabled* transitively, and disabling it is
+then refused. Do not add a Playwright MCP server to a skill or a project here.
 
 **Other servers that host projects commonly run themselves** — a language server, a
 database client — are not dependencies: a host project that runs its own copy would end up

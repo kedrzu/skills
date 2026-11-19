@@ -98,10 +98,10 @@ record — it does not mean the domain can be bought at the normal price: regist
 and reserved names that look free from outside. Only a registrar settles that.
 
 For finalists, open Porkbun's search (`https://porkbun.com/checkout/search?q=<domain>`) with
-the browser and record `free` with the price, `premium` with the price, or `taken`. The browser is
-the `flaneur` skill (`flaneur:flaneur`, from the `flaneur` plugin this plugin depends on): load it
-and follow it to start the browser and drive it with `agent-browser`. If it is missing anyway
-(plugin disabled, no Node or Chrome), say so, point to `claude plugin enable flaneur@kedrzu-skills`,
+the browser and record `free` with the price, `premium` with the price, or `taken`. Load the
+`browser:browser` skill (from the `browser` plugin this plugin depends on) and use its flaneur
+browser: a registrar is a real website. If it is missing anyway (plugin disabled, no Node or
+Chrome), say so, point to `claude plugin enable browser@kedrzu-skills`,
 and present finalists as `likely-free — not confirmed at a registrar`.
 
 ## Searching the web

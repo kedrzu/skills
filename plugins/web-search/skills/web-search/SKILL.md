@@ -38,13 +38,13 @@ Three lessons drive everything below:
 |---|---|---|
 | **`mcp__exa__web_search_exa`** | semantic search that returns page *content*, not just links; finds the long tail of small shops, niche docs and specific variant codes | **default starting point**: building a candidate list, "does this variant exist", product pages, obscure vendors |
 | `WebSearch` | operators (`site:`, `filetype:`, quoted strings), fresh news, one quick fact | you need a hard operator or something from the last few days |
-| **Browser automation** (the `flaneur` skill) | sites that block everything else; live prices; anything behind JS | see the blocked-channel table in section 5 |
+| **Browser automation** (the `browser:browser` skill, flaneur) | sites that block everything else; live prices; anything behind JS | see the blocked-channel table in section 5 |
 | `Bash` + `curl` | sitemaps, XML, JSON APIs, PDFs, the primary-source probe | section 4 |
 
-This plugin brings its own Exa server, and depends on the `flaneur` plugin from the same
-marketplace for the browser, so both should be there. Load the `flaneur:flaneur` skill before the
-first page: it starts a stealth Chrome, drives it with `agent-browser` and holds every site to a
-human pace — a load that waits is the protection working, not a failure.
+This plugin brings its own Exa server, and depends on the `browser` plugin from the same
+marketplace for the browser, so both should be there. Load the `browser:browser` skill before the
+first page and use its flaneur browser: a stealth Chrome that holds every site to a human pace — a
+load that waits is the protection working, not a failure.
 
 **A missing engine is reported, never worked around silently** — it changes which
 conclusions you are entitled to. Without Exa, `WebSearch` becomes the default and the
@@ -54,7 +54,7 @@ as such — they never become an N2/N3 verdict.
 
 **No browser tools at all?** Say so the first time the task needs them, rather than
 quietly downgrading the answer. The usual causes are a disabled plugin
-(`claude plugin enable flaneur@kedrzu-skills`), or no Node or Google Chrome on the machine. Then continue
+(`claude plugin enable browser@kedrzu-skills`), or no Node or Google Chrome on the machine. Then continue
 on the remaining engines and label what stayed unverified.
 
 **Querying Exa — it is not a keyword engine.**
