@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""Keep one flaneur browser per machine (and one per VPN region) running for every agent.
+
+    flaneur-ctl start [--vpn REGION --vpn-provider NAME] [--chrome-for-testing]
+    flaneur-ctl endpoint [--vpn REGION]     # prints the CDP endpoint, for --cdp "$(...)" only
+    flaneur-ctl stop [--vpn REGION]
+    flaneur-ctl status
+
+`start` reuses a running browser, so every agent on the machine shares it, each in a tab of its
+own (agent-browser --pin-tab). It never prints the endpoint: whoever has it drives the browser and
+its logged-in sessions. The VPN login comes from FLANEUR_VPN_USER / FLANEUR_VPN_PASSWORD in the
+environment, else from the secrets plugin's file.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+FLANEUR = "flaneur@0.1.0"
+VPN_KEYS = ("FLANEUR_VPN_USER", "FLANEUR_VPN_PASSWORD")
+
+
+def state_root() -> Path:
+    override = os.environ.get("FLANEUR_CTL_DIR")
+    if override:
+        return Path(override)
+    return Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")) / "browser" / "flaneur"
+
+
+def secrets_file() -> Path:
+    return Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")) / "secrets" / ".env"
+
+
+def key_for(region: str | None) -> str:
+    return "default" if not region else "vpn-" + re.sub(r"[^a-z0-9]+", "-", region.lower()).strip("-")
+
+
+class Instance:
+    def __init__(self, key: str):
+        self.key = key
+        self.dir = state_root() / self.key
+        self.endpoint = self.dir / "endpoint"
+        self.log = self.dir / "log"
+        self.pidfile = self.dir / "pid"
+
+    def pid(self) -> int | None:
+        try:
+            pid = int(self.pidfile.read_text().strip())
+        except (OSError, ValueError):
+            return None
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return None
+        except PermissionError:
+            pass
+        return pid
+
+    def running(self) -> bool:
+        return self.pid() is not None and self.endpoint.exists() and self.endpoint.stat().st_size > 0
+
+    def clear(self) -> None:
+        for f in (self.endpoint, self.pidfile):
+            f.unlink(missing_ok=True)
+
+
+def vpn_env(env: dict[str, str]) -> dict[str, str] | None:
+    """Fill the VPN login from the secrets file where the environment lacks it; None if missing."""
+    missing = [k for k in VPN_KEYS if not env.get(k)]
+    if missing and secrets_file().exists():
+        for line in secrets_file().read_text().splitlines():
+            name, sep, value = line.partition("=")
+            if sep and name.strip() in missing:
+                env[name.strip()] = value.strip().strip("'\"")
+    return env if all(env.get(k) for k in VPN_KEYS) else None
+
+
+def tail(path: Path, lines: int = 30) -> str:
+    try:
+        return "\n".join(path.read_text(errors="replace").splitlines()[-lines:])
+    except OSError:
+        return "(no log)"
+
+
+def stop_pid(pid: int) -> None:
+    try:
+        os.killpg(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    for _ in range(100):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(0.1)
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
+def start(args: argparse.Namespace) -> int:
+    inst = Instance(key_for(args.vpn))
+    if inst.running():
+        print(f"flaneur ({inst.key}) is already running; pass --cdp \"$(flaneur-ctl endpoint{vpn_flag(args.vpn)})\"")
+        return 0
+    stale = inst.pid()
+    if stale:
+        stop_pid(stale)
+    inst.clear()
+    inst.dir.mkdir(parents=True, exist_ok=True)
+
+    env = dict(os.environ)
+    cmd = os.environ.get("FLANEUR_CTL_COMMAND", f"npx -y {FLANEUR}").split()
+    if args.chrome_for_testing:
+        cmd.append("--chrome-for-testing")
+    if args.vpn:
+        if not args.vpn_provider:
+            print("--vpn needs --vpn-provider (gluetun's provider name, e.g. \"private internet access\")", file=sys.stderr)
+            return 2
+        filled = vpn_env(env)
+        if filled is None:
+            print("The VPN login is missing: set FLANEUR_VPN_USER and FLANEUR_VPN_PASSWORD with the secrets "
+                  "skill (secret.py set), never in chat.", file=sys.stderr)
+            return 3
+        env = filled
+        # A second Chrome cannot open the default profile while it is in use, so a region gets its own.
+        cmd += ["--vpn", args.vpn, "--vpn-provider", args.vpn_provider, "--user-data-dir", str(inst.dir / "profile")]
+
+    with open(inst.endpoint, "wb") as out, open(inst.log, "wb") as err:
+        proc = subprocess.Popen(cmd, stdout=out, stderr=err, stdin=subprocess.DEVNULL, env=env,
+                                start_new_session=True)
+    inst.pidfile.write_text(str(proc.pid))
+
+    deadline = time.monotonic() + (args.timeout or (300 if args.vpn else 120))
+    while time.monotonic() < deadline:
+        if inst.endpoint.stat().st_size > 0:
+            print(f"flaneur ({inst.key}) started; pass --cdp \"$(flaneur-ctl endpoint{vpn_flag(args.vpn)})\". Log: {inst.log}")
+            return 0
+        if proc.poll() is not None:
+            inst.clear()
+            print(f"flaneur exited with {proc.returncode} before it was ready:\n{tail(inst.log)}", file=sys.stderr)
+            return 1
+        time.sleep(0.25)
+    stop_pid(proc.pid)
+    inst.clear()
+    print(f"flaneur was not ready in time:\n{tail(inst.log)}", file=sys.stderr)
+    return 1
+
+
+def vpn_flag(region: str | None) -> str:
+    return f" --vpn '{region}'" if region else ""
+
+
+def endpoint(args: argparse.Namespace) -> int:
+    inst = Instance(key_for(args.vpn))
+    if not inst.running():
+        print(f"flaneur ({inst.key}) is not running: run flaneur-ctl start{vpn_flag(args.vpn)} first", file=sys.stderr)
+        return 1
+    print(inst.endpoint.read_text().splitlines()[0])
+    return 0
+
+
+def stop(args: argparse.Namespace) -> int:
+    inst = Instance(key_for(args.vpn))
+    pid = inst.pid()
+    if pid:
+        stop_pid(pid)
+    inst.clear()
+    print(f"flaneur ({inst.key}) stopped" if pid else f"flaneur ({inst.key}) was not running")
+    return 0
+
+
+def status(_: argparse.Namespace) -> int:
+    root = state_root()
+    keys = sorted(p.name for p in root.iterdir() if p.is_dir()) if root.exists() else []
+    found = False
+    for key in keys:
+        inst = Instance(key)
+        if inst.running():
+            found = True
+            print(f"{key}: running (pid {inst.pid()}), log {inst.log}")
+    if not found:
+        print("no flaneur browser is running")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="flaneur-ctl", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("start")
+    p.add_argument("--vpn")
+    p.add_argument("--vpn-provider")
+    p.add_argument("--chrome-for-testing", action="store_true")
+    p.add_argument("--timeout", type=float)
+    p.set_defaults(fn=start)
+    for name, fn in (("endpoint", endpoint), ("stop", stop)):
+        q = sub.add_parser(name)
+        q.add_argument("--vpn")
+        q.set_defaults(fn=fn)
+    sub.add_parser("status").set_defaults(fn=status)
+    args = parser.parse_args(argv)
+    return args.fn(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

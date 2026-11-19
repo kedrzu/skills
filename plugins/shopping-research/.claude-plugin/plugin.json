@@ -1,7 +1,7 @@
 {
   "name": "shopping-research",
   "description": "Find the best product to buy against your criteria: an accepted spec first, then a wide longlist, parallel deep dives and a ranking with the best obtainable price and a link to buy every pick",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Michał Kędrzyński"
   },
@@ -13,6 +13,6 @@
   ],
   "dependencies": [
     "web-search",
-    "playwright"
+    "browser"
   ]
 }

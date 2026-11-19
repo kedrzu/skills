@@ -1,0 +1,3 @@
+#!/bin/sh
+# The agent-browser CLI at the version the browser skill is written against.
+exec npx -y agent-browser@0.43.0 "$@"

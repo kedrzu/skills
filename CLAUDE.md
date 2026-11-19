@@ -164,20 +164,18 @@ of every project that installs the plugin. When a server already exists as someo
 else's plugin, depend on it instead of copying its config — see below. Either way the
 user is asked to trust the server on first use, so installation is never silent.
 
-**Browser automation comes from this marketplace's `playwright` plugin, and every skill
-that drives a browser depends on it.** It runs its own bun server that wraps
-`@playwright/mcp` in-process (stock tools keep their names, plus `browser_session` to switch
-profile and VPN region), so it needs bun and no Node. Declare `"playwright"` in `dependencies` and cite its tools as
-`mcp__plugin_playwright_playwright__*` (a server bundled in a plugin is exposed as
-`mcp__plugin_<plugin>_<server>__*`). The cost is accepted on purpose: the dependency is
-installed *and enabled* transitively, and disabling it is then refused. A host project
-that declares its own `playwright` server in `.mcp.json` ends up with two, so the fix
-belongs in that project: drop its own server. Do not enable
-`playwright@claude-plugins-official` alongside it either, because the two plugins share a
-name.
+**Browser automation comes from this marketplace's `browser` plugin, and every skill that drives a
+browser depends on it.** It is a skill, not an MCP server, so it costs a session one description
+instead of dozens of tool schemas: `browser:browser` drives the `agent-browser` CLI, either on its
+own headless Chromium for a project's own app or over CDP into the
+[flaneur](https://github.com/kedrzu/flaneur) stealth Chrome for real websites. A skill that needs
+the browser says which of the two it wants, tells the agent to load `browser:browser`, and does not
+repeat its commands. The dependency is installed *and enabled* transitively, and disabling it is
+then refused. Do not add a Playwright MCP server to a skill or a project here.
 
 **Other servers that host projects commonly run themselves** — a language server, a
-database client — are not dependencies. For the reason above, name the expectation in
+database client — are not dependencies: a host project that runs its own copy would end up
+with two. Name the expectation in
 `SKILL.md` instead, and say there what to do when the server is absent.
 
 A skill must still degrade gracefully: say in `SKILL.md` what to do when the server is
