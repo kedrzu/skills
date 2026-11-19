@@ -10,6 +10,50 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/sync.py\" session-start",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/sync.py\" prompt",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/sync.py\" stop",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/sync.py\" session-end",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   }
 }

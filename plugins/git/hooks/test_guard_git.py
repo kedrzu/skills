@@ -1,5 +1,7 @@
 """Tests for guard_git.py: commands in, block or allow out."""
 
+from __future__ import annotations
+
 import json
 import subprocess
 import sys

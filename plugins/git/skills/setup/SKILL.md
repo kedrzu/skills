@@ -14,8 +14,11 @@ only pull requests?**
 - `.claude/skills/git-workflow/SKILL.md` — the project's own skill with every git and PR command an
   agent needs. The `dev` pipeline (`/dev:fix` … `/dev:deliver`, `/dev:review`,
   `/dev:fix-pr-comments`) takes all of them from here and stops when it is missing.
-- `.claude/git.json` — read by this plugin's hook, which blocks an agent's push to any branch listed
-  in it: `{ "protectedBranches": ["main"] }`. Without the file every branch takes pushes.
+- `.claude/git.json` — read by this plugin's hooks. `protectedBranches` lists the branches an agent
+  may not push to: `{ "protectedBranches": ["main"] }`; without the file every branch takes pushes.
+  The `sync` key configures the background sync hook (refresh from the PR base, optional push and
+  autosave); keys, defaults and examples:
+  `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/sync-config.md`.
 
 The two must agree: a `git-workflow` that lands changes through PRs lists the main line in
 `protectedBranches`; one that pushes to `main` directly has no entry for it (and no file, unless
@@ -23,7 +26,7 @@ another branch is protected).
 
 ## 1. Take stock
 
-Read both files if they exist, the project's `CLAUDE.md` and its other skills. The knowledge often
+Read both files if they exist (including the `sync` key), the project's `CLAUDE.md` and its other skills. The knowledge often
 already exists under another name — a commit-and-push skill, a PR checklist. One owner per fact:
 point at it rather than copy it.
 
@@ -65,6 +68,13 @@ One round, genuine gaps only, each with the answer you would recommend: direct p
 PRs only; which tracker, and how an issue is tied to a branch; whether PRs open as drafts; whether
 changes ever land as stacks; who lands a change and how.
 
+The main-line answer also decides the `sync` config:
+
+- **Direct to `main`** — `base` fixed to the main line, `strategy: "rebase"`; offer `push: "base"`,
+  `commitReminder` and `autosave`.
+- **PRs only** — defaults, no `sync` key needed (the base is the PR's base). Ask only whether to add
+  `afterUpdate` commands, proposing ones the repository evidences (a lockfile → its install command).
+
 ## 4. Write
 
 - `git-workflow` as the project's own skill: its facts and commands, in its conventions, sections in
@@ -75,7 +85,9 @@ changes ever land as stacks; who lands a change and how.
 - Never write a command you neither saw nor ran. An operation the project does not do is written as
   unsupported, with a sentence why.
 - `.claude/git.json` to match: the main line in `protectedBranches` when it takes only PRs. Keep any
-  other key already in the file.
+  other key already in the file. Then the `sync` key to match step 3, if any; keep an existing one.
+- With `push` or `autosave` on, the `git-workflow` says in one line that hooks push, so the agent
+  does not push itself.
 
 ## 5. Report
 
