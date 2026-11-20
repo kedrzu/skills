@@ -29,6 +29,9 @@ The existence check and the insert are not in one transaction and nothing ties t
 so a patient who clicks Save twice ends up with two consent records. A later read takes whichever
 comes back first.
 
+**Proposed fix:** let the database refuse a second consent of the same type for the same patient,
+and treat that refusal as "already saved" rather than as an error.
+
 <details><summary>🤖 Details for the fixing agent</summary>
 
 Check this still holds before changing anything — if the code has moved, say so instead of fixing.
@@ -36,7 +39,8 @@ Check this still holds before changing anything — if the code has moved, say s
 `src/consent/ConsentCreateCommand.ts:42` reads, `:51` inserts, with no enclosing
 `db.transaction`. No unique index on `(patientId, consentType)` in `src/schema/consent.ts:18`.
 
-Fix: add the unique constraint and handle the conflict, or put check and insert in one transaction.
+Fix: add a unique index on `(patientId, consentType)` and map the conflict in
+`ConsentCreateCommand` to the existing row.
 </details>
 ```
 
@@ -46,14 +50,15 @@ Fix: add the unique constraint and handle the conflict, or put check and insert 
 |Line 2|provenance and cost: which axis found it, and where a finding rests on a rule, which rule (`Security · <the project's rule source> → audit at business boundary`, `Spec · spec §3`); then whether the fix adds or removes roughly how many lines|
 |Bold line|the claim, in plain words — no file paths, no type names|
 |Paragraph|what goes wrong, for whom and when|
-|`<details>`|the staleness check, the mechanism and every place it occurs, the citations, the proposed fix — he never has to open it|
+|**Proposed fix**|what the fix will do, in plain words — enough for him to agree or disagree with it|
+|`<details>`|the staleness check, the mechanism and every place it occurs, the citations, the fix as steps on named files — he never has to open it|
 
-A `🤔 RECOMMENDATION` uses the same shape. The bold line names the mechanism, and the paragraph gives
-the premise it rests on, the simpler version and what that version gives up. It never ends in a
-fix of its own: nothing happens until he answers.
+A `🤔 RECOMMENDATION` uses the same shape. The bold line names the mechanism and the paragraph the
+premise it rests on; **Proposed fix** is the simpler version and what it gives up. Nothing happens
+until he answers.
 
-**The forcing function:** if the paragraph cannot be written without a file path or a step-by-step
-trace, the finding is not understood well enough to post. That makes readability a property of the
+**The forcing function:** if the paragraph or the proposed fix cannot be written without a file path
+or a step-by-step trace, the finding is not understood well enough to post. That makes readability a property of the
 finding rather than of the formatting, which is what stops the shape degrading into a template
 filled with the same unreadable prose.
 

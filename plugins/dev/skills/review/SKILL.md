@@ -138,7 +138,7 @@ duplicate of something that already exists is removed across the whole repositor
 change. A fixer that finds the fix needs a choice or carries risk after all — it changes
 behaviour, something that matters in infrastructure, or code that guards security, authorization,
 audit or sensitive data — hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
-delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
+proposed fix in plain words, delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
 
 Commit them through `git-workflow` → **checkpoint**, one commit per group — in a submodule, a message
 held to `comment.md` → **Posting** — and push before anything is posted. The fixes move lines under
@@ -185,7 +185,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
   "severity": "blocking", "category": "data-integrity", "provenance": "Correctness",
   "delta": "adds ~6 lines", "claim": "<PR language, one sentence>",
   "consequence": "<PR language, what goes wrong, for whom, when>",
-  "details": "<English: the mechanism and every place it occurs, citations, the proposed fix>"}]
+  "fix": "<PR language, the proposed fix in plain words — no file paths>",
+  "details": "<English: the mechanism and every place it occurs, citations, the fix as steps>"}]
 ```
 
 The script publishes **one GitHub review per PR** that has findings — posted one at a time they
@@ -225,15 +226,18 @@ findings in chat.
 
 Finish in chat, in the owner's language, with three **lists** — not three counts. He reads this to
 judge the review rather than the code, and *"5 refuted"* tells him the pass ran and nothing about
-whether it ran well. One line per finding:
+whether it ran well. One line per fixed or refuted finding:
 
 - **fixed without him** — what changed and in how many places; it is where he looks when something
   later seems off, and how he tells whether the line between the two exits sits in the right place;
-- **posted** — the claim as published, plus the link the script printed for it;
+- **posted** — not one line but the whole human layer, in the owner's language: label, claim,
+  what goes wrong and the proposed fix, plus the link the script printed. He decides from this
+  message whether he agrees with each fix, so it carries everything the comment's top layer does —
+  he should not need to open GitHub to judge it;
 - **refuted** — the claim, and what the verifier proved against it. Findings dropped as already
   settled are counted, not listed: he has seen them before.
 
-With more than one node, say which node each posted line landed on. The lists always print,
+With more than one node, say which node each posted finding landed on. The lists always print,
 whatever the numbers.
 
 If a survivor cannot be anchored to a line — the same missing check across three handlers, a premise

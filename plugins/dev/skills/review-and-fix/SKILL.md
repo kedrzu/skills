@@ -45,7 +45,8 @@ with its context intact, and you wait for its next report as before.
 
 1. **Review.** A subagent carries out `review/SKILL.md` whole. It returns step 5's three lists with
    their links, whatever it could only say in chat, and its verdict on whether review is finished.
-2. **His triage.** Show him what was posted — each claim with its link — and what came only to chat,
+2. **His triage.** Show him each posted finding as review returns it — label, problem, consequence,
+   proposed fix and link — and what came only to chat,
    then wait. He resolves on GitHub what he rejects, or talks it through with you; what he settles
    here goes into the fix brief as direction, as he would have written it after
    `/dev:fix-pr-comments`. A `🤔 RECOMMENDATION` is the exception to silence: it is fixed only on his
