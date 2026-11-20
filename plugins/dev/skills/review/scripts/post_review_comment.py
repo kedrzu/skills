@@ -39,7 +39,7 @@ STALENESS_NOTE = (
 )
 
 
-def build_body(severity, category, provenance, delta, claim, consequence, details):
+def build_body(severity, category, provenance, delta, claim, consequence, fix, details):
     emoji, label = SEVERITY_STYLE[severity]
 
     parts = [
@@ -49,6 +49,8 @@ def build_body(severity, category, provenance, delta, claim, consequence, detail
         f"**{claim}**",
         "",
         consequence,
+        "",
+        f"**Proposed fix:** {fix}",
     ]
 
     # Always emitted, even with no citations: the staleness instruction is what
@@ -83,7 +85,8 @@ def main():
     parser.add_argument(
         "--findings", required=True,
         help="JSON file: a list of {repo, pr, file, line, severity, category, provenance, delta, "
-             "claim, consequence, details}. `line` 0 posts at file level; `file` is relative to "
+             "claim, consequence, fix, details}. `fix` is the proposed fix in plain words, shown "
+             "above the agent's details. `line` 0 posts at file level; `file` is relative to "
              "that PR's repo root; `details` is optional.",
     )
     args = parser.parse_args()
@@ -113,7 +116,11 @@ def main():
             print(f"Unknown severity {finding.get('severity')!r}: one of {sorted(SEVERITY_STYLE)}",
                   file=sys.stderr)
             sys.exit(1)
-    missing = {(finding["repo"], int(finding["pr"])) for finding in findings} - summaries.keys()
+        if not finding.get("fix"):
+            print(f"Finding {finding.get('claim')!r} has no `fix`: the owner judges the proposed "
+                  "fix from the comment, without opening the agent's details.", file=sys.stderr)
+            sys.exit(1)
+    missing ={(finding["repo"], int(finding["pr"])) for finding in findings} - summaries.keys()
     if missing:
         names = ", ".join(f"{repo}#{number}" for repo, number in sorted(missing))
         print(f"No --summary for {names}, which has findings — each PR gets its own.",
@@ -133,7 +140,7 @@ def main():
             body = build_body(
                 finding["severity"], finding["category"], finding["provenance"],
                 finding["delta"], finding["claim"], finding["consequence"],
-                finding.get("details", ""),
+                finding["fix"], finding.get("details", ""),
             )
             path, line = finding["file"], int(finding.get("line") or 0)
             where = f"{path}:{line}" if line else f"{path}, file-level"
