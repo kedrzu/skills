@@ -120,7 +120,7 @@ def main():
             print(f"Finding {finding.get('claim')!r} has no `fix`: the owner judges the proposed "
                   "fix from the comment, without opening the agent's details.", file=sys.stderr)
             sys.exit(1)
-    missing ={(finding["repo"], int(finding["pr"])) for finding in findings} - summaries.keys()
+    missing = {(finding["repo"], int(finding["pr"])) for finding in findings} - summaries.keys()
     if missing:
         names = ", ".join(f"{repo}#{number}" for repo, number in sorted(missing))
         print(f"No --summary for {names}, which has findings — each PR gets its own.",
