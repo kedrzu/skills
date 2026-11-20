@@ -138,7 +138,7 @@ duplicate of something that already exists is removed across the whole repositor
 change. A fixer that finds the fix needs a choice or carries risk after all — it changes
 behaviour, something that matters in infrastructure, or code that guards security, authorization,
 audit or sensitive data — hands it back unapplied. Send it back to the verifier for question 4 of `verify.md` — consequence,
-delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
+proposed fix in plain words, delta and label: it is posted in step 5 only if it passes, and recorded in step 6 as refuted if not.
 
 Commit them through `git-workflow` → **checkpoint**, one commit per group — in a submodule, a message
 held to `comment.md` → **Posting** — and push before anything is posted. The fixes move lines under
