@@ -185,11 +185,11 @@ missing, because a user can disable it.
 
 A plugin whose MCP server is TypeScript keeps it in `plugins/<name>/server/` as a normal
 package (`package.json`, committed `bun.lock`, `src/`, `*.test.ts`) and runs it **from
-source with bun** — nothing is built or committed as an artifact. `gmail-mcp` is the
+source with bun** — nothing is built or committed as an artifact. `playwright` is the
 worked example:
 
 ```json
-{ "command": "bun", "args": ["--install=force", "${CLAUDE_PLUGIN_ROOT}/server/src/main.ts", "serve", "--project", "${CLAUDE_PROJECT_DIR}"] }
+{ "command": "bun", "args": ["--install=force", "${CLAUDE_PLUGIN_ROOT}/server/src/main.ts", "--project", "${CLAUDE_PROJECT_DIR}"] }
 ```
 
 - `--install=force` makes bun fetch the dependencies into its global cache on first start and
