@@ -44,7 +44,8 @@ kind.
 ```
 
 - **The first line** is the claim, with the date and where it came from: the owner, or a proposal of
-  the design agent he has not confirmed yet.
+  the design agent he has not confirmed yet. His words go in English translation, whatever language he
+  said them in.
 - **Why** holds the reasons and the `Checked` evidence that *still* support the claim. Evidence that
   only supported an earlier form leaves with that form.
 - **Rejected** lists every alternative that was considered, or built and later dropped — one sentence

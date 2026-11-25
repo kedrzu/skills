@@ -25,7 +25,7 @@ read and answer the threads through the GitHub API. Verifying, committing, pushi
 a chain go through the project's `verify` and `git-workflow` skills — what each must provide, and
 that a missing one stops the run, is `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
-**His language** is the owner's language and **the PR language** the PR language, both as
+**His language** is the owner's language and **the repository language** the repository language, both as
 `/dev:review` defines them: what you tell him in chat is in the first, what you post on the PR in the
 second. Name them in every brief whose output he reads.
 

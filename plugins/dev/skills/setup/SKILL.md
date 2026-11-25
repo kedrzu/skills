@@ -16,13 +16,16 @@ The contract's other half, `git-workflow`, is written by `/git:setup` from the `
 with the hook configuration that has to agree with it. This skill only checks that it exists.
 
 The pipeline writes for two audiences, and a project may want them in different languages: **the
-owner's language** for the conversation with him — chat, plans, specs that stay local — and **the PR
-language** for what it posts to GitHub — PR descriptions, review comments, thread replies, tracker
-comments — which teammates and other agents read too. One project keeps both in Polish, the next
-posts in English. `/dev:review` defines how both are read: from the language rule in his
-`CLAUDE.local.md` at the project root, else in the project's `CLAUDE.md`, falling back to the
-language he writes in. That fallback works for you and fails for every subagent, which sees only its
-brief; a named rule is what reaches them.
+owner's language** for the conversation with him — chat, plans, specs that stay local — and **the
+repository language** for everything committed or posted — code, identifiers and names, docs, commit
+messages, PR descriptions, review comments, thread replies, tracker comments — which teammates and
+other agents read too. One project chooses a non-English repository language explicitly, the next
+commits in English while its owner chats in Polish. `/dev:review` defines how both are read: from the
+language rule in his `CLAUDE.local.md` at the project root, else in the project's `CLAUDE.md`. With
+no rule the owner's language is the one he writes in, and the repository language is the one the
+repository is already written in, English when that is unclear — never the one he chats in. Those
+fallbacks work for you and fail for every subagent, which sees only its brief; a named rule is what
+reaches them.
 
 ## 1. Take stock
 
@@ -31,8 +34,8 @@ scoped mode and a full one. Look for `.claude/skills/git-workflow/SKILL.md` too;
 one of start, checkpoint, publish, stack and land → the report tells the user to run `/git:setup`.
 
 Check the languages the same way: a rule in `CLAUDE.local.md` or the project's `CLAUDE.md` covers
-them when it names the language of the conversation and of what is posted to GitHub, whatever its
-wording.
+them when it names the language of the conversation and of what is committed or posted, whatever
+its wording.
 
 Read the project's `CLAUDE.md` and its other skills too. The knowledge often already exists under
 another name — a test-running script, a CI checklist. One owner per fact: point at it rather than
@@ -59,7 +62,8 @@ prevent.
 One round, genuine gaps only, each with the answer you would recommend: which steps the full
 verification must include when CI does not say; and, for each of the two languages no rule names,
 which one he wants for this project. Recommend the one he is writing to you in for the conversation,
-and for the PR language the one the repository's PRs and issues are already written in.
+and for the repository language the one the repository's code, docs and PRs are already written
+in — English when that is unclear, never the chat language by default.
 
 ## 4. Write
 
@@ -70,7 +74,7 @@ and for the PR language the one the repository's PRs and issues are already writ
   stays.
 - Never write a command you neither saw nor ran.
 - The languages go into `CLAUDE.local.md` at the project root as one line naming both, e.g.
-  `- Chat, plans and specs: Polish. PR descriptions, PR and issue comments, reviews: English.` —
+  `- Chat, plans and specs: Polish. Everything committed or posted (code, docs, commits, PRs, issues, reviews): English.` —
   never into the project's `CLAUDE.md`: it is his preference, and a teammate's may differ. Make sure git ignores
   it (`git check-ignore CLAUDE.local.md`). Being uncommitted, it is absent from every fresh
   worktree: if the project works in worktrees, its worktree setup has to copy it from the main

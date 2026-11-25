@@ -34,11 +34,13 @@ project's `git-workflow` skill — what it must provide, and that a missing one 
 `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md`.
 
 **The owner's language** is the one the language rule names for the conversation with him — chat,
-plans, specs — and **the PR language** the one it names for what is posted to GitHub — PR
-descriptions, review comments, thread replies, tracker comments. The rule is in his uncommitted
-`CLAUDE.local.md` at the project root, else in the project's `CLAUDE.md`; a rule naming one language
-sets both, and with no rule both are the one he writes to you in. Name them in the brief of every
-agent that writes for him — a subagent sees only your prompt.
+and plans and specs that stay local — and **the repository language** the one it names for
+everything committed or posted: code, identifiers and names, docs, commit messages, PR descriptions,
+review comments, thread replies, tracker comments. The rule is in his uncommitted `CLAUDE.local.md`
+at the project root, else in the project's `CLAUDE.md`. With no rule the owner's language is the one
+he writes to you in, and the repository language is the one the repository is already written in —
+English when that is unclear — never the one he chats in. Name both in the brief of every agent that
+writes for him — a subagent sees only your prompt.
 
 ## 1. Context
 
@@ -113,7 +115,7 @@ axes, or a pass on one masks a failure on another.
 
 Hand every finding, all axes together, to a single agent running
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/verify.md` (pass the expanded path), tell it the
-owner's language and the PR language, the spec and any design folder or plan the change was built from (an
+owner's language and the repository language, the spec and any design folder or plan the change was built from (an
 over-building finding is checked against what he already chose there), and the memory when it exists: `.context/reviews/<bottom>/memory.md`,
 written by step 6 of earlier runs, `<bottom>` being the bottom node's branch from `nodes.json` with
 `/` replaced by `-`, as `generate_diffs.py` names its directory. **Only the verifier gets the
@@ -171,7 +173,7 @@ threads and judge, including what he wrote under them:
 
 Post the findings whose exit is *to him* in the shape
 `${CLAUDE_PLUGIN_ROOT}/skills/review/references/comment.md` defines. A poster agent needs the
-expanded path to that file and the PR language. Each finding goes on the `prNumber` of **the
+expanded path to that file and the repository language. Each finding goes on the `prNumber` of **the
 node it belongs to**. All of them, from every node and every submodule, go into one file and one
 call, with one summary file per PR the run reviewed:
 
@@ -183,9 +185,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/post_review_comment.py \
 ```json
 [{"repo": "<owner/repo>", "pr": 12, "file": "src/consent/ConsentCreateCommand.ts", "line": 42,
   "severity": "blocking", "category": "data-integrity", "provenance": "Correctness",
-  "delta": "adds ~6 lines", "claim": "<PR language, one sentence>",
-  "consequence": "<PR language, what goes wrong, for whom, when>",
-  "fix": "<PR language, the proposed fix in plain words — no file paths>",
+  "delta": "adds ~6 lines", "claim": "<repository language, one sentence>",
+  "consequence": "<repository language, what goes wrong, for whom, when>",
+  "fix": "<repository language, the proposed fix in plain words — no file paths>",
   "details": "<English: the mechanism and every place it occurs, citations, the fix as steps>"}]
 ```
 

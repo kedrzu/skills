@@ -6,7 +6,7 @@ description: >-
     and whether a pattern borrowed from elsewhere still has its reason here, and it names the
     simpler version and what that version gives up. Invoked by /dev:design before a design closes,
     by the pipeline's plan phase, by /dev:review and by a fix about to add a mechanism. Use it
-    directly when asked "is this over-engineered", "czy to nie jest przekombinowane", "find
+    directly when asked "is this over-engineered", "isn't this overcomplicated", "find
     over-engineering in this PR" or "what here is more than we need". Not for code with no caller
     (prune) or for bugs (a review).
 ---
