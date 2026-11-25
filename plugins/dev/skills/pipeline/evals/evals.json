@@ -1,0 +1,20 @@
+{
+  "skill_name": "pipeline",
+  "evals": [
+    {
+      "id": 1,
+      "name": "spec-names-in-repository-language",
+      "prompt": "/dev:feature Dodaj do CLI komendę, która robi kopię zapasową wszystkich notatek do osobnego folderu w katalogu projektu, z datą w nazwie pliku. Napisz tylko spec (Phase 1) do .context/specs/ i zatrzymaj się na bramce akceptacji — nie implementuj. Na końcu speca dopisz sekcję z proponowanym tytułem PR i wiadomością commita.",
+      "expected_output": "A spec whose prose may be Polish (the owner's language) but whose every decided name — the command, the backup folder, the file-name pattern, identifiers — is English, with an English PR title and commit message; the chat reply is in Polish.",
+      "files": [
+        "fixture: a small English Bun CLI repo (README, CLAUDE.md, src/commands/add.ts, list.ts) whose gitignored CLAUDE.local.md says only '- Chat replies, plans and specs: Polish.' — no rule for the repository language"
+      ],
+      "assertions": [
+        "Every name the spec decides (CLI command, backup folder, file-name pattern, new file or identifier names) is English",
+        "The proposed PR title is English",
+        "The proposed commit message is English",
+        "The reply to the owner is in Polish"
+      ]
+    }
+  ]
+}
