@@ -17,6 +17,9 @@ others.
   to the repository whose checkout they describe — usually the consumer's, which builds the
   submodule from source.
 
+The `UPDATES.md` catalogue follows the same rule: each repository keeps its own at its root, listing
+only what its own checkout pins, and a submodule's entries never name a consumer.
+
 A submodule's notebook is committed in the submodule, through `git-workflow` **checkpoint** like its
 manifests: the notebook change rides the run's one submodule branch and PR.
 
