@@ -108,7 +108,7 @@ forbidden.
 
 A request to delete is carried out, not negotiated. If you see a reason to keep something, say it in
 one sentence and delete it anyway — never hand him a choice in which deleting is not the
-recommendation — "możemy to spokojnie wywalić" has come back as +86 / −0.
+recommendation — "we can safely drop this" has come back as +86 / −0.
 
 Facts may not leave quietly either. When a revision removes any — a path, a command, an identifier,
 a citation — list them when you report back; a shrink drops them out of live rules in good faith,
