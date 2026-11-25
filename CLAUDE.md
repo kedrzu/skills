@@ -37,7 +37,8 @@ with no manifest and no marketplace entry.
 ## Conventions
 
 - **Everything committed here is in English** — manifests, skill bodies, comments,
-  README, commit messages. Conversations with the user happen in the user's language.
+  README, commit messages. Conversations with the user happen in the user's language, which
+  is their own local setting (e.g. a gitignored `CLAUDE.local.md`), never committed.
 - Plugin and skill directory names are **kebab-case** and match the `name` field in
   their manifest/frontmatter.
 - **Split skills into small, focused plugins** so a project installs only what it

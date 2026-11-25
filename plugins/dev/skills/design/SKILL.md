@@ -394,8 +394,9 @@ be consumed rather than re-derived.
 ## Language
 
 Talk in their language; a foreign-language question adds friction exactly when you need a considered
-answer. Write the artifacts in English — they are durable and other people and agents read them.
-Technical terms stay English everywhere.
+answer. Write the artifacts in English — they are durable and other people and agents read them. What
+the owner said goes into them in English translation, never as a verbatim quote in the language he
+chats in. Technical terms stay English everywhere.
 
 ## References
 

@@ -42,8 +42,8 @@ Announce when you start: "Updating packages — verifying baseline first, then b
   - **Known Issues** are version-specific failures. Never retry a known-broken update; remove the
     entry only when a newer version resolves it. A `blocked-by-consumer` entry is never retried
     from inside the repository that records it — only a consumer can prove it fixed.
-- **Language** — the chat summary is in the owner's language, the PR and the tracker comment in the PR
-  language (both as `/dev:review` defines them); everything committed is English.
+- **Language** — the chat summary is in the owner's language, the PR, the tracker comment and everything
+  committed in the repository language (both as `/dev:review` defines them).
 
 ## When NOT to use
 

@@ -1,6 +1,6 @@
 ---
 name: discord
-description: Read, search and summarize the user's Discord servers and channels through the Discord desktop app they are logged into — no bot, no token. Keeps a local copy of the conversations, answers from it, and fetches only what is missing. Use when the user says "co było na kanale X", "podsumuj #general z ostatniego tygodnia", "znajdź na Discordzie / na serwerze Y…", "kto pisał o…", "what did they say on Discord about…", or otherwise asks about something said on Discord. Read-only — it cannot post.
+description: Read, search and summarize the user's Discord servers and channels through the Discord desktop app they are logged into — no bot, no token. Keeps a local copy of the conversations, answers from it, and fetches only what is missing. Use when the user says "what was said on channel X", "summarize #general from the last week", "find on Discord / on server Y…", "who wrote about…", "what did they say on Discord about…", or otherwise asks about something said on Discord. Read-only — it cannot post.
 ---
 
 # Discord — reading through the desktop app

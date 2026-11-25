@@ -22,14 +22,14 @@
       "name": "dev",
       "source": "./plugins/dev",
       "description": "Think a feature through with /dev:design, then plan, build, verify and land code changes through one pipeline — /dev:fix, /dev:task, /dev:feature, /dev:build and /dev:deliver — with approval gates, sequential implementers, a subtractive prune pass and stacked PRs. On request, /dev:review fixes what nobody would argue with and posts the rest that survived a refutation pass as inline PR findings, /dev:fix-pr-comments acts on the unresolved PR threads and asks in chat where a fix needs a choice, /dev:review-and-fix loops the two until review calls the branch finished, /dev:explain-pr explains a PR or a whole stacked chain in plain language, and /dev:update-packages updates every dependency in verified batches and flags the deprecated or abandoned ones. Project-specific checks and git flow come from the project's own verify and git-workflow skills, which /dev:setup and /git:setup write",
-      "version": "0.14.0",
+      "version": "0.15.0",
       "category": "workflow"
     },
     {
       "name": "git",
       "source": "./plugins/git",
       "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, a hook that blocks unnamed stashes, pops by no ref or by position, plain force-pushes and, where a project opts in, pushes to its protected branches, a background sync hook that refreshes the branch from its PR base (optional push and autosave, configured in .claude/git.json), and /git:setup, which writes the project's git-workflow skill and .claude/git.json",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "category": "development"
     },
     {
@@ -57,7 +57,7 @@
       "name": "retro",
       "source": "./plugins/retro",
       "description": "Retrospective on how agents worked in a project: root cause from Claude Code and Codex transcripts and PR reviews, verdicts on the previous retro, and proposed changes to the environment",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "category": "workflow"
     },
     {
@@ -71,21 +71,21 @@
       "name": "shopping-research",
       "source": "./plugins/shopping-research",
       "description": "Find the best product to buy against your criteria: an accepted spec first, then a wide longlist, parallel deep dives and a ranking with the best obtainable price and a link to buy every pick",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "category": "research"
     },
     {
       "name": "skill-improve",
       "source": "./plugins/skill-improve",
       "description": "Revise an existing skill so the agent behaves as intended, without the skill swelling — evidence from real transcripts first, knowledge grows freely, procedure asks",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "category": "workflow"
     },
     {
       "name": "telegram",
       "source": "./plugins/telegram",
       "description": "One-way Telegram notifications: let the agent reach your phone when you are away from the terminal",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "category": "workflow"
     },
     {
@@ -106,14 +106,14 @@
       "name": "whatsapp",
       "source": "./plugins/whatsapp",
       "description": "Read WhatsApp chats and attachments straight from the macOS desktop app's local database — list chats, read or search messages, find and copy files. Read-only, no API, no linked device",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "category": "productivity"
     },
     {
       "name": "discord",
       "source": "./plugins/discord",
       "description": "Read, search and summarize Discord channels through the macOS desktop app — a local store of the conversations, fetched by scrolling the app. Read-only",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "productivity"
     }
   ]

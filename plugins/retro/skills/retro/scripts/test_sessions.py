@@ -38,13 +38,13 @@ def claude_events(cwd: str) -> list[dict]:
         {**base, "type": "user", "isCompactSummary": True, "message": {"content": "This session is being continued from a previous conversation"}},
         {**base, "type": "user", "message": {"content": [
             {"type": "text", "text": "<chat-history-summary>\nChat history from a previous Paseo agent.\n</chat-history-summary>"},
-            {"type": "text", "text": "kontynuuj od testu"},
+            {"type": "text", "text": "continue from the test"},
         ]}},
         {**base, "type": "user", "turnOrigin": {"kind": "task_notification"}, "message": {"content": "<task-notification>done</task-notification>"}},
         {**base, "type": "user", "message": {"content": [{"type": "text", "text": "[Request interrupted by user]"}]}},
-        {**base, "type": "attachment", "attachment": {"type": "queued_command", "prompt": [{"type": "text", "text": "nie, najpierw test"}]}},
+        {**base, "type": "attachment", "attachment": {"type": "queued_command", "prompt": [{"type": "text", "text": "no, test first"}]}},
         {**base, "type": "assistant", "isSidechain": True, "message": {"content": [{"type": "text", "text": "subagent noise"}]}},
-        {**base, "type": "user", "timestamp": "2026-10-01T10:30:00Z", "message": {"content": [{"type": "text", "text": "ok, działaj"}]}},
+        {**base, "type": "user", "timestamp": "2026-10-01T10:30:00Z", "message": {"content": [{"type": "text", "text": "ok, go ahead"}]}},
     ]
 
 
@@ -95,9 +95,9 @@ class RenderTests(unittest.TestCase):
         self.assertIn("- Bash(bun test login) -> ERROR: FAIL login.test.ts", out)
         self.assertIn("## USER (answering AskUserQuestion)", out)
         self.assertIn("!! [Request interrupted by user]", out)
-        self.assertIn("nie, najpierw test", out)
+        self.assertIn("no, test first", out)
         self.assertIn("(30 min)", out)
-        self.assertIn("kontynuuj od testu", out)
+        self.assertIn("continue from the test", out)
         for noise in ("paseo-system", "task-notification", "Base directory", "subagent noise", "private",
                       "being continued", "chat-history-summary"):
             self.assertNotIn(noise, out)
@@ -105,7 +105,7 @@ class RenderTests(unittest.TestCase):
     def test_claude_user_only(self):
         path = write_jsonl(self.tmp / "c.jsonl", claude_events("/r"))
         out = self.run_script("render", str(path), "--user-only")
-        self.assertIn("ok, działaj", out)
+        self.assertIn("ok, go ahead", out)
         self.assertNotIn("Reproducing first", out)
         self.assertNotIn("Bash(", out)
 

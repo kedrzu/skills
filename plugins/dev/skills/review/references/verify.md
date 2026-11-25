@@ -69,7 +69,7 @@ Hand back each survivor with:
   (`Security · <the project's rule source> → audit at business boundary`). The comment's second line is
   built from this, and without it the owner cannot check a conformance claim in seconds
 - for *to him*: the **consequence** from question 4 and the **fix** in plain words — what it will
-  do, not which lines it edits — both in the PR language, and the **delta**
+  do, not which lines it edits — both in the repository language, and the **delta**
 - the **node** it came from, carried through unchanged
 
 And hand back **every finding you refuted as one line in the owner's language** (the orchestrator

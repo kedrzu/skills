@@ -4,9 +4,9 @@ description: >-
     Explains the current branch's pull request in plain language — what it actually does and why,
     where the changes that matter are, what can be skimmed, and what could go wrong — so the owner
     can get his bearings before (or instead of) reading the diff. When the PR is one node of a
-    stacked chain, explains the whole chain node by node, bottom up. Use when the user says "wyjaśnij
-    ten PR", "o co chodzi w tych zmianach", "co właściwie robi ten PR", "przeprowadź mnie przez
-    stacka", "explain this PR", "walk me through these changes", "what does this stack do", or
+    stacked chain, explains the whole chain node by node, bottom up. Use when the user says "explain
+    this PR", "what are these changes about", "what does this PR actually do", "walk me through
+    the stack", "walk me through these changes", "what does this stack do", or
     otherwise wants to understand a PR rather than judge it — any language counts. Read-only: it
     posts nothing. Do NOT use to find bugs and post findings (/dev:review) or to act on PR comments
     (/dev:fix-pr-comments).

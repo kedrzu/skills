@@ -1,6 +1,6 @@
 ---
 name: shopping-research
-description: Shopping research — find the best product or service in a category against the user's criteria and present a ranking from most to least recommended (pros, cons, features, prices, links to buy). Use whenever the user wants to buy something and is looking for the best option, asks for a comparison or ranking ("jaki X kupić", "co polecasz", "pomóż wybrać", "który najlepszy", "porównaj te modele", "research zakupowy"), or gives a budget and a category (laptop, headphones, coffee machine, mattress, tyres, bike, monitor, subscription, software…). Starts with Socratic clarification of criteria, gets an explicitly accepted spec, then runs deep structured research (wide longlist → screening → parallel deep dives → ranking). Not for searching a notes vault, and not for general topic research without intent to buy.
+description: Shopping research — find the best product or service in a category against the user's criteria and present a ranking from most to least recommended (pros, cons, features, prices, links to buy). Use whenever the user wants to buy something and is looking for the best option, asks for a comparison or ranking ("which X should I buy", "what do you recommend", "help me choose", "which one is best", "compare these models", "shopping research"), or gives a budget and a category (laptop, headphones, coffee machine, mattress, tyres, bike, monitor, subscription, software…). Starts with Socratic clarification of criteria, gets an explicitly accepted spec, then runs deep structured research (wide longlist → screening → parallel deep dives → ranking). Not for searching a notes vault, and not for general topic research without intent to buy.
 ---
 
 # Shopping research
@@ -155,8 +155,8 @@ search, don't launch subagents.
 
 - **Treat any feedback as a revision of the spec, not as consent.** The user says "I meant X more
   than Y" → update the spec, present it again, ask for consent again.
-- **Move only on an unambiguous go-ahead** — e.g. "start", "go", "zaczynaj", "leć", "rób research",
-  "ok, szukaj". Refining criteria, a question or a comment **is not** consent.
+- **Move only on an unambiguous go-ahead** — e.g. "start", "go", "go ahead", "do the research",
+  "ok, search". Refining criteria, a question or a comment **is not** consent.
 - If the answer is ambiguous ("sounds good") — ask: "Shall I start the research with this spec?".
 
 This is a deliberate, hard gate. The user explicitly wants to control the scope before you start

@@ -6,7 +6,7 @@ description: >-
     something the user can see and try, not read — stop to bring back every gap, divergence or
     better idea the design did not settle, and land the whole thing as one PR (a stacked chain only
     where the project's `git-workflow` uses stacks). Use whenever the user wants a design folder
-    built — "zaimplementuj design X", "wdróż X z designu", "build docs/design/<slug>", "zrób to, co mamy w designie", a handoff
+    built — "implement design X", "roll out X from the design", "build docs/design/<slug>", "do what we have in the design", a handoff
     from /dev:design — even if they do not name this skill. Do NOT use to write or change a design
     (/dev:design), for large work with no design folder (/dev:build designs it itself), to turn a design
     into tracker issues, or to fan many tasks out across worktrees.
@@ -80,7 +80,8 @@ checkpoint.
      over — I test that first and come back with the result.
 ```
 
-Save it to `.context/plans/<YYYY-MM-DD>-<slug>.md`, in his language, and run the approval gate
+Save it to `.context/plans/<YYYY-MM-DD>-<slug>.md`, in his language — every name it decides (folders,
+files, identifiers, commands) in the repository language, as `/dev:review` defines it — and run the approval gate
 (`${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/approval-gate.md`). The overview stays alive: rearranging the
 remaining steps after a checkpoint is normal, and one sentence tells him you did.
 

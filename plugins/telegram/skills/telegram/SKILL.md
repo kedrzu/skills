@@ -1,6 +1,6 @@
 ---
 name: telegram
-description: Send a message to the user's phone over Telegram - the only way to reach them when they are not at the terminal. Use when the user says "napisz mi na telegramie", "daj znać jak skończysz", "wyślij mi to na telefon", "powiadom mnie", "ping me when it's done", "text me", or when a long task they left running in the background has finished and they are no longer watching. NOT for sending email (that is a Gmail draft), NOT for publishing a document to get a shareable link (that is /publish), NOT for parking something for later (that is a task tracker or an inbox note). Read this before the first notification of a session - a badly written one gets the channel muted.
+description: Send a message to the user's phone over Telegram - the only way to reach them when they are not at the terminal. Use when the user says "message me on Telegram", "let me know when you're done", "send it to my phone", "notify me", "ping me when it's done", "text me", or when a long task they left running in the background has finished and they are no longer watching. NOT for sending email (that is a Gmail draft), NOT for publishing a document to get a shareable link (that is /publish), NOT for parking something for later (that is a task tracker or an inbox note). Read this before the first notification of a session - a badly written one gets the channel muted.
 ---
 
 # Telegram — reaching the user's phone
@@ -13,7 +13,7 @@ Mechanics, config resolution and failure modes live in the plugin README.
 
 | Situation | Send? | Why |
 |---|---|---|
-| The user asked you to ("daj znać jak skończysz") | **Yes** | Explicit request. Honour it even if the result is boring. |
+| The user asked you to ("let me know when you're done") | **Yes** | Explicit request. Honour it even if the result is boring. |
 | A scheduled/unattended routine produced something they must see | **Yes** | Nobody is watching the terminal. That is the whole point of the channel. |
 | A long task they left running finished | **Yes** | They walked away expecting to be called back. |
 | You finished a task while they are clearly at the keyboard | **No** | They are already reading your answer. A phone buzz is noise. |
@@ -27,7 +27,7 @@ it is gone for the things that mattered.
 ## What a good message looks like
 
 - **The first line must stand on its own.** A lock screen shows about two
-  lines and no markup. `Rutyna 8:00: 4 spotkania, 7 zadań (2 zaległe), 18 maili, 3 do decyzji`
+  lines and no markup. `Routine 8:00: 4 meetings, 7 tasks (2 overdue), 18 emails, 3 to decide`
   works; `Here is your summary:` does not.
 - **Aim for under ~1500 characters.** Detail belongs in the document, the
   dashboard or the report. Longer text is split into several messages

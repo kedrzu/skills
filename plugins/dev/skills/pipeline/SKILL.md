@@ -79,7 +79,7 @@ What this conserves is not the number of questions. Questions during planning ar
 **Purpose:** surface ambiguities and define scope before any code is written.
 
 1. **Explore relevant code** — read files, understand existing patterns, map the area being changed.
-2. **Write spec** to `.context/specs/<YYYY-MM-DD>-<topic>.md` using the format below.
+2. **Write spec** to `.context/specs/<YYYY-MM-DD>-<topic>.md` using the format below. Its prose may be in the owner's language, but every name it decides — folders, files, identifiers, commands, collection names, user-visible defaults — is in the repository language (both as `/dev:review` defines them), because those names go into the repository verbatim; the same holds for the plan in Phase 2.
 3. **Dispatch ambiguity finder subagent** using `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/ambiguity-finder-prompt.md` — it flags gaps, edge cases, and missing constraints, and classifies each as codebase-answerable or needs-user.
 4. **Resolve ambiguities:**
    - Codebase-answerable → update the spec with the answer and the code reference.

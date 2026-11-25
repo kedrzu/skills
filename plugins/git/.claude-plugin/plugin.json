@@ -1,7 +1,7 @@
 {
   "name": "git",
   "description": "Git operations agents get wrong in ways that silently lose work — resolving merge, rebase and cherry-pick conflicts by both sides' intent, a hook that blocks unnamed stashes, pops by no ref or by position, plain force-pushes and, where a project opts in, pushes to its protected branches, a background sync hook that refreshes the branch from its PR base (optional push and autosave, configured in .claude/git.json), and /git:setup, which writes the project's git-workflow skill and .claude/git.json",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "author": {
     "name": "Michał Kędrzyński"
   },

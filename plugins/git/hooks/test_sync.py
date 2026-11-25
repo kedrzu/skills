@@ -24,7 +24,7 @@ def pr(base: str, number: int = 7, state: str = "OPEN") -> str:
 
 OPENSPACE = {"sync": {
     "base": "main", "strategy": "rebase", "interval": 2, "push": "base", "commitReminder": 20,
-    "autosave": {"idle": 5, "message": "Autozapis przy zamknięciu sesji: {files}"}, "askIdentity": True,
+    "autosave": {"idle": 5, "message": "Autosave at session end: {files}"}, "askIdentity": True,
 }}
 
 
@@ -41,8 +41,8 @@ class SyncTestCase(unittest.TestCase):
         sh(root, "git", "init", "--quiet", "--bare", "--initial-branch=main", self.remote)
         self.me = self.clone("me", "Me")
         self.partner = self.clone("partner", "Ania")
-        self.write(self.partner, "oferta.md", "# Oferta\n\nCena: 100 zł\n")
-        self.commit(self.partner, "Dodano ofertę")
+        self.write(self.partner, "offer.md", "# Offer\n\nPrice: 100 PLN\n")
+        self.commit(self.partner, "Add offer")
         sh(self.partner, "git", "push", "--quiet", "origin", "main")
         sh(self.me, "git", "pull", "--quiet", "origin", "main")
 
@@ -117,9 +117,9 @@ class SyncTestCase(unittest.TestCase):
 
     def start_open_rebase(self) -> None:
         """Leave a conflicted rebase open in `me`, as an agent resolving it would."""
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
-        self.commit(self.me, "Cena 90")
-        self.partner_pushes("oferta.md", "# Oferta\n\nCena: 120 zł\n", "Cena 120")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
+        self.commit(self.me, "Price 90")
+        self.partner_pushes("offer.md", "# Offer\n\nPrice: 120 PLN\n", "Price 120")
         sh(self.me, "git", "fetch", "--quiet", "origin")
         subprocess.run(["git", "rebase", "origin/main"], cwd=self.me, capture_output=True)
         self.assertFalse(self.nothing_open(self.me))
@@ -176,13 +176,13 @@ class RefreshFromBaseTest(SyncTestCase):
     def test_merges_the_pr_base_and_reports_it(self):
         self.on_feature()
         self.configure({"sync": {"afterUpdate": [{"run": "echo installed"}]}})
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         context = self.hook(self.me, gh=pr("main"))
         self.assertEqual(self.read(self.me, "plan.md"), "# Plan\n")
         self.assertEqual(len(sh(self.me, "git", "log", "-1", "--format=%P").split()), 2)
         self.assertIn("$ git merge --no-edit origin/main", context)
         self.assertIn("PR #7", context)
-        self.assertIn("Ania: Dodano plan", context)
+        self.assertIn("Ania: Add plan", context)
         self.assertIn("- plan.md", context)
         self.assertIn("`echo installed` → exit 0", context)
         self.assertNotIn("claude-git-sync-log", context)
@@ -192,7 +192,7 @@ class RefreshFromBaseTest(SyncTestCase):
         self.on_feature()
         before = self.head()
         remote_before = sh(self.me, "git", "ls-remote", "origin")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         remote_after_partner = sh(self.me, "git", "ls-remote", "origin")
         self.assertIn("git merge --no-edit", self.hook(self.me, gh=pr("main")))
         self.assertNotEqual(remote_before, remote_after_partner)
@@ -215,7 +215,7 @@ class RefreshFromBaseTest(SyncTestCase):
     def test_no_pr_and_no_paseo_record_leaves_the_branch_alone(self):
         self.on_feature()
         before = self.head()
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertEqual(self.hook(self.me, gh=None), "")
         self.assertEqual(self.head(), before)
         self.assertEqual(self.hook(self.me, gh=pr("main", state="MERGED")), "")
@@ -227,32 +227,32 @@ class RefreshFromBaseTest(SyncTestCase):
         os.makedirs(paseo)
         with open(os.path.join(paseo, "worktree.json"), "w") as f:
             json.dump({"baseRefName": "main"}, f)
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertIn("Paseo", self.hook(self.me, gh=None))
         self.assertTrue(self.exists(self.me, "plan.md"))
 
     def test_conflict_is_rolled_back_and_handed_to_the_agent(self):
         sh(self.me, "git", "checkout", "--quiet", "-b", "feature")
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
-        self.commit(self.me, "Cena 90")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
+        self.commit(self.me, "Price 90")
         before = self.head()
-        self.partner_pushes("oferta.md", "# Oferta\n\nCena: 120 zł\n", "Cena 120")
+        self.partner_pushes("offer.md", "# Offer\n\nPrice: 120 PLN\n", "Price 120")
         context = self.hook(self.me, gh=pr("main"))
-        self.assertIn("- oferta.md", context)
+        self.assertIn("- offer.md", context)
         self.assertIn("fix-conflicts", context)
         self.assertIn("`git merge --no-edit origin/main`", context)
         self.assertEqual(self.head(), before)
         self.assertTrue(self.nothing_open(self.me))
         self.assertEqual(sh(self.me, "git", "status", "--porcelain"), "")
-        self.assertIn("90 zł", self.read(self.me, "oferta.md"))
+        self.assertIn("90 PLN", self.read(self.me, "offer.md"))
 
     def test_conflict_under_rebase_leaves_no_rebase_open(self):
         sh(self.me, "git", "checkout", "--quiet", "-b", "feature")
         self.configure({"sync": {"strategy": "rebase"}})
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
-        self.commit(self.me, "Cena 90")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
+        self.commit(self.me, "Price 90")
         before = self.head()
-        self.partner_pushes("oferta.md", "# Oferta\n\nCena: 120 zł\n", "Cena 120")
+        self.partner_pushes("offer.md", "# Offer\n\nPrice: 120 PLN\n", "Price 120")
         context = self.hook(self.me, gh=pr("main"))
         self.assertIn("`git rebase --autostash origin/main`", context)
         self.assertEqual(self.head(), before)
@@ -261,7 +261,7 @@ class RefreshFromBaseTest(SyncTestCase):
     def test_rebase_strategy_replays_own_commits(self):
         self.on_feature()
         self.configure({"sync": {"strategy": "rebase"}})
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertIn("$ git rebase --autostash origin/main", self.hook(self.me, gh=pr("main")))
         self.assertEqual(sh(self.me, "git", "merge-base", "HEAD", "origin/main"), sh(self.me, "git", "rev-parse", "origin/main"))
         self.assertEqual(sh(self.me, "git", "log", "-1", "--format=%P").count(" "), 0)
@@ -269,31 +269,31 @@ class RefreshFromBaseTest(SyncTestCase):
     def test_uncommitted_or_untracked_overlap_is_not_integrated(self):
         self.on_feature()
         before = self.head()
-        self.partner_pushes("oferta.md", "# Oferta\n\nCena: 120 zł\n", "Cena 120")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
+        self.partner_pushes("offer.md", "# Offer\n\nPrice: 120 PLN\n", "Price 120")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
         self.write(self.me, "plan.md", "my own plan\n")
         context = self.hook(self.me, gh=pr("main"))
-        self.assertIn("- oferta.md\n- plan.md", context)
+        self.assertIn("- offer.md\n- plan.md", context)
         self.assertIn("Checkpoint", context)
         self.assertEqual(self.head(), before)
-        self.assertIn("90 zł", self.read(self.me, "oferta.md"))
+        self.assertIn("90 PLN", self.read(self.me, "offer.md"))
         self.assertEqual(self.read(self.me, "plan.md"), "my own plan\n")
 
     def test_unrelated_uncommitted_edit_survives_the_merge(self):
         self.on_feature()
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertIn("git merge", self.hook(self.me, gh=pr("main")))
         self.assertTrue(self.exists(self.me, "plan.md"))
-        self.assertIn("90 zł", self.read(self.me, "oferta.md"))
+        self.assertIn("90 PLN", self.read(self.me, "offer.md"))
 
     def test_staged_unrelated_file_blocks_a_merge(self):
         self.on_feature()
         before = self.head()
         self.write(self.me, "notes.md", "notes\n")
         sh(self.me, "git", "add", "notes.md")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         context = self.hook(self.me, gh=pr("main"))
         self.assertIn("staged", context)
         self.assertEqual(self.head(), before)
@@ -303,25 +303,25 @@ class RefreshFromBaseTest(SyncTestCase):
         self.on_feature()
         before = self.head()
         sh(self.me, "git", "config", "--unset", "user.name")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertIn("user.name", self.hook(self.me, gh=pr("main")))
         self.assertEqual(self.head(), before)
 
     def test_refresh_is_throttled_across_events(self):
         self.on_feature()
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
-        self.assertIn("Dodano plan", self.hook(self.me, gh=pr("main")))
-        self.partner_pushes("notes.md", "notes\n", "Notatki")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
+        self.assertIn("Add plan", self.hook(self.me, gh=pr("main")))
+        self.partner_pushes("notes.md", "notes\n", "Notes")
         self.assertEqual(self.hook(self.me, "prompt", gh=pr("main")), "")
         self.assertFalse(self.exists(self.me, "notes.md"))
         self.forget_last_refresh()
-        self.assertIn("Notatki", self.hook(self.me, "prompt", gh=pr("main")))
+        self.assertIn("Notes", self.hook(self.me, "prompt", gh=pr("main")))
 
     def test_lock_held_by_another_session_skips(self):
         self.on_feature()
         before = self.head()
         open(os.path.join(self.git_dir(self.me), "claude-git-sync-lock"), "w").close()
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertEqual(self.hook(self.me, gh=pr("main")), "")
         self.assertEqual(self.head(), before)
 
@@ -329,7 +329,7 @@ class RefreshFromBaseTest(SyncTestCase):
         sh(self.me, "git", "checkout", "--quiet", "-b", "feature")
         self.start_open_rebase()
         head = self.head()
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertEqual(self.hook(self.me, gh=pr("main")), "")
         self.assertEqual(self.hook(self.me, "prompt", gh=pr("main")), "")  # no opt-in feature: no reminder
         self.assertEqual(self.head(), head)
@@ -338,21 +338,21 @@ class RefreshFromBaseTest(SyncTestCase):
     def test_detached_head_is_left_alone(self):
         sh(self.me, "git", "checkout", "--quiet", "--detach")
         before = self.head()
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertEqual(self.hook(self.me, gh=pr("main")), "")
         self.assertEqual(self.head(), before)
 
     def test_own_base_fast_forwards_but_never_merges_when_diverged(self):
         self.configure({"sync": {"base": "main"}})
         sh(self.me, "git", "push", "--quiet", "origin", "main")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertIn("$ git merge --ff-only origin/main", self.hook(self.me))
         self.assertEqual(self.head(), sh(self.me, "git", "rev-parse", "origin/main"))
         self.forget_last_refresh()
         self.write(self.me, "mine.md", "mine\n")
         self.commit(self.me, "Local commit")
         before = self.head()
-        self.partner_pushes("notes.md", "notes\n", "Notatki")
+        self.partner_pushes("notes.md", "notes\n", "Notes")
         self.assertEqual(self.hook(self.me), "")
         self.assertEqual(self.head(), before)
 
@@ -379,7 +379,7 @@ class RefreshFromBaseTest(SyncTestCase):
             {"run": "echo boom; exit 3"},
             {"run": "touch never-ran"},
         ]}})
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         context = self.hook(self.me, gh=pr("main"))
         log = os.path.join(self.git_dir(self.me), "claude-git-sync-log")
         self.assertIn("`echo boom; exit 3` → exit 3", context)
@@ -392,7 +392,7 @@ class RefreshFromBaseTest(SyncTestCase):
     def test_after_update_timeout_is_reported(self):
         self.on_feature()
         self.configure({"sync": {"afterUpdate": [{"run": "sleep 30", "timeout": 1}, {"run": "true"}]}})
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         context = self.hook(self.me, gh=pr("main"))
         self.assertIn("`sleep 30` → timed out after 1 s", context)
         self.assertIn("`true` → not run", context)
@@ -415,7 +415,7 @@ class RefreshFromBaseTest(SyncTestCase):
         self.on_feature()
         self.configure({"sync": {"refresh": False}})
         before = self.head()
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertEqual(self.hook(self.me, gh=pr("main")), "")
         self.assertEqual(self.head(), before)
 
@@ -467,69 +467,69 @@ class OpenSpaceTest(SyncTestCase):
         sh(self.me, "git", "pull", "--quiet", "origin", "main")
 
     def test_session_start_pulls_partner_changes_and_names_them(self):
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         context = self.hook(self.me)
-        self.assertIn("Ania: Dodano plan", context)
+        self.assertIn("Ania: Add plan", context)
         self.assertIn("$ git rebase --autostash origin/main", context)
         self.assertEqual(self.read(self.me, "plan.md"), "# Plan\n")
 
     def test_prompt_is_throttled(self):
         self.hook(self.me)
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
         self.assertEqual(self.hook(self.me, "prompt"), "")
         self.assertFalse(self.exists(self.me, "plan.md"))
 
     def test_stop_pushes_commits_and_reports_pulled_changes_on_next_prompt(self):
         self.hook(self.me)
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
-        self.write(self.me, "notatki.md", "notatki\n")
-        self.commit(self.me, "Dodano notatki")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
+        self.write(self.me, "memo.md", "memo\n")
+        self.commit(self.me, "Add memo")
         self.assertIsNone(self.output(self.me, "stop"))  # regardless of the interval
-        self.assertEqual(self.remote_log()[:2], ["Dodano notatki", "Dodano plan"])
-        self.assertIn("Ania: Dodano plan", self.hook(self.me, "prompt"))  # delivered although not due
+        self.assertEqual(self.remote_log()[:2], ["Add memo", "Add plan"])
+        self.assertIn("Ania: Add plan", self.hook(self.me, "prompt"))  # delivered although not due
         self.assertEqual(self.hook(self.me, "prompt"), "")
 
     def test_stop_reports_after_update_commands_instead_of_running_them(self):
         config = {"sync": {**OPENSPACE["sync"], "afterUpdate": [{"run": "touch built.flag"}]}}
         self.partner_pushes(".claude/git.json", json.dumps(config), "Add a build")
         sh(self.me, "git", "pull", "--quiet", "--rebase", "origin", "main")
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
-        self.write(self.me, "notatki.md", "notatki\n")
-        self.commit(self.me, "Dodano notatki")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
+        self.write(self.me, "memo.md", "memo\n")
+        self.commit(self.me, "Add memo")
         self.assertIsNone(self.output(self.me, "stop"))
-        self.assertEqual(self.remote_log()[0], "Dodano notatki")
+        self.assertEqual(self.remote_log()[0], "Add memo")
         self.assertFalse(self.exists(self.me, "built.flag"))  # Stop's hook timeout is too short for them
         context = self.hook(self.me, "prompt")
         self.assertIn("After-update commands were NOT run", context)
         self.assertIn("- touch built.flag", context)
 
     def test_stop_blocks_on_conflict_once_and_leaves_no_rebase_open(self):
-        self.partner_pushes("oferta.md", "# Oferta\n\nCena: 120 zł\n", "Cena 120")
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
-        self.commit(self.me, "Cena 90")
+        self.partner_pushes("offer.md", "# Offer\n\nPrice: 120 PLN\n", "Price 120")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
+        self.commit(self.me, "Price 90")
         output = self.output(self.me, "stop")
         self.assertEqual(output["decision"], "block")
         self.assertIn("collides", output["reason"])
-        self.assertIn("- oferta.md", output["reason"])
+        self.assertIn("- offer.md", output["reason"])
         self.assertTrue(self.nothing_open(self.me))
-        self.assertIn("90 zł", self.read(self.me, "oferta.md"))
+        self.assertIn("90 PLN", self.read(self.me, "offer.md"))
         self.assertIsNone(self.output(self.me, "stop", {"stop_hook_active": True}))
         self.assertIn("collides", self.hook(self.me, "prompt"))  # the second Stop deferred it
 
     def test_uncommitted_edit_to_a_file_partner_changed_is_not_touched(self):
-        self.partner_pushes("oferta.md", "# Oferta\n\nCena: 120 zł\n", "Cena 120")
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
+        self.partner_pushes("offer.md", "# Offer\n\nPrice: 120 PLN\n", "Price 120")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
         context = self.hook(self.me)
         self.assertIn("uncommitted or untracked local changes", context)
-        self.assertIn("left over from an earlier session:\n- oferta.md", context)
-        self.assertIn("90 zł", self.read(self.me, "oferta.md"))
+        self.assertIn("left over from an earlier session:\n- offer.md", context)
+        self.assertIn("90 PLN", self.read(self.me, "offer.md"))
 
     def test_uncommitted_edit_elsewhere_survives_the_pull(self):
-        self.partner_pushes("plan.md", "# Plan\n", "Dodano plan")
-        self.write(self.me, "oferta.md", "# Oferta\n\nCena: 90 zł\n")
+        self.partner_pushes("plan.md", "# Plan\n", "Add plan")
+        self.write(self.me, "offer.md", "# Offer\n\nPrice: 90 PLN\n")
         self.hook(self.me)
         self.assertEqual(self.read(self.me, "plan.md"), "# Plan\n")
-        self.assertIn("90 zł", self.read(self.me, "oferta.md"))
+        self.assertIn("90 PLN", self.read(self.me, "offer.md"))
 
     def test_stop_asks_to_commit_only_stale_work_and_never_twice(self):
         self.write(self.me, "fresh.md", "fresh\n")
@@ -554,26 +554,26 @@ class OpenSpaceTest(SyncTestCase):
     def test_worktree_on_its_own_branch_pushes_to_main(self):
         worktree = os.path.join(self.tmp.name, "wt")
         sh(self.me, "git", "worktree", "add", "--quiet", "-b", "paseo-task", worktree)
-        self.write(worktree, "z-worktree.md", "x\n")
-        self.commit(worktree, "Z worktree")
+        self.write(worktree, "from-worktree.md", "x\n")
+        self.commit(worktree, "From worktree")
         self.assertIsNone(self.output(worktree, "stop"))
-        self.assertEqual(self.remote_log()[0], "Z worktree")
+        self.assertEqual(self.remote_log()[0], "From worktree")
         self.assertEqual(sh(self.me, "git", "ls-remote", "origin", "paseo-task"), "")
 
     def test_session_end_autosaves_idle_files_only_and_pushes(self):
-        self.make_stale(self.me, "szkic.md", "szkic\n")
-        self.write(self.me, "w-toku.md", "inna sesja jeszcze nad tym pracuje\n")
-        sh(self.me, "git", "add", "w-toku.md")
+        self.make_stale(self.me, "sketch.md", "sketch\n")
+        self.write(self.me, "in-progress.md", "another session is still working on this\n")
+        sh(self.me, "git", "add", "in-progress.md")
         self.assertIsNone(self.output(self.me, "session-end"))
-        self.assertEqual(sh(self.me, "git", "status", "--porcelain"), "A  w-toku.md")
-        self.assertEqual(self.remote_log()[0], "Autozapis przy zamknięciu sesji: szkic.md")
-        self.assertEqual(sh(self.me, "git", "show", "--name-only", "--format=", "origin/main"), "szkic.md")
+        self.assertEqual(sh(self.me, "git", "status", "--porcelain"), "A  in-progress.md")
+        self.assertEqual(self.remote_log()[0], "Autosave at session end: sketch.md")
+        self.assertEqual(sh(self.me, "git", "show", "--name-only", "--format=", "origin/main"), "sketch.md")
 
     def test_autosave_lists_five_files_and_counts_the_rest(self):
         for n in range(7):
             self.make_stale(self.me, f"s{n}.md")
         self.output(self.me, "session-end")
-        self.assertEqual(self.remote_log()[0], "Autozapis przy zamknięciu sesji: s0.md, s1.md, s2.md, s3.md, s4.md and 2 more")
+        self.assertEqual(self.remote_log()[0], "Autosave at session end: s0.md, s1.md, s2.md, s3.md, s4.md and 2 more")
 
     def test_offline_is_reported_and_does_not_fail(self):
         sh(self.me, "git", "remote", "set-url", "origin", os.path.join(self.tmp.name, "missing.git"))
@@ -598,13 +598,13 @@ class OpenSpaceTest(SyncTestCase):
 
         sh(self.partner, "git", "submodule", "add", "--quiet", lib, "lib")
         sh(self.partner, "git", "-C", "lib", "checkout", "--quiet", first)
-        self.commit(self.partner, "Podmoduł")
+        self.commit(self.partner, "Add a submodule")
         sh(self.partner, "git", "push", "--quiet", "origin", "main")
         self.hook(self.me)
         self.assertEqual(sh(self.me, "git", "-C", "lib", "rev-parse", "HEAD"), first)
 
         sh(self.partner, "git", "-C", "lib", "checkout", "--quiet", second)
-        self.commit(self.partner, "Nowa wersja podmodułu")
+        self.commit(self.partner, "Bump the submodule")
         sh(self.partner, "git", "push", "--quiet", "origin", "main")
         self.forget_last_refresh()
         self.hook(self.me)
@@ -612,10 +612,10 @@ class OpenSpaceTest(SyncTestCase):
 
         # A pin moved by hand stays out of the autosave.
         sh(self.me, "git", "-C", "lib", "checkout", "--quiet", first)
-        self.make_stale(self.me, "szkic.md")
+        self.make_stale(self.me, "sketch.md")
         self.output(self.me, "session-end")
         self.assertEqual(sh(self.me, "git", "ls-tree", "origin/main", "lib").split()[2], second)
-        self.assertEqual(sh(self.me, "git", "show", "--name-only", "--format=", "origin/main"), "szkic.md")
+        self.assertEqual(sh(self.me, "git", "show", "--name-only", "--format=", "origin/main"), "sketch.md")
 
 
 class OptInTest(SyncTestCase):
