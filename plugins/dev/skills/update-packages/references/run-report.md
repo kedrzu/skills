@@ -41,7 +41,10 @@ sentence is what lets a reviewer trust a 13-commit dependency PR without replayi
 
 Every `pending` finding in `docs/dependency-health.md`, new or carried over — the only part of the
 report that asks the owner for something, hence first. One entry each: the package, where it is used,
-the evidence quoted or linked, the successor, and your recommendation with its reason.
+the evidence quoted or linked, the successor, and your recommendation with its reason. Then every
+catalogue move waiting on him, one line each with its `from → to` and its tracker issue
+(`updates-catalogue.md` → "A move that needs the owner") — it is never recorded in
+`docs/dependency-health.md`.
 
 - **`node-sass`** (`web`, `admin`) — npm: "Node Sass is no longer supported. Please use `sass` or
   `sass-embedded` instead." Successor `sass` (Dart Sass); its stricter parser and the deprecation
@@ -89,7 +92,8 @@ section proves every entry was looked at, so an entry missing from it is a bug i
   that proves a cloud-only part after merge)
 - `<name>`: already latest (`<version>`)
 - `<name>`: blocked — `<why>`: `incomplete entry (<field>)`, `Latest failed: <error>`, the error that
-  made the bump red (now a Known Issue), or the Known Issue that held it back
+  made the bump red (now a Known Issue), the Known Issue that held it back, or
+  `needs your decision: <from> → <to>, <issue>`
 
 For example:
 
@@ -97,6 +101,7 @@ For example:
 - `node` in CI: already latest (`24.11.1`)
 - runner image: bumped `2025.10` → `2025.11`; deploy proof tracked in ACME-913
 - `terraform`: blocked — incomplete entry (Latest)
+- database engine: blocked — needs your decision: `17` → `18`, ACME-940
 
 ## Runbook changes
 
