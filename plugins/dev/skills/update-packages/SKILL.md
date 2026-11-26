@@ -35,13 +35,19 @@ Announce when you start: "Updating packages — verifying baseline first, then b
     how a submodule records a block caused by a consumer without naming it, and who may lift such a
     block: `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/cross-repo-notebooks.md`.
   - **General Rules** are persistent constraints — couplings ("update only together with Y", "must
-    match the version X bundles"), override reasons, and the project's special procedures: a
-    container image tag versioned like a dependency, how to collapse duplicate dependency trees,
-    which bumps need a rebuild before e2e. Follow them before touching a named package; never remove
-    one unless its constraint is gone.
+    match the version X bundles"), override reasons, and the project's special procedures: how to
+    collapse duplicate dependency trees, which bumps need a rebuild before e2e. Follow them before
+    touching a named package; never remove one unless its constraint is gone. How to bump a version
+    pinned outside the package manager is not a General Rule — it is a catalogue entry.
   - **Known Issues** are version-specific failures. Never retry a known-broken update; remove the
     entry only when a newer version resolves it. A `blocked-by-consumer` entry is never retried
     from inside the repository that records it — only a consumer can prove it fixed.
+- **The catalogue** — `UPDATES.md` at the repository root: every version the package manager does
+  not track (an image tag, a tool version in a config file), each with how to find its latest
+  version, bump it, roll it out and verify it. Like the notebook, one per repository — read the
+  root's and every submodule's at the start. No `UPDATES.md` anywhere → skip Phase 5 and its report
+  section; the run is otherwise unchanged. Entry format and the walk:
+  `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/updates-catalogue.md`.
 - **Language** — the chat summary is in the owner's language, the PR, the tracker comment and everything
   committed in the repository language (both as `/dev:review` defines them).
 
@@ -187,7 +193,7 @@ For each batch (5–15 packages, one ecosystem):
 2. `bun install`.
 3. Verify — scoped while iterating, the **full** protocol before committing; a green scoped run is
    not a green codebase.
-4. **Green** → commit and push (Phase 5).
+4. **Green** → commit and push (Phase 6).
 5. **Red** → bisect to the offending package, revert just that one, move it to the risky list.
 
 ### Phase 4 — Risky packages, one at a time
@@ -211,16 +217,23 @@ Cases the version list does not show:
   as the General Rules say (typically pruning `node_modules` and installing again from the kept
   lockfile), and re-verify. The same thing happens after a branch switch or merge that moved a
   submodule pointer when install ran before the submodule update.
-- **Versions outside the package manager** — a container image tag or tool version pinned in a
-  config file is not in `bun outdated`. Update those the General Rules list, each with its own
-  procedure: edit the tag, recreate what runs it, full verify; green → commit, red → revert, recreate
-  the old one, record a Known Issue.
 - **Build-pipeline bumps** (framework, bundler, CSS tooling) leave the build output stale until
   rebuilt; the full `verify` protocol owns rebuilding before e2e. What it cannot do: tell the owner,
   in the report's **Manual action needed**, to restart any dev server he runs — a test runner that
   reuses a running dev server serves pre-bump code.
 
-### Phase 5 — Commit strategy (submodule-aware)
+### Phase 5 — Versions outside the package manager
+
+Runs on every run in a repository with an `UPDATES.md` (each submodule's included); skipped without
+one. Walk every entry in file order: run its **Latest**, compare with the pin, and when newer follow
+**Bump**, **Rollout** and the entry's own **Verify** checks — green → its own commit; red → revert,
+recreate the old version, record a Known Issue. The bumped entries then get one full `verify` as a
+batch, bisected on red; once it is green, the follow-ups their **Rollout** prescribes. A move whose
+**Bump** needs the owner's decision is never made: it gets a tracker issue instead. An entry missing
+a field is reported `blocked — incomplete entry` and skipped; the walk goes on. Every entry ends in
+exactly one report line. The steps: `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/updates-catalogue.md`.
+
+### Phase 6 — Commit strategy (submodule-aware)
 
 `bun install` updates every workspace from the root, but a submodule is a separate repository: its
 manifest and lockfile changes are committed and pushed there FIRST, then the main repository records
@@ -242,7 +255,7 @@ commands.
 |Type errors flood code that did not change|Duplicate trees — see Phase 4|
 |"Cannot find module" for the project's own workspace packages after `bun install`|A missing workspace link — run `bun install` again (or a clean reinstall)|
 
-### Phase 6 — Document and report
+### Phase 7 — Document and report
 
 Update `docs/package_update.md` in the format of the template: a constraint that persists across
 versions goes in **General Rules**; a version-specific failure in **Known Issues**, deleted once a
@@ -259,7 +272,8 @@ and the tracker issue.
 
 Derive the report from git, never from memory — the early batches of a multi-day run are long out of
 context. Every line of the final `bun outdated -r` appears in it with a reason; a package never
-attempted is a skip too. Commands, section order and a worked example:
+attempted is a skip too. Every catalogue entry gets exactly one line under **Outside the package
+manager**. Commands, section order and a worked example:
 `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/run-report.md`.
 
 ## References
@@ -268,6 +282,7 @@ attempted is a skip too. Commands, section order and a worked example:
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/library-mode.md` — ranges, peers and bounds in shared workspaces. Read before editing a submodule's or a published workspace's manifest.
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/dependency-review.md` — signals of an abandoned dependency. Read for the monthly full review.
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/run-report.md` — the report's sources, sections and example. Read when writing it.
-- `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/notebook-template.md` — skeletons of both notebook files. Read when either is missing or you add an entry.
+- `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/notebook-template.md` — skeletons of both notebook files and of `UPDATES.md`. Read when one is missing or you add an entry.
+- `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/updates-catalogue.md` — the `UPDATES.md` entry format and how a run walks it. Read for Phase 5 and when adding an entry.
 - `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/cross-repo-notebooks.md` — which repository's notebook an entry goes in, consumer-caused blocks, and lifting them. Read at the start of a run in a repository with submodules, in a repository that is itself consumed as a submodule, and whenever you record a block.
 - `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/references/contracts.md` — what `verify` and `git-workflow` provide.
