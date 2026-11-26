@@ -21,8 +21,9 @@ One `###` per pinned item, the five fields in this order, each filled:
 - **Rollout** — what must be rebuilt, recreated or redeployed for the new version to take effect,
   and any follow-up the run must create (e.g. "open a tracker issue for the deploy, blocked by this
   run's issue"). For something only the cloud builds or runs, how it gets proven after merge.
-- **Verify** — how to prove the new version works, as far as it can be proven locally: the project's
-  `verify` protocol, plus any check specific to this item.
+- **Verify** — how to prove the new version works, as far as it can be proven locally: the checks
+  specific to this item. The project's full `verify` protocol is not repeated per entry — it runs
+  once over every entry a run bumped (below).
 
 ## Walking the catalogue
 
@@ -40,13 +41,21 @@ Every run walks every entry, in file order, after the risky packages. For each:
    "A move that needs the owner" below, go on to the next entry.
 5. **Rollout** — do the local part: rebuild or recreate what runs it, so Verify tests the new
    version and not a cached old one.
-6. **Verify** — follow it; it includes the full `verify` protocol before committing.
+6. **Verify** — the entry's own checks (an image build, a template validate, a version printed),
+   not yet the full `verify` protocol: that runs once for the whole batch (below), and an entry
+   whose **Verify** names it is covered by that batch run.
 7. **Green** → commit through **checkpoint** (one commit per entry, named after it: "Update
-   <name> to <version>"), then carry out the follow-ups **Rollout** prescribes — a follow-up
-   tracker issue is created now and linked in the report. Report `bumped <from> → <to>`.
-8. **Red** → revert the bump, undo its local rollout (recreate the old one), record a **Known
-   Issue** `<name> <version>` in the notebook as for any failed update, report `blocked — <error in
-   one line>`.
+   <name> to <version>"). **Red** → revert the bump, undo its local rollout (recreate the old one),
+   record a **Known Issue** `<name> <version>` in the notebook as for any failed update, report
+   `blocked — <error in one line>`.
+
+When the walk is done, the entries it bumped are verified **as one batch**: one full `verify`
+protocol over all their commits — several entries rebuild the same image, and a full verify per
+entry would repeat e2e for each. Red → bisect as for a package batch (Phase 3): revert half the
+entry commits, re-verify, narrow down to the entry that turned it red, then revert that entry and
+handle it as a red entry above. Only once the batch is green, carry out the follow-ups **Rollout**
+prescribes for every entry still bumped — a follow-up tracker issue is created now and linked in
+the report — and report each `bumped <from> → <to>`.
 
 What only a deployment can prove stays unproven in this run: Verify covers the local part, and
 **Rollout** names how the rest is proven after merge. Say so in the report line ("bumped; deploy

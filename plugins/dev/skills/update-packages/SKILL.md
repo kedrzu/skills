@@ -226,11 +226,12 @@ Cases the version list does not show:
 
 Runs on every run in a repository with an `UPDATES.md` (each submodule's included); skipped without
 one. Walk every entry in file order: run its **Latest**, compare with the pin, and when newer follow
-**Bump**, **Rollout** and **Verify** — green → its own commit, then the follow-ups its **Rollout**
-prescribes; red → revert, recreate the old version, record a Known Issue. A move whose **Bump** needs
-the owner's decision is never made: it gets a tracker issue instead. An entry missing a field is
-reported `blocked — incomplete entry` and skipped; the walk goes on. Every entry ends in exactly one
-report line. The steps: `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/updates-catalogue.md`.
+**Bump**, **Rollout** and the entry's own **Verify** checks — green → its own commit; red → revert,
+recreate the old version, record a Known Issue. The bumped entries then get one full `verify` as a
+batch, bisected on red; once it is green, the follow-ups their **Rollout** prescribes. A move whose
+**Bump** needs the owner's decision is never made: it gets a tracker issue instead. An entry missing
+a field is reported `blocked — incomplete entry` and skipped; the walk goes on. Every entry ends in
+exactly one report line. The steps: `${CLAUDE_PLUGIN_ROOT}/skills/update-packages/references/updates-catalogue.md`.
 
 ### Phase 6 — Commit strategy (submodule-aware)
 
